@@ -1,0 +1,96 @@
+S (macOS / Linux / Windows)
+# =========================
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon?
+._*
+.Spotlight-V100
+.Trashes
+
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+*.swp
+*.swo
+*~
+.nfs*
+
+# =========================
+# IDE / Editors
+# =========================
+.vscode/
+.idea/
+*.code-workspace
+
+# =========================
+# Node / React
+# =========================
+node_modules/
+dist/
+build/
+.next/
+out/
+coverage/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+.env
+.env.local
+.env.*.local
+
+# =========================
+# Python / Flask / Django
+# =========================
+__pycache__/
+*.py[cod]
+*$py.class
+
+# virtualenv
+venv/
+env/
+.venv/
+
+# Flask / Django stuff
+instance/
+*.sqlite3
+db.sqlite3
+
+# migrations (иногда хотят хранить — решай сам)
+# migrations/
+
+# pytest / coverage
+.pytest_cache/
+.coverage
+htmlcov/
+
+# =========================
+# Logs
+# =========================
+*.log
+
+# =========================
+# Build / temp
+# =========================
+tmp/
+temp/
+.cache/
+*.pid
+
+# =========================
+# Docker (если есть)
+# =========================
+*.env
+docker-compose.override.yml
+
+# =========================
+# Misc
+# =========================
+*.bak
+*.old
+*.orig
+
