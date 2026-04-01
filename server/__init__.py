@@ -1,16 +1,16 @@
 from flask import Flask
 from flask_cors import CORS
 
-from app.config import Config
-from app.extensions import db, migrate
-from app.routes.health import health_bp
-from app.routes.auth import auth_bp
-from app.routes.temporary_storage import temporary_storage_bp
-from app.routes.archive import archive_bp
-from app.routes.tags import tags_bp
-from app.routes.users import users_bp
-from app.routes.undeclared import undeclared_bp
-from app.errors.handlers import register_error_handlers
+from config import Config
+from extensions import db, migrate
+from routes.health import health_bp
+from routes.auth import auth_bp
+from routes.temporary_storage import temporary_storage_bp
+from routes.archive import archive_bp
+from routes.tags import tags_bp
+from routes.users import users_bp
+from routes.undeclared import undeclared_bp
+from errors.handlers import register_error_handlers
 
 
 def create_app(config_class=Config):
@@ -26,7 +26,7 @@ def create_app(config_class=Config):
     db.init_app(app)
     migrate.init_app(app, db)
 
-    # НОВЫЕ пути (твоя архитектура)
+    # НОВЫЕ пути
     app.register_blueprint(health_bp, url_prefix="/api/v1/health")
     app.register_blueprint(auth_bp, url_prefix="/api/v1/auth")
     app.register_blueprint(temporary_storage_bp, url_prefix="/api/v1/temporary-storage")
@@ -47,7 +47,7 @@ def create_app(config_class=Config):
         return {"status": "ok", "message": "Backend is running"}
 
     with app.app_context():
-        from app import models
+        import models  # ← ВАЖНО: убрали app.
         db.create_all()
 
     return app

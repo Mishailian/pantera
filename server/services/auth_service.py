@@ -1,7 +1,7 @@
 from werkzeug.security import generate_password_hash, check_password_hash
-from app.extensions import db
-from app.models.user import User
-from app.models.author import Author
+from extensions import db
+from models.user import User
+from models.author import Author
 from secrets import token_hex
 
 

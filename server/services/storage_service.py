@@ -1,10 +1,10 @@
-from app.extensions import db
-from app.models.temporary_storage import Temporary_storage
-from app.models.undeclared_temporary_storage import Undeclared_temporary_storage
-from app.models.archive import Archive
-from app.models.tag_post import Tag_post
-from app.models.executor import Executor
-from app.utils.serializers import serialize_temporary_storage, serialize_undeclared_storage, serialize_archive, serialize_tag, serialize_executor
+from extensions import db
+from models.temporary_storage import Temporary_storage
+from models.undeclared_temporary_storage import Undeclared_temporary_storage
+from models.archive import Archive
+from models.tag_post import Tag_post
+from models.executor import Executor
+from utils.serializers import serialize_temporary_storage, serialize_undeclared_storage, serialize_archive, serialize_tag, serialize_executor
 
 
 class StorageService:

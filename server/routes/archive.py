@@ -1,6 +1,6 @@
 from flask import Blueprint, request, jsonify
-from app.services.storage_service import StorageService
-from app.utils.serializers import serialize_archive, serialize_many
+from services.storage_service import StorageService
+from utils.serializers import serialize_archive, serialize_many
 
 archive_bp = Blueprint("archive", __name__)
 
