@@ -1,7 +1,7 @@
 from flask import Blueprint, request, jsonify
-from app.services.storage_service import StorageService
-from app.services.auth_service import AuthService
-from app.utils.serializers import (
+from services.storage_service import StorageService
+from services.auth_service import AuthService
+from utils.serializers import (
     serialize_temporary_storage, serialize_undeclared_storage, 
     serialize_archive, serialize_tag, serialize_executor,
     serialize_many

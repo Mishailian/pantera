@@ -1,4 +1,4 @@
-from app.extensions import db
+from extensions import db
 
 class Tag_post(db.Model):
     __tablename__ = "tag_post"

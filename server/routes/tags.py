@@ -1,6 +1,6 @@
 from flask import Blueprint, request, jsonify
-from app.services.storage_service import StorageService
-from app.utils.serializers import serialize_tag, serialize_many
+from services.storage_service import StorageService
+from utils.serializers import serialize_tag, serialize_many
 
 tags_bp = Blueprint("tags", __name__, url_prefix="/api/v1/tags")
 

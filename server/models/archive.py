@@ -1,5 +1,5 @@
-from app.extensions import db
-from app.models.tag_post import Tag_post
+from extensions import db
+from models.tag_post import Tag_post
 
 archive_storage_tags = db.Table(
     "archive_storage_tags",

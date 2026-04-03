@@ -1,6 +1,6 @@
 from flask import Blueprint, request, jsonify
-from app.services.auth_service import AuthService
-from app.utils.serializers import serialize_many
+from services.auth_service import AuthService
+from utils.serializers import serialize_many
 
 auth_bp = Blueprint("auth", __name__)
 

@@ -1,4 +1,4 @@
-from app.extensions import db
+from extensions import db
 
 class Author(db.Model):
     __tablename__ = "author"

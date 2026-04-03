@@ -1,10 +1,10 @@
 from datetime import date
 from flask import jsonify
-from app.models.temporary_storage import Temporary_storage
-from app.models.undeclared_temporary_storage import Undeclared_temporary_storage
-from app.models.archive import Archive
-from app.models.tag_post import Tag_post
-from app.models.executor import Executor
+from models.temporary_storage import Temporary_storage
+from models.undeclared_temporary_storage import Undeclared_temporary_storage
+from models.archive import Archive
+from models.tag_post import Tag_post
+from models.executor import Executor
 
 
 def serialize_tag(tag):
