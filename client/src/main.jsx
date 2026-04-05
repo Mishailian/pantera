@@ -1,4 +1,5 @@
 import ReactDOM from "react-dom/client";
+import "./index.css";
 import store, { persistor } from "./app/store";
 import { Provider } from "react-redux";
 import { Root } from "./routers/Root/Root";

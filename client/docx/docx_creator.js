@@ -1,6 +1,4 @@
-import * as fs from "fs";
 import { base64Str } from "../src/assets/imgInBase64";
-import { staticApi } from "../src/static/static";
 import {
   Document,
   Packer,
@@ -11,8 +9,6 @@ import {
   TextRun,
   ImageRun,
   WidthType,
-  PageOrientation,
-  PageMargin,
   convertInchesToTwip,
   AlignmentType,
 } from "docx";
@@ -22,54 +18,52 @@ const defaultFont = "Times New Roman";
 const defaultSize = 24;
 
 export const docxCreator = (data) => {
-  const headerImg = async () => {
-    (await fetch(img)).blob();
-  };
   const tableCreator = (
     state,
     { columnWidths, cellWidth, headers, content }
   ) => {
-    const _cellCreator = (object) => {
+    const cellCreator = (object) => {
       if (object instanceof Date) object = object.toLocaleDateString();
+
       return new TableCell({
         width: cellWidth,
         children: [
-          new Paragraph({ alignment: AlignmentType.CENTER, text: `${object}` }),
+          new Paragraph({
+            alignment: AlignmentType.CENTER,
+            text: `${object ?? ""}`,
+          }),
         ],
       });
     };
 
-    const _headerCreator = () => {
-      let listOfHeders = [];
-      headers.map((el) => listOfHeders.push(_cellCreator(el)));
+    const headerCreator = () => {
       return new TableRow({
-        children: listOfHeders,
+        children: headers.map((el) => cellCreator(el)),
       });
     };
 
-    const _forckCellCreator = () => {
-      const ob = [];
-      let contentOfCurrentRow;
+    const rowCreator = () => {
+      const rows = [];
+
       for (const [key, value] of Object.entries(state)) {
-        (contentOfCurrentRow = content.reduce((accumulator, currentValue) => {
-          accumulator.push(_cellCreator(value[currentValue]));
-          return accumulator;
-        }, [])),
-          ob.push(
-            new TableRow({
-              children: [_cellCreator(key), ...contentOfCurrentRow],
-            })
-          );
+        const contentOfCurrentRow = content.map((field) =>
+          cellCreator(value[field])
+        );
+
+        rows.push(
+          new TableRow({
+            children: [cellCreator(key), ...contentOfCurrentRow],
+          })
+        );
       }
-      return ob;
+
+      return rows;
     };
 
-    const table = new Table({
-      columnWidths: columnWidths,
-      rows: [_headerCreator(), ..._forckCellCreator()],
+    return new Table({
+      columnWidths,
+      rows: [headerCreator(), ...rowCreator()],
     });
-
-    return table;
   };
 
   const table = tableCreator(data, {
@@ -84,7 +78,6 @@ export const docxCreator = (data) => {
       "Ед",
       "Колл",
       "Планируемый срок приобретения",
-      // "Фактический срок приобретения",
     ],
     content: ["title", "units", "quantity", "deadline"],
   });
@@ -102,31 +95,6 @@ export const docxCreator = (data) => {
     },
     sections: [
       {
-        // properties: {
-        //   size: {
-        //     orientation: PageOrientation.PORTRAIT,
-        //     width: 11906,
-        //     height: 16838,
-        //     margins: {
-        //       top: 200,
-        //       right: 200,
-        //       bottom: 200,
-        //       left: 200,
-        //     },
-        //     page: {
-        //       size: {
-        //         width: 11906,
-        //         height: 16838,
-        //       },
-        //       margin: {
-        //         top: 425,
-        //         bottom: 283,
-        //         left: convertInchesToTwip(0.2),
-        //         right: convertInchesToTwip(0.2),
-        //       },
-        //     },
-        //   },
-        // },
         properties: {
           page: {
             size: {
@@ -154,11 +122,13 @@ export const docxCreator = (data) => {
               }),
             ],
           }),
-          new Paragraph("             __________        _______________ "),
+
+          new Paragraph("             __________        _______________ "),
+
           new Paragraph({
             children: [
               new TextRun({
-                text: "                        (дата)                      (стр. подразделение)",
+                text: "                        (дата)                      (стр. подразделение)",
                 size: 18,
               }),
               new TextRun({
@@ -166,7 +136,6 @@ export const docxCreator = (data) => {
                 bold: true,
                 italics: true,
               }),
-
               new TextRun({
                 text: "_________________/___________/",
               }),
@@ -184,7 +153,9 @@ export const docxCreator = (data) => {
               }),
             ],
           }),
+
           new Paragraph(""),
+
           new Paragraph({
             indent: {
               left: 6205,
@@ -204,6 +175,7 @@ export const docxCreator = (data) => {
               }),
             ],
           }),
+
           new Paragraph(""),
           new Paragraph(""),
           new Paragraph(""),
@@ -211,43 +183,52 @@ export const docxCreator = (data) => {
           new Paragraph({
             alignment: AlignmentType.CENTER,
             spacing: 100,
-            children: [new TextRun({ text: "СЛУЖЕБНАЯ ЗАПИСКА", bold: true })],
+            children: [
+              new TextRun({
+                text: "СЛУЖЕБНАЯ ЗАПИСКА",
+                bold: true,
+              }),
+            ],
           }),
+
           new Paragraph(""),
           new Paragraph(""),
           table,
           new Paragraph(""),
 
-          // new Paragraph({
-          //   alignment: AlignmentType.LEFT,
-          //   text: "",
-          // }),
-
           new Paragraph({
             text: ":                                                       ____________________________",
           }),
+
           new Paragraph(""),
           new Paragraph(""),
           new Paragraph(""),
+
           new Paragraph({
             alignment: AlignmentType.CENTER,
-            text: "_______________________ ",
+            text: "_______________________ ",
           }),
+
           new Paragraph(""),
           new Paragraph(""),
+
           new Paragraph({
             alignment: AlignmentType.LEFT,
             text: "СОГЛАСОВАНО: ",
           }),
+
           new Paragraph({
             alignment: AlignmentType.CENTER,
             text: "________________________",
           }),
+
           new Paragraph(""),
+
           new Paragraph({
             alignment: AlignmentType.LEFT,
             text: "СОГЛАСОВАНО: ",
           }),
+
           new Paragraph({
             alignment: AlignmentType.CENTER,
             text: "________________________",
@@ -258,7 +239,6 @@ export const docxCreator = (data) => {
   });
 
   Packer.toBlob(doc).then((blob) => {
-    console.log(blob);
     saveAs(blob, "example.docx");
     console.log("Document created successfully");
   });

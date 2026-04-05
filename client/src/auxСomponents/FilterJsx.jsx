@@ -34,7 +34,7 @@ export const FilterJsx = (props) => {
   ));
 
   return (
-    <div className="relative z-0 row-start-1 row-span-5 col-end-7 dButton bg-colarC  rounded-lg">
+    <div className="relative z-0 row-start-1 row-span-5 col-end-7 border rounded-lg">
       {result}
       {tags}
     </div>

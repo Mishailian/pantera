@@ -1,88 +1,204 @@
+from datetime import datetime
+
 from extensions import db
-from models.temporary_storage import Temporary_storage
-from models.undeclared_temporary_storage import Undeclared_temporary_storage
-from models.archive import Archive
-from models.tag_post import Tag_post
-from models.executor import Executor
-from utils.serializers import serialize_temporary_storage, serialize_undeclared_storage, serialize_archive, serialize_tag, serialize_executor
+from models.request.request import Request
+from models.request.request_item import RequestItem
+from models.request.request_status_history import RequestStatusHistory
+from models.user.user import User
 
 
-class StorageService:
+class RequestService:
     ITEMS_PER_PAGE = 14
-    
+
+    VALID_STATUSES = {"undeclared", "active", "archived"}
+
     @staticmethod
-    def get_temporary_storages(page=0):
-        """Список temporary_storage с пагинацией"""
-        start, end = StorageService._calculate_page(page)
-        storages = Temporary_storage.query.slice(start, end).all()
-        return storages
-    
-    @staticmethod
-    def get_temporary_storage_by_id(storage_id):
-        """Получить temporary_storage по ID"""
-        return db.session.get(Temporary_storage, storage_id)
-    
-    @staticmethod
-    def create_temporary_storage(name, price_id=None, tags=None):
-        """Создать temporary_storage"""
-        storage = Temporary_storage(name=name, price_id=price_id)
-        
-        if tags:
-            tag_objects = Tag_post.query.filter(Tag_post.id.in_(tags)).all()
-            storage.tags = tag_objects
-        
-        db.session.add(storage)
-        db.session.commit()
-        return storage
-    
-    @staticmethod
-    def update_temporary_storage(storage_id, **kwargs):
-        """Обновить temporary_storage"""
-        storage = StorageService.get_temporary_storage_by_id(storage_id)
-        if not storage:
-            return None
-        
-        for key, value in kwargs.items():
-            if hasattr(storage, key):
-                setattr(storage, key)
-        
-        db.session.commit()
-        return storage
-    
-    @staticmethod
-    def _calculate_page(page):
-        """Вычисление границ страницы"""
-        page = int(page)
-        start = page * StorageService.ITEMS_PER_PAGE
-        end = start + StorageService.ITEMS_PER_PAGE
+    def _calculate_page(page: int):
+        page = max(int(page), 0)
+        start = page * RequestService.ITEMS_PER_PAGE
+        end = start + RequestService.ITEMS_PER_PAGE
         return start, end
-    
-    # Аналогичные методы для undeclared_storage и archive
+
     @staticmethod
-    def get_undeclared_storages(page=0):
-        start, end = StorageService._calculate_page(page)
-        return Undeclared_temporary_storage.query.slice(start, end).all()
-    
+    def _base_query():
+        return Request.query.order_by(Request.created_at.desc())
+
     @staticmethod
-    def get_archive_items(page=0):
-        start, end = StorageService._calculate_page(page)
-        return Archive.query.slice(start, end).all()
-    
+    def get_requests(page=0, status=None):
+        query = RequestService._base_query()
+
+        if status:
+            query = query.filter(Request.status == status)
+
+        start, end = RequestService._calculate_page(page)
+        return query.slice(start, end).all()
+
     @staticmethod
-    def get_tags():
-        return Tag_post.query.all()
-    
+    def get_request_by_id(request_id):
+        return db.session.get(Request, request_id)
+
     @staticmethod
-    def get_tag_by_id(tag_id):
-        return db.session.get(Tag_post, tag_id)
-    
+    def get_undeclared_requests(page=0):
+        return RequestService.get_requests(page=page, status="undeclared")
+
     @staticmethod
-    def create_tag(name):
-        tag = Tag_post(name=name)
-        db.session.add(tag)
+    def get_active_requests(page=0):
+        return RequestService.get_requests(page=page, status="active")
+
+    @staticmethod
+    def get_archived_requests(page=0):
+        return RequestService.get_requests(page=page, status="archived")
+
+    @staticmethod
+    def create_request(items, comment=None, created_by_id=None):
+        if not items or not isinstance(items, list):
+            raise ValueError("items must be a non-empty list")
+
+        if created_by_id is not None:
+            user = db.session.get(User, created_by_id)
+            if not user:
+                raise ValueError("created_by user not found")
+
+        request_obj = Request(
+            status="undeclared",
+            comment=comment,
+            created_by_id=created_by_id,
+        )
+
+        for item in items:
+            request_item = RequestItem(
+                name=item["name"],
+                unit=item["unit"],
+                quantity=item["quantity"],
+                description=item.get("description"),
+                is_done=item.get("is_done", False),
+            )
+            request_obj.items.append(request_item)
+
+        db.session.add(request_obj)
+        db.session.flush()
+
+        history_record = RequestStatusHistory(
+            request_id=request_obj.id,
+            from_status=None,
+            to_status="undeclared",
+            changed_by_id=created_by_id,
+            comment="Request created",
+        )
+        db.session.add(history_record)
         db.session.commit()
-        return tag
-    
+
+        return request_obj
+
     @staticmethod
-    def get_executors():
-        return Executor.query.all()
+    def update_request(request_id, **kwargs):
+        request_obj = RequestService.get_request_by_id(request_id)
+        if not request_obj:
+            return None
+
+        allowed_fields = {
+            "comment",
+            "assigned_to_id",
+        }
+
+        for key, value in kwargs.items():
+            if key in allowed_fields:
+                setattr(request_obj, key, value)
+
+        db.session.commit()
+        return request_obj
+
+    @staticmethod
+    def change_status(request_id, new_status, changed_by_id=None, comment=None):
+        if new_status not in RequestService.VALID_STATUSES:
+            raise ValueError(f"Invalid status: {new_status}")
+
+        request_obj = RequestService.get_request_by_id(request_id)
+        if not request_obj:
+            return None
+
+        old_status = request_obj.status
+        if old_status == new_status:
+            return request_obj
+
+        request_obj.status = new_status
+
+        if new_status == "active":
+            request_obj.approved_by_id = changed_by_id
+            request_obj.approved_at = datetime.utcnow()
+
+        if new_status == "archived":
+            request_obj.closed_at = datetime.utcnow()
+
+        history_record = RequestStatusHistory(
+            request_id=request_obj.id,
+            from_status=old_status,
+            to_status=new_status,
+            changed_by_id=changed_by_id,
+            comment=comment,
+        )
+
+        db.session.add(history_record)
+        db.session.commit()
+
+        return request_obj
+
+    @staticmethod
+    def update_request_item(item_id, **kwargs):
+        item = db.session.get(RequestItem, item_id)
+        if not item:
+            return None
+
+        allowed_fields = {
+            "name",
+            "unit",
+            "quantity",
+            "description",
+            "is_done",
+        }
+
+        for key, value in kwargs.items():
+            if key in allowed_fields:
+                setattr(item, key, value)
+
+        db.session.commit()
+        return item
+
+    @staticmethod
+    def add_request_item(request_id, name, unit, quantity, description=None):
+        request_obj = RequestService.get_request_by_id(request_id)
+        if not request_obj:
+            return None
+
+        item = RequestItem(
+            request_id=request_obj.id,
+            name=name,
+            unit=unit,
+            quantity=quantity,
+            description=description,
+            is_done=False,
+        )
+
+        db.session.add(item)
+        db.session.commit()
+        return item
+
+    @staticmethod
+    def delete_request_item(item_id):
+        item = db.session.get(RequestItem, item_id)
+        if not item:
+            return False
+
+        db.session.delete(item)
+        db.session.commit()
+        return True
+
+    @staticmethod
+    def delete_request(request_id):
+        request_obj = RequestService.get_request_by_id(request_id)
+        if not request_obj:
+            return False
+
+        db.session.delete(request_obj)
+        db.session.commit()
+        return True

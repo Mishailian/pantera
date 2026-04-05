@@ -1,107 +1,126 @@
-import { useLocation, useNavigate } from "react-router-dom";
-import { staticApi } from "../../static/static";
-import { Outlet } from "react-router-dom";
-import { useEffect } from "react";
+import { Outlet, useLocation, useNavigate } from "react-router-dom";
+import { useEffect, useMemo } from "react";
 import { useDispatch, useSelector } from "react-redux";
+
+import { staticApi } from "../../static/static";
 import { setToken } from "../../app/auth/authSlice";
 import { Login } from "../../app/auth/Login";
 
 export const Root = () => {
-  var result;
-  var newLocation;
-  const location = useLocation().pathname.replace(/\//g, "");
+  const s = staticApi();
 
-  var s = staticApi();
+  const navigate = useNavigate();
+  const dispatch = useDispatch();
+  const { pathname } = useLocation();
+
   const token = useSelector((state) => state.auth.token);
   const isAuth = useSelector((state) => state.auth.isAuth);
   const username = useSelector((state) => state.auth.username);
   const username_id = useSelector((state) => state.auth.username_id);
   const is_superuser = useSelector((state) => state.auth.is_superuser);
-  const dispatch = useDispatch();
-  const navigate = useNavigate();
-  var isTokenValid = JSON.parse(localStorage.getItem("persist:root"));
-  isTokenValid = JSON.parse(isTokenValid.auth)?.token;
   const usersTable = useSelector((state) => state.users.usersTable);
 
-  if (location.includes("users")) {
-    newLocation = usersTable[location.split("users")[1]] ?? "users";
-  } else {
-    newLocation = s.names[location];
-  }
-  console.log(location);
+  const normalizedLocation = pathname.replace(/\//g, "");
 
-  const header = () => {
-    return (
-      <>
-        <div className="relative basis-11/12 flex justify-center items-center">
-          <div>{newLocation}</div>
-        </div>
-        <div className="logo relative w-14 h-14 rounded-full bg-colarC overflow-hidden cursor-pointer shadow-lg hover:shadow-xl transition-shadow duration-500">
-          <div className="head absolute top-1 rounded-full h-6 w-6 bg-mainBG left-4"></div>
-          <div className="body absolute h-6 w-14 rounded-full bottom-0 bg-mainBG"></div>
-        </div>
-      </>
-    );
-  };
+  const persistedToken = useMemo(() => {
+    try {
+      const persistedRoot = localStorage.getItem("persist:root");
+      if (!persistedRoot) return null;
+
+      const parsedRoot = JSON.parse(persistedRoot);
+      const parsedAuth = JSON.parse(parsedRoot.auth || "{}");
+
+      return parsedAuth.token || null;
+    } catch {
+      return null;
+    }
+  }, []);
+
+  const currentPageTitle = useMemo(() => {
+    if (normalizedLocation.includes("users")) {
+      return usersTable[normalizedLocation.split("users")[1]] ?? "users";
+    }
+
+    return s.names[normalizedLocation] ?? "Главная";
+  }, [normalizedLocation, usersTable, s.names]);
+
+  const routes = useMemo(() => {
+    return Object.keys(s.paths).map((routeKey) => ({
+      key: routeKey,
+      label: s.names[routeKey],
+      path: s.paths[routeKey],
+      isActive: pathname === s.paths[routeKey],
+    }));
+  }, [pathname, s.names, s.paths]);
+
   useEffect(() => {
-    if (!isTokenValid) {
+    if (!persistedToken) {
       dispatch(
-        setToken({ token, is_superuser, username, username_id, isAuth: true })
+        setToken({
+          token,
+          is_superuser,
+          username,
+          username_id,
+          isAuth: true,
+        })
       );
     }
-  }, [isTokenValid]);
+  }, [dispatch, persistedToken, token, is_superuser, username, username_id]);
 
-  if (isAuth) {
-    var list_of_routers = () => {
-      var result = [];
-      var objscts = Object.keys(s.paths);
-      var route;
-      for (var key in objscts) {
-        route = objscts[key];
-        var handleleClick = ((r) => () => {
-          navigate(r);
-        })(s.paths[route]);
-
-        result.push(
-          <div className="cursor-pointer" onClick={handleleClick}>
-            <div className="relative inline-block bg-white w-3 h-3 mr-2"></div>
-            {s.names[route]}
-          </div>
-        );
-      }
-      return result;
-    };
-
-    result = (
-      <>
-        <div
-          id="sidebar"
-          className="row-span-12 col-start-1 col-end-2 bg-sideBar text-white flex items-center justify-between flex-col text-base"
-        >
-          <div className="flex flex-col items-center justify-center">
-            <div className="h-40 w-40 relative ">
-              <div className="w-36 h-20 bg-red-400"></div>
-              <div className="absolute bottom-5">УралШина</div>
-            </div>
-            <div className="flex flex-col gap-2">{...list_of_routers()}</div>
-          </div>
-          <div
-            className="cursor-pointer inline-block "
-            onClick={() => navigate(s.paths.auth)}
-          >
-            {username}
-          </div>
-        </div>
-        <div className="row-span-1 col-start-2 col-end-7 bg-white flex items-center ">
-          {header()}
-        </div>
-        <div className="row-span-11 col-start-2 col-end-7 bg-mainBG">
-          <Outlet />
-        </div>
-      </>
-    );
-  } else {
-    result = <Login />;
+  if (!isAuth) {
+    return <Login />;
   }
-  return result;
+
+  return (
+    <div className="flex min-h-screen bg-stone-100 text-stone-900">
+      {/* SIDEBAR */}
+      <aside className="flex w-[260px] shrink-0 flex-col justify-between border-r border-stone-300 bg-white px-6 py-8 shadow-sm">
+        <div>
+          <div className="mb-12">
+            <div className="text-2xl tracking-tight">
+              УралШина
+            </div>
+          </div>
+
+          <nav className="flex flex-col gap-2">
+            {routes.map((route) => (
+              <button
+                key={route.key}
+                onClick={() => navigate(route.path)}
+                className={`flex w-full items-center gap-3 rounded-lg px-4 py-3 text-md transition shadow-md ${
+                  route.isActive
+                    ? "bg-black text-white"
+                    : " bg-white hover:bg-stone-200"
+                }`}
+              >
+                {route.label}
+              </button>
+            ))}
+          </nav>
+        </div>
+
+      </aside>
+
+      {/* RIGHT SIDE */}
+      <div className="flex min-w-0 flex-1 flex-col">
+        {/* HEADER */}
+        <header className="flex h-[64px] items-center justify-between border-b border-stone-300 bg-white px-8">
+          <h1 className="text-xl font-semibold tracking-tight">
+            {currentPageTitle}
+          </h1>
+
+          <div className="flex h-10 w-10 items-center justify-center rounded-full border border-stone-300 bg-stone-100">
+            <div className="h-3 w-3 rounded-full bg-black" />
+          </div>
+        </header>
+
+        {/* CONTENT */}
+        <main className="flex min-h-0 flex-1 flex-col bg-stone-100 p-8">
+          <div className="flex flex-1 flex-col rounded-xl border border-stone-300 bg-white p-6 shadow-sm">
+            <Outlet />
+          </div>
+        </main>
+      </div>
+    </div>
+  );
 };

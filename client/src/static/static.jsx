@@ -19,7 +19,7 @@ export var staticApi = () => {
     names: {
       store: "Заявки",
       archived: "Архив",
-      undeclared: "Регистрация",
+      undeclared: "Без подписи",
       users: "Пользователи",
       auth: "Вход",
       addPost: "Добавить",

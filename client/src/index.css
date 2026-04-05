@@ -2,204 +2,138 @@
 @tailwind components;
 @tailwind utilities;
 
-/* composites clasess */
-.interactive-element {
-  @apply rounded-lg focus:outline-2 shadow-md hover:shadow-lg;
-}
-
-.interactive-element:hover {
-  @apply shadow-lg;
+/* fonts */
+@font-face {
+  font-family: "InterCustom";
+  src: url("./fonts/Inter/Inter-VariableFont_opsz,wght.ttf") format("truetype");
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
 }
 
 @font-face {
-  font-family: Garamond;
-  src: url("./fonts/EB_Garamond/static/EBGaramond-Medium.ttf");
+  font-family: "EBGaramondCustom";
+  src: url("./fonts/EB_Garamond/static/EBGaramond-Medium.ttf") format("truetype");
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+   
+/* base */
+:root {
+  color-scheme: light;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
 }
 
 * {
   text-decoration: none;
 }
 
-html {
-  margin: 0px;
-  height: 100%;
+html,
+body,
+#root {
+  min-height: 100%;
   width: 100%;
-  font-family: Garamond;
+  margin: 0;
+}
+
+html {
+  font-family: "InterCustom", "Inter", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 body {
-  margin: 0px;
-  min-height: 100%;
-  width: 100%;
+  @apply bg-stone-100 text-stone-900;
 }
 
-.dButton {
-  display: inline-block;
-  position: relative;
-  border-radius: 5px;
-  cursor: pointer;
-  -webkit-appearance: none;
-  -moz-appearance: none;
-  appearance: none;
-}
-.dButton::before {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  border-radius: 0.5rem;
-  border: 0rem solid transparent; /* Начальная граница */
-  outline: 0.1rem solid var(--color-colarC); /* Устанавливаем красный цвет границы */
-  box-sizing: border-box; /* Учитываем ширину границы внутри размеров элемента */
-  transition-duration: 200ms;
-  transition-property: all;
-  z-index: 9;
+/* typography helpers */
+.brand-font {
+  font-family: "EBGaramondCustom", "Times New Roman", serif;
 }
 
-.dButton:hover::before {
-  outline-width: 0.2rem;
+.ui-font {
+  font-family: "InterCustom", "Inter", ui-sans-serif, system-ui, sans-serif;
 }
 
-.removeB:active::before {
-  border: 0.4rem solid var(--color-colarC);
+/* reusable ui classes */
+.interactive-element {
+  @apply rounded-lg border border-stone-300 bg-white shadow-sm transition duration-200 hover:border-stone-400 hover:shadow;
 }
 
-.openB:active::before {
-  border: 0.4rem solid var(--color-blueC);
+.surface {
+  @apply rounded-xl border border-stone-300 bg-white shadow-sm;
 }
 
-/* checkbox */
-/* input[type="checkbox"] {
-  display: none;
-} */
+.input-ui {
+  @apply w-full rounded-lg border border-stone-300 bg-white px-3 py-2 text-sm text-stone-900 placeholder:text-stone-400 outline-none transition focus:border-black focus:ring-0;
+}
 
-/* Стили для кастомного чекбокса */
+.button-primary {
+  @apply inline-flex items-center justify-center rounded-lg border border-black bg-black px-4 py-2 text-sm font-medium text-white transition hover:bg-stone-800;
+}
+
+.button-secondary {
+  @apply inline-flex items-center justify-center rounded-lg border border-stone-300 bg-white px-4 py-2 text-sm font-medium text-stone-900 transition hover:border-stone-400 hover:bg-stone-100;
+}
+
+.button-ghost {
+  @apply inline-flex items-center justify-center rounded-lg px-4 py-2 text-sm font-medium text-stone-700 transition hover:bg-stone-100 hover:text-black;
+}
+
+/* custom checkbox / switch */
 .custom-checkbox {
-  margin: 0%;
-  padding: 0%;
-  display: inline-block;
-  position: relative;
-  cursor: pointer;
-  width: 3.1em;
-  height: 1.2em;
-  border-radius: 100px;
-  -webkit-appearance: none;
-  -moz-appearance: none;
-  appearance: none;
-  transition: all 1s cubic-bezier(0.2, 0.85, 0.32, 1.2);
-  z-index: 10;
+  @apply relative inline-block h-6 w-11 cursor-pointer appearance-none rounded-full border border-stone-300 bg-stone-200 transition;
 }
 
 .custom-checkbox::before {
   content: "";
-  position: absolute;
-  background: white;
-  border-radius: 100px;
-  box-shadow: var(--color-blueC) 0px 0px 2px;
-
-  transition: all 1s cubic-bezier(0.2, 0.85, 0.32, 1.2);
-  width: 100%;
-  height: 100%;
-  z-index: 1;
+  @apply absolute left-0.5 top-0.5 h-4 w-4 rounded-full bg-white shadow-sm transition;
 }
 
-.custom-checkbox::after {
-  content: "";
-  margin-left: 0px;
-  position: absolute;
-  width: 1.1em;
-  height: 1.1em;
-  border-radius: 100px;
-  background-color: var(--color-blueC);
-  top: 1px;
-  transition: all 0.5s cubic-bezier(0.2, 0.85, 0.32, 1.2);
-  left: 1px;
-  z-index: 10;
-}
-
-.custom-checkbox:checked::after {
-  background-color: white;
-  margin-left: 2em;
+.custom-checkbox:checked {
+  @apply border-black bg-black;
 }
 
 .custom-checkbox:checked::before {
-  background-color: var(--color-blueC);
-  box-shadow: white 0px 0px 2px;
+  transform: translateX(20px);
 }
 
-.custom-checkbox:hover::before {
-  height: 110%;
-  width: 110%;
+/* focus states */
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid #111111;
+  outline-offset: 2px;
 }
 
-.custom-checkbox:hover::after {
-  width: 1.2em;
-  height: 1.2em;
+/* scrollbar */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #a8a29e #f5f5f4;
 }
 
-/* chose executor */
-
-div .choseExecutor {
-  position: absolute;
-  display: flex;
-  flex-wrap: wrap;
-  flex-direction: row-reverse;
-  align-content: baseline;
-  width: 50%;
-  height: 100%;
-  right: 0;
-  top: 0;
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
 }
 
-/* styles for add post */
-
-.taskField {
-  outline-width: 0px;
-  outline-style: solid;
-  outline-color: var(--color-colarC);
-  transition-property: all;
-  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
-  transition-duration: 150ms;
+*::-webkit-scrollbar-track {
+  background: #f5f5f4;
 }
 
-.taskField:focus {
-  outline-width: 2px;
+*::-webkit-scrollbar-thumb {
+  background: #a8a29e;
+  border-radius: 9999px;
+  border: 2px solid #f5f5f4;
 }
 
-.highlightSecondEl .addComp:nth-child(2) {
-  outline: 1px solid gray;
-}
-
-.userList .dButton:nth-child(1) {
-  background-color: var(--color-colarC);
-}
-
-.userList .dButton:nth-child(2) {
-  background-color: var(--color-blueC);
-}
-
-.userList .dButton:nth-child(2)::before {
-  outline-color: var(--color-blueC);
-}
-
-.userList .dButton:nth-child(5n)::before {
-  outline-color: var(--color-blueC);
-}
-
-.userList .dButton:nth-child(3) {
-  background-color: white;
-}
-
-.userList .dButton:nth-child(4n) {
-  background-color: var(--color-colarC);
-}
-
-.userList .dButton:nth-child(5n) {
-  background-color: var(--color-blueC);
-}
-
-.userList .dButton:nth-child(6n) {
-  background-color: var(--color-mainBG);
+*::-webkit-scrollbar-thumb:hover {
+  background: #78716c;
 }
