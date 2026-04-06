@@ -1,0 +1,11 @@
+DATABASE_URL=postgresql://pantera_user:pantera_pass@postgres:5432/pantera
+
+DEBUG=true
+
+CORS_ORIGINS=http://localhost,http://localhost:80,http://localhost:5173,http://localhost:3000
+
+DB_HOST=postgres
+DB_PORT=5432
+DB_NAME=pantera
+DB_USER=pantera_user
+DB_PASSWORD=pantera_pass
