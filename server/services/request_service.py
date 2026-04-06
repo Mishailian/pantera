@@ -2,8 +2,8 @@ from datetime import datetime
 
 from extensions import db
 from models.request.request import Request
-from models.request.request_item import RequestItem
-from models.request.request_status_history import RequestStatusHistory
+from models.request.requestItem import RequestItem
+from models.request.requestStatusHistory import RequestStatusHistory
 from models.user.user import User
 
 

@@ -3,7 +3,7 @@ from flask import Blueprint, request, jsonify
 from services.request_service import RequestService
 from utils.serializers import serialize_many, serialize_request, serialize_request_item
 
-requests_bp = Blueprint("requests", __name__, url_prefix="/api/v1/requests")
+requests_bp = Blueprint("requests", __name__)
 
 
 @requests_bp.get("/")
@@ -13,6 +13,14 @@ def list_requests():
 
     requests_list = RequestService.get_requests(page=page, status=status)
     return jsonify(serialize_many(requests_list, serialize_request))
+
+@requests_bp.get("/health")
+def health_check():
+    return jsonify({
+        "status": "ok",
+        "message": "Flask backend is running",
+        "version": "1.0.0"
+    })
 
 
 @requests_bp.get("/<int:request_id>")
