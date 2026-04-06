@@ -71,19 +71,29 @@ export var staticApi = () => {
   return obj;
 };
 // надо провести сюда запрос по получению пользователь и включить хэш  это сейчас находиться в Login.js
-export var updateObjectsTable = (
-  setFunction,
-  errorMessege = "ты не передал обекты в аргументы"
+export const useUpdateObjectsTable = ( setFunction,
+  valueKey = "name",
+  errorMessage = "ты не передал объекты в аргументы"
 ) => {
-  var table = {};
-  var dispatch = useDispatch();
-  var callBack = (objects = null) => {
-    if (objects) {
-      Object.values(objects).map((object) => (table[object.id] = object.name));
-      dispatch(setFunction(table));
-    } else {
-      alert(errorMessege);
+  const dispatch = useDispatch();
+
+  const callBack = (objects = null) => {
+    if (!objects) {
+      alert(errorMessage);
+      return;
     }
+
+    const list = Array.isArray(objects) ? objects : Object.values(objects);
+
+    const table = list.reduce((acc, object) => {
+      if (object?.id != null) {
+        acc[object.id] = object?.[valueKey] ?? "";
+      }
+      return acc;
+    }, {});
+
+    dispatch(setFunction(table));
   };
+
   return callBack;
 };

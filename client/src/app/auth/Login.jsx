@@ -13,14 +13,14 @@ import { setTagsTable } from "./tagsSlice";
 import { setUsersTable } from "./usesSlice";
 
 import { progressCheck } from "../../progressCheck";
-import { updateObjectsTable } from "../../static/static";
+import { useUpdateObjectsTable } from "../../static/static";
 
 export const Login = () => {
   const dispatch = useDispatch();
   const authToken = useSelector((state) => state.auth.token);
 
-  const updateUsersTable = useMemo(() => updateObjectsTable(setUsersTable), []);
-  const updateTagsTable = useMemo(() => updateObjectsTable(setTagsTable), []);
+  const updateUsersTable = useMemo(() => useUpdateObjectsTable(setUsersTable), []);
+  const updateTagsTable = useMemo(() => useUpdateObjectsTable(setTagsTable), []);
 
   const [mode, setMode] = useState("login");
   const [errorText, setErrorText] = useState("");
@@ -40,22 +40,15 @@ export const Login = () => {
   const [auth, { isLoading: isLoginLoading }] = useAuthenticationMutation();
   const [registerUser, { isLoading: isRegisterLoading }] = useRegisterMutation();
 
-  const tags = useGetTagsQuery(undefined, {
-    skip: !authToken,
-  });
 
   const users = useGetUsersQuery(undefined, {
     skip: !authToken,
   });
 
-  useEffect(() => {
-    if (authToken && tags?.data) {
-      progressCheck(tags, updateTagsTable);
-    }
-  }, [authToken, tags?.data, tags, updateTagsTable]);
 
   useEffect(() => {
     if (authToken && users?.data) {
+      console.log(users);
       progressCheck(users, updateUsersTable);
     }
   }, [authToken, users?.data, users, updateUsersTable]);

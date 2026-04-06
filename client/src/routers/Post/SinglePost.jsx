@@ -8,14 +8,14 @@ import {
   useGetTagsQuery,
 } from "../../app/api/apiSlice";
 import { SinglePostBlock } from "../../auxСomponents/SinglePostBlock";
-import { updateObjectsTable } from "../../static/static";
+import { useUpdateObjectsTable } from "../../static/static";
 import { setTagsTable } from "../../app/auth/tagsSlice";
 
 export const SinglePost = () => {
   const { postId } = useParams();
   const postObject = useGetPostQuery({ postId });
   const tags = useGetTagsQuery();
-  var updateTagsTable = updateObjectsTable(setTagsTable);
+  var updateTagsTable = useUpdateObjectsTable(setTagsTable);
   progressCheck(tags, updateTagsTable);
 
   const is_superuser = useSelector((state) => state.auth.is_superuser);
