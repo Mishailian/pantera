@@ -60,7 +60,6 @@ def serialize_request(request_obj):
         "comment": request_obj.comment,
         "created_by_id": request_obj.created_by_id,
         "approved_by_id": request_obj.approved_by_id,
-        "assigned_to_id": request_obj.assigned_to_id,
         "created_at": request_obj.created_at.isoformat() if request_obj.created_at else None,
         "updated_at": request_obj.updated_at.isoformat() if request_obj.updated_at else None,
         "approved_at": request_obj.approved_at.isoformat() if request_obj.approved_at else None,
