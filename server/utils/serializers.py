@@ -26,7 +26,6 @@ def serialize_user(user):
         "username": user.username,
         "full_name": user.full_name,
         "is_active": user.is_active,
-        "is_superuser": user.is_superuser,
         "roles": [serialize_role(role) for role in user.roles],
         "created_at": user.created_at.isoformat() if user.created_at else None,
         "updated_at": user.updated_at.isoformat() if user.updated_at else None,

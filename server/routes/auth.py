@@ -33,8 +33,6 @@ def register():
             username=data.get("username"),
             password=data.get("password"),
             full_name=data.get("full_name"),
-            role_names=data.get("roles", []),
-            is_superuser=data.get("is_superuser", False),
         )
         return jsonify({
             "token": user.token,

@@ -19,8 +19,9 @@ export const Login = () => {
   const dispatch = useDispatch();
   const authToken = useSelector((state) => state.auth.token);
 
-  const updateUsersTable = useMemo(() => useUpdateObjectsTable(setUsersTable), []);
-  const updateTagsTable = useMemo(() => useUpdateObjectsTable(setTagsTable), []);
+  const updateUsersTable = useUpdateObjectsTable(setUsersTable);
+  const updateTagsTable = useUpdateObjectsTable(setTagsTable);
+
 
   const [mode, setMode] = useState("login");
   const [errorText, setErrorText] = useState("");
@@ -68,7 +69,7 @@ export const Login = () => {
             isAuth: true,
             username: user?.username ?? null,
             username_id: user?.id ?? null,
-            is_superuser: user?.is_superuser ?? false,
+            roles: user?.roles ?? [],
             token: token ?? null,
           })
         );
@@ -98,14 +99,14 @@ export const Login = () => {
       const response = await registerUser(registerForm);
 
       if (response?.data) {
-        const { token, user } = response.data;
+        const { token, user } = response.data; 
 
         dispatch(
           setToken({
             isAuth: true,
             username: user?.username ?? null,
             username_id: user?.id ?? null,
-            is_superuser: user?.is_superuser ?? false,
+            roles: user?.roles ?? [],
             token: token ?? null,
           })
         );
@@ -133,7 +134,7 @@ export const Login = () => {
       setToken({
         token: null,
         isAuth: false,
-        is_superuser: null,
+        roles: [],
         username: null,
         username_id: null,
       })

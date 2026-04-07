@@ -1,3 +1,4 @@
+# models/user/user.py
 from datetime import datetime
 from werkzeug.security import generate_password_hash, check_password_hash
 
@@ -15,7 +16,6 @@ class User(db.Model):
 
     full_name = db.Column(db.String(150), nullable=False)
     is_active = db.Column(db.Boolean, nullable=False, default=True)
-    is_superuser = db.Column(db.Boolean, nullable=False, default=False)
 
     token = db.Column(db.String(255), unique=True, nullable=True)
 
@@ -42,6 +42,9 @@ class User(db.Model):
 
     def has_role(self, role_name: str) -> bool:
         return any(role.name == role_name for role in self.roles)
+
+    def is_admin(self) -> bool:
+        return self.has_role("admin")
 
     def add_role(self, role) -> None:
         if role not in self.roles:

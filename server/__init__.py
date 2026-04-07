@@ -42,4 +42,8 @@ def create_app(config_class=Config):
         import models  # noqa
         db.create_all()
 
+        # ── Заполняем роли при первом старте ──
+        from models.user.role import seed_roles
+        seed_roles()
+
     return app
