@@ -18,11 +18,9 @@ export const apiSlice = createApi({
     baseUrl: import.meta.env.VITE_API_URL || "http://localhost/api/v1",
     prepareHeaders: (headers, { getState }) => {
       const token = getState()?.auth?.token;
-
       if (token) {
         headers.set("Authorization", `Token ${token}`);
       }
-
       return headers;
     },
     credentials: "include",
@@ -68,6 +66,15 @@ export const apiSlice = createApi({
       query: (userId) => ({
         url: `/users/${userId}`,
         method: "GET",
+      }),
+    }),
+
+    updateUserRoles: builder.mutation({
+      invalidatesTags: ["USERS"],
+      query: ({ userId, role }) => ({
+        url: `/users/${userId}/roles`,
+        method: "PATCH",
+        body: { role },
       }),
     }),
 
@@ -117,7 +124,6 @@ export const apiSlice = createApi({
       providesTags: ["REQUESTS"],
       query: (params = {}) => {
         const queryString = buildQueryParams(params);
-
         return {
           url: `/requests/${queryString ? `?${queryString}` : ""}`,
           method: "GET",
@@ -162,11 +168,7 @@ export const apiSlice = createApi({
       query: ({ requestId, status, changed_by_id, comment }) => ({
         url: `/requests/${requestId}/status`,
         method: "PATCH",
-        body: {
-          status,
-          changed_by_id,
-          comment,
-        },
+        body: { status, changed_by_id, comment },
       }),
     }),
 
@@ -210,62 +212,35 @@ export const apiSlice = createApi({
     getUndeclaredRequests: builder.query({
       providesTags: ["REQUESTS"],
       query: ({ page } = {}) => {
-        const queryString = buildQueryParams({
-          status: "undeclared",
-          page,
-        });
-
-        return {
-          url: `/requests/?${queryString}`,
-          method: "GET",
-        };
+        const queryString = buildQueryParams({ status: "undeclared", page });
+        return { url: `/requests/?${queryString}`, method: "GET" };
       },
     }),
 
     getActiveRequests: builder.query({
       providesTags: ["REQUESTS"],
       query: ({ page } = {}) => {
-        const queryString = buildQueryParams({
-          status: "active",
-          page,
-        });
-
-        return {
-          url: `/requests/?${queryString}`,
-          method: "GET",
-        };
+        const queryString = buildQueryParams({ status: "active", page });
+        return { url: `/requests/?${queryString}`, method: "GET" };
       },
     }),
 
     getArchivedRequests: builder.query({
       providesTags: ["REQUESTS"],
       query: ({ page } = {}) => {
-        const queryString = buildQueryParams({
-          status: "archived",
-          page,
-        });
-
-        return {
-          url: `/requests/?${queryString}`,
-          method: "GET",
-        };
+        const queryString = buildQueryParams({ status: "archived", page });
+        return { url: `/requests/?${queryString}`, method: "GET" };
       },
     }),
 
     getPostsCount: builder.query({
       providesTags: ["REQUESTS"],
-      query: () => ({
-        url: "/requests/?count=1&status=active",
-        method: "GET",
-      }),
+      query: () => ({ url: "/requests/?count=1&status=active", method: "GET" }),
     }),
 
     getUndeclaredPostsCount: builder.query({
       providesTags: ["REQUESTS"],
-      query: () => ({
-        url: "/requests/?count=1&status=undeclared",
-        method: "GET",
-      }),
+      query: () => ({ url: "/requests/?count=1&status=undeclared", method: "GET" }),
     }),
 
     getPostsFilteredCount: builder.query({
@@ -278,70 +253,40 @@ export const apiSlice = createApi({
 
     getArhive: builder.query({
       providesTags: ["REQUESTS"],
-      query: () => ({
-        url: "/requests/?status=archived",
-        method: "GET",
-      }),
+      query: () => ({ url: "/requests/?status=archived", method: "GET" }),
     }),
 
     getPosts: builder.query({
       providesTags: ["REQUESTS"],
       query: ({ page } = {}) => {
-        const queryString = buildQueryParams({
-          status: "active",
-          page,
-        });
-
-        return {
-          url: `/requests/?${queryString}`,
-          method: "GET",
-        };
+        const queryString = buildQueryParams({ status: "active", page });
+        return { url: `/requests/?${queryString}`, method: "GET" };
       },
     }),
 
     getUndeclaredPosts: builder.query({
       providesTags: ["REQUESTS"],
       query: ({ page } = {}) => {
-        const queryString = buildQueryParams({
-          status: "undeclared",
-          page,
-        });
-
-        return {
-          url: `/requests/?${queryString}`,
-          method: "GET",
-        };
+        const queryString = buildQueryParams({ status: "undeclared", page });
+        return { url: `/requests/?${queryString}`, method: "GET" };
       },
     }),
 
     getPost: builder.query({
       providesTags: (result, error, arg) => [{ type: "REQUEST", id: arg?.postId }],
-      query: ({ postId }) => ({
-        url: `/requests/${postId}`,
-        method: "GET",
-      }),
+      query: ({ postId }) => ({ url: `/requests/${postId}`, method: "GET" }),
     }),
 
     getUndeclaredPost: builder.query({
       providesTags: (result, error, arg) => [{ type: "REQUEST", id: arg?.postId }],
-      query: ({ postId }) => ({
-        url: `/requests/${postId}`,
-        method: "GET",
-      }),
+      query: ({ postId }) => ({ url: `/requests/${postId}`, method: "GET" }),
     }),
 
     getFilterPosts: builder.query({
       providesTags: ["REQUESTS"],
       query: (params = {}) => {
-        const queryString = buildQueryParams({
-          ...params,
-          status: "active",
-        });
-
-        return {
-          url: `/requests/?${queryString}`,
-          method: "GET",
-        };
+        const queryString = buildQueryParams({ ...params, status: "active" });
+        return { url: `/requests/?${queryString}`, method: "GET" };
       },
     }),
 
@@ -350,11 +295,7 @@ export const apiSlice = createApi({
       query: ({ postId, changed_by_id, comment }) => ({
         url: `/requests/${postId}/status`,
         method: "PATCH",
-        body: {
-          status: "active",
-          changed_by_id,
-          comment,
-        },
+        body: { status: "active", changed_by_id, comment },
       }),
     }),
 
@@ -390,18 +331,12 @@ export const apiSlice = createApi({
 
     deletePost: builder.mutation({
       invalidatesTags: ["REQUESTS"],
-      query: (postId) => ({
-        url: `/requests/${postId}`,
-        method: "DELETE",
-      }),
+      query: (postId) => ({ url: `/requests/${postId}`, method: "DELETE" }),
     }),
 
     deleteUndeclaredPost: builder.mutation({
       invalidatesTags: ["REQUESTS"],
-      query: (postId) => ({
-        url: `/requests/${postId}`,
-        method: "DELETE",
-      }),
+      query: (postId) => ({ url: `/requests/${postId}`, method: "DELETE" }),
     }),
 
     addPost: builder.mutation({
@@ -422,6 +357,7 @@ export const {
   useGetUsersQuery,
   useGetUsersDBQuery,
   useGetUserQuery,
+  useUpdateUserRolesMutation,
 
   useGetTagsQuery,
   useGetTagQuery,

@@ -6,7 +6,7 @@ const authSlice = createSlice({
     csrf_token: null,
     username: null,
     username_id: null,
-    is_superuser: false,
+    roles: [],
     isAuth: false,
     token: null,
   },
@@ -14,9 +14,9 @@ const authSlice = createSlice({
     setToken: (state, action) => {
       state.token = action.payload.token;
       state.isAuth = action.payload.isAuth;
-      state.csrf_token = action.payload.csrf_token;
+      state.csrf_token = action.payload.csrf_token ?? null;
       state.username = action.payload.username;
-      state.is_superuser = action.payload.is_superuser;
+      state.roles = action.payload.roles || [];
       state.username_id = action.payload.username_id;
     },
   },

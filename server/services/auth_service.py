@@ -77,13 +77,7 @@ class AuthService:
         return User.query.filter_by(username=username).first()
 
     @staticmethod
-    def assign_roles(actor: User, target_user_id: int, role_names: list[str]):
-        """
-        Назначить роли пользователю.
-        actor    — кто выполняет действие (должен быть admin).
-        target_user_id — кому назначаем роли.
-        role_names — список имён ролей, ПОЛНОСТЬЮ заменяет текущие.
-        """
+    def assign_role(actor: User, target_user_id: int, role_name: str):
         if not actor.is_admin():
             raise PermissionError("Only admin can assign roles")
 
@@ -91,12 +85,15 @@ class AuthService:
         if not target_user:
             raise ValueError(f"User {target_user_id} not found")
 
-        roles = Role.query.filter(Role.name.in_(role_names)).all()
-        found_names = {r.name for r in roles}
-        missing = set(role_names) - found_names
-        if missing:
-            raise ValueError(f"Roles not found: {', '.join(sorted(missing))}")
+        role = Role.query.filter_by(name=role_name).first()
+        if not role:
+            raise ValueError(f"Role '{role_name}' not found")
 
-        target_user.roles = roles
+        target_user.roles = [role]
         db.session.commit()
         return target_user
+    
+    @staticmethod
+    def get_user_by_token(token):
+        """Получить пользователя по токену"""
+        return User.query.filter_by(token=token).first()
