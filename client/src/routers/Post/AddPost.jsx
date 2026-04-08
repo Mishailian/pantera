@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useSelector } from "react-redux";
 import { useAddPostMutation } from "../../app/api/apiSlice";
 import { docxCreator } from "../../../docx/docx_creator";
@@ -47,6 +47,91 @@ const mapRowsToRequestPayload = (rows, currentUserId) => {
     created_by_id: currentUserId ?? null,
     items,
   };
+};
+
+const UnitField = ({ value, onChange }) => {
+  const [open, setOpen] = useState(false);
+  const wrapRef = useRef(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (!wrapRef.current?.contains(event.target)) {
+        setOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const filteredOptions = useMemo(() => {
+    const current = String(value ?? "").trim().toLowerCase();
+
+    if (!current) return UNIT_OPTIONS;
+
+    const matched = UNIT_OPTIONS.filter((item) =>
+      item.toLowerCase().includes(current)
+    );
+
+    const exactExists = UNIT_OPTIONS.some(
+      (item) => item.toLowerCase() === current
+    );
+
+    if (!exactExists && current) {
+      return [value, ...matched.filter((item) => item !== value)];
+    }
+
+    return matched;
+  }, [value]);
+
+  return (
+    <div ref={wrapRef} className="relative">
+      <input
+        type="text"
+        value={value}
+        onFocus={() => setOpen(true)}
+        onChange={(e) => {
+          onChange(e.target.value);
+          setOpen(true);
+        }}
+        placeholder="Выбрать или вписать"
+        className="h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 pr-12 text-sm text-slate-800 outline-none transition focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10"
+      />
+
+      <button
+        type="button"
+        onClick={() => setOpen((prev) => !prev)}
+        className="absolute right-2 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-lg border border-slate-200 bg-slate-50 text-slate-500 transition hover:bg-slate-100"
+      >
+        ▾
+      </button>
+
+      {open && (
+        <div className="absolute z-20 mt-2 max-h-56 w-full overflow-y-auto rounded-2xl border border-slate-200 bg-white shadow-xl">
+          {filteredOptions.length ? (
+            filteredOptions.map((option, index) => (
+              <button
+                key={`${option}-${index}`}
+                type="button"
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => {
+                  onChange(option);
+                  setOpen(false);
+                }}
+                className="block w-full px-4 py-3 text-left text-sm text-slate-700 transition hover:bg-slate-50"
+              >
+                {option}
+              </button>
+            ))
+          ) : (
+            <div className="px-4 py-3 text-sm text-slate-400">
+              Нет совпадений. Можно оставить свой вариант.
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
 };
 
 export const AddPost = () => {
@@ -159,18 +244,10 @@ export const AddPost = () => {
                 <span className="mb-2 block text-xs font-semibold uppercase tracking-[0.08em] text-slate-500 lg:hidden">
                   Еденица измерения
                 </span>
-                <select
+                <UnitField
                   value={row.units}
-                  onChange={(e) => updateRow(row.id, "units", e.target.value)}
-                  className="h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm text-slate-800 outline-none transition focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10"
-                >
-                  <option value="">Выберите</option>
-                  {UNIT_OPTIONS.map((option) => (
-                    <option key={option} value={option}>
-                      {option}
-                    </option>
-                  ))}
-                </select>
+                  onChange={(value) => updateRow(row.id, "units", value)}
+                />
               </label>
 
               <label className="block">

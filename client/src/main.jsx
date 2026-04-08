@@ -17,6 +17,8 @@ import { UndeclaretedList } from "./routers/UndeclaretedList/UndeclaretedList";
 import { ArchiveList } from "./routers/ArchiveList/ArchiveList";
 import { SingleUndeclaretedPost } from "./routers/UndeclaretedList/SingleUndeclaretedPost";
 import { StrictMode } from "react";
+import { SingleArchivedPost } from "./routers/ArchiveList/SingleArchivedPost";
+import { RequireRoles } from "./routers/guards/RequireRoles";
 
 const router = createBrowserRouter([
   {
@@ -25,23 +27,51 @@ const router = createBrowserRouter([
     children: [
       {
         path: "/undeclared",
-        element: <UndeclaretedList />,
+        element: (
+          <RequireRoles allowedRoles={["admin", "supply_manager"]}>
+            <UndeclaretedList />
+          </RequireRoles>
+        ),
       },
       {
         path: "/archived",
-        element: <ArchiveList />,
+        element: (
+          <RequireRoles allowedRoles={["admin", "supply_manager"]}>
+            <ArchiveList />
+          </RequireRoles>
+        ),
+      },
+      {
+        path: "/archived/:postId",
+        element: (
+          <RequireRoles allowedRoles={["admin", "supply_manager"]}>
+            <SingleArchivedPost />
+          </RequireRoles>
+        ),
       },
       {
         path: "/store",
-        element: <PostsList />,
+        element: (
+          <RequireRoles allowedRoles={["admin", "supply_manager"]}>
+            <PostsList />
+          </RequireRoles>
+        ),
       },
       {
         path: "/store/:postId",
-        element: <SinglePost />,
+        element: (
+          <RequireRoles allowedRoles={["admin", "supply_manager"]}>
+            <SinglePost />
+          </RequireRoles>
+        ),
       },
       {
         path: "/undeclared/:postId",
-        element: <SingleUndeclaretedPost />,
+        element: (
+          <RequireRoles allowedRoles={["admin", "supply_manager"]}>
+            <SingleUndeclaretedPost />
+          </RequireRoles>
+        ),
       },
       {
         path: "/users",

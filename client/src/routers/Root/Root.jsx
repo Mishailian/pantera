@@ -17,7 +17,7 @@ export const Root = () => {
   const isAuth = useSelector((state) => state.auth.isAuth);
   const username = useSelector((state) => state.auth.username);
   const username_id = useSelector((state) => state.auth.username_id);
-  const is_superuser = useSelector((state) => state.auth.is_superuser);
+  const roles = useSelector((state) => state.auth.roles || []);
   const usersTable = useSelector((state) => state.users.usersTable);
 
   const normalizedLocation = pathname.replace(/\//g, "");
@@ -36,6 +36,16 @@ export const Root = () => {
     }
   }, []);
 
+  const roleNames = useMemo(() => {
+    return roles.map((role) => role?.name).filter(Boolean);
+  }, [roles]);
+
+  const canSeeSupplySections = useMemo(() => {
+    return (
+      roleNames.includes("admin") || roleNames.includes("supply_manager")
+    );
+  }, [roleNames]);
+
   const currentPageTitle = useMemo(() => {
     if (normalizedLocation.includes("users")) {
       return usersTable[normalizedLocation.split("users")[1]] ?? "users";
@@ -45,27 +55,37 @@ export const Root = () => {
   }, [normalizedLocation, usersTable, s.names]);
 
   const routes = useMemo(() => {
-    return Object.keys(s.paths).map((routeKey) => ({
-      key: routeKey,
-      label: s.names[routeKey],
-      path: s.paths[routeKey],
-      isActive: pathname === s.paths[routeKey],
-    }));
-  }, [pathname, s.names, s.paths]);
+    return Object.keys(s.paths)
+      .filter((routeKey) => {
+        const path = s.paths[routeKey];
+
+        if (["/store/", "/undeclared/", "/archived/"].includes(path)) {
+          return canSeeSupplySections;
+        }
+
+        return true;
+      })
+      .map((routeKey) => ({
+        key: routeKey,
+        label: s.names[routeKey],
+        path: s.paths[routeKey],
+        isActive: pathname === s.paths[routeKey],
+      }));
+  }, [pathname, s.names, s.paths, canSeeSupplySections]);
 
   useEffect(() => {
     if (!persistedToken) {
       dispatch(
         setToken({
           token,
-          is_superuser,
           username,
           username_id,
+          roles,
           isAuth: true,
         })
       );
     }
-  }, [dispatch, persistedToken, token, is_superuser, username, username_id]);
+  }, [dispatch, persistedToken, token, username, username_id, roles]);
 
   if (!isAuth) {
     return <Login />;
@@ -73,13 +93,10 @@ export const Root = () => {
 
   return (
     <div className="flex min-h-screen bg-stone-100 text-stone-900">
-      {/* SIDEBAR */}
       <aside className="flex w-[260px] shrink-0 flex-col justify-between border-r border-stone-300 bg-white px-6 py-8 shadow-sm">
         <div>
           <div className="mb-12">
-            <div className="text-2xl tracking-tight">
-              УралШина
-            </div>
+            <div className="text-2xl tracking-tight">УралШина</div>
           </div>
 
           <nav className="flex flex-col gap-2">
@@ -90,7 +107,7 @@ export const Root = () => {
                 className={`flex w-full items-center gap-3 rounded-lg px-4 py-3 text-md transition shadow-md ${
                   route.isActive
                     ? "bg-black text-white"
-                    : " bg-white hover:bg-stone-200"
+                    : "bg-white hover:bg-stone-200"
                 }`}
               >
                 {route.label}
@@ -98,12 +115,9 @@ export const Root = () => {
             ))}
           </nav>
         </div>
-
       </aside>
 
-      {/* RIGHT SIDE */}
       <div className="flex min-w-0 flex-1 flex-col">
-        {/* HEADER */}
         <header className="flex h-[64px] items-center justify-between border-b border-stone-300 bg-white px-8">
           <h1 className="text-xl font-semibold tracking-tight">
             {currentPageTitle}
@@ -114,7 +128,6 @@ export const Root = () => {
           </div>
         </header>
 
-        {/* CONTENT */}
         <main className="flex min-h-0 flex-1 flex-col bg-stone-100 p-8">
           <div className="flex flex-1 flex-col rounded-xl border border-stone-300 bg-white p-6 shadow-sm">
             <Outlet />
