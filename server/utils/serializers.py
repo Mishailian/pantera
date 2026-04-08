@@ -1,4 +1,5 @@
 from datetime import date
+from zoneinfo import ZoneInfo
 
 
 def serialize_many(objects, serializer):
@@ -10,6 +11,17 @@ def parse_date(date_str):
         return date.fromisoformat(date_str) if date_str else None
     except Exception:
         return None
+
+
+def format_datetime_ekb(dt):
+    if not dt:
+        return None
+
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=ZoneInfo("UTC"))
+
+    ekb_dt = dt.astimezone(ZoneInfo("Asia/Yekaterinburg"))
+    return ekb_dt.strftime("%d.%m.%Y %H:%M")
 
 
 def serialize_role(role):
@@ -29,6 +41,21 @@ def serialize_user(user):
         "roles": [serialize_role(role) for role in user.roles],
         "created_at": user.created_at.isoformat() if user.created_at else None,
         "updated_at": user.updated_at.isoformat() if user.updated_at else None,
+    }
+
+
+def serialize_user_min(user):
+    if not user:
+        return None
+
+    first_role = user.roles[0] if user.roles else None
+
+    return {
+        "id": user.id,
+        "username": user.username,
+        "full_name": user.full_name,
+        "role": first_role.name if first_role else None,
+        "role_label": first_role.description if first_role else None,
     }
 
 
@@ -53,6 +80,8 @@ def serialize_request_item(item):
 
 
 def serialize_request(request_obj):
+    items = [serialize_request_item(item) for item in request_obj.items]
+
     return {
         "id": request_obj.id,
         "status": request_obj.status,
@@ -63,5 +92,13 @@ def serialize_request(request_obj):
         "updated_at": request_obj.updated_at.isoformat() if request_obj.updated_at else None,
         "approved_at": request_obj.approved_at.isoformat() if request_obj.approved_at else None,
         "closed_at": request_obj.closed_at.isoformat() if request_obj.closed_at else None,
-        "items": [serialize_request_item(item) for item in request_obj.items],
+        "created_at_formatted": format_datetime_ekb(request_obj.created_at),
+        "updated_at_formatted": format_datetime_ekb(request_obj.updated_at),
+        "approved_at_formatted": format_datetime_ekb(request_obj.approved_at),
+        "closed_at_formatted": format_datetime_ekb(request_obj.closed_at),
+        "items_count": len(items),
+        "items_preview": items[:3],
+        "items": items,
+        "created_by_user": serialize_user_min(getattr(request_obj, "created_by", None)),
+        "approved_by_user": serialize_user_min(getattr(request_obj, "approved_by", None)),
     }

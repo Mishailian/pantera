@@ -199,6 +199,10 @@ class RequestService:
         if not request_obj:
             return False
 
+        history_records = RequestStatusHistory.query.filter_by(request_id=request_id).all()
+        for history_record in history_records:
+            db.session.delete(history_record)
+
         db.session.delete(request_obj)
         db.session.commit()
         return True

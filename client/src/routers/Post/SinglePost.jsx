@@ -1,49 +1,33 @@
 import { useSelector } from "react-redux";
 import { useParams } from "react-router-dom";
-import { useInputCheck } from "../../hooks/useInputCheck";
-import { progressCheck } from "../../progressCheck";
-import {
-  useChengePostMutation,
-  useGetPostQuery,
-  useGetTagsQuery,
-} from "../../app/api/apiSlice";
+import { useGetPostQuery } from "../../app/api/apiSlice";
 import { SinglePostBlock } from "../../auxСomponents/SinglePostBlock";
-import { useUpdateObjectsTable } from "../../static/static";
-import { setTagsTable } from "../../app/auth/tagsSlice";
+import { progressCheck } from "../../progressCheck";
 
 export const SinglePost = () => {
   const { postId } = useParams();
   const postObject = useGetPostQuery({ postId });
-  const tags = useGetTagsQuery();
-  var updateTagsTable = useUpdateObjectsTable(setTagsTable);
-  progressCheck(tags, updateTagsTable);
+  const currentUserRoles = useSelector((state) => state.auth.roles || []);
 
-  const is_superuser = useSelector((state) => state.auth.is_superuser);
-  const { inputData, setFormData, handleChange, handleSubmit, setData } =
-    useInputCheck();
-  const [chPost] = useChengePostMutation();
+  const canManage = currentUserRoles.some((role) =>
+    ["admin", "supply_manager"].includes(role?.name)
+  );
+
   const content = progressCheck(
     {
       ...postObject,
-
       data: {
         ...postObject.data,
-        is_superuser,
         postId,
-        textInButton: "Подтвердить изменение",
+        mode: "active",
+        canManage,
       },
     },
     (data) => {
-      return (
-        <SinglePostBlock
-          data={data}
-          localState={[inputData, setFormData]}
-          chPost={chPost}
-          obj={{ handleChange, handleSubmit, setData }}
-        />
-      );
+      return <SinglePostBlock data={data} />;
     }
   );
+
   return <div>{content}</div>;
 };
 

@@ -1,25 +1,38 @@
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
+import { useSelector } from "react-redux";
 import {
   useGetUndeclaredPostQuery,
   useDeclaredPostMutation,
 } from "../../app/api/apiSlice";
 import { SinglePostBlock } from "../../auxСomponents/SinglePostBlock";
-import { useSelector } from "react-redux";
 import { progressCheck } from "../../progressCheck";
-import { useNavigate } from "react-router-dom";
 
 export const SingleUndeclaretedPost = () => {
   const { postId } = useParams();
-  const postObject = useGetUndeclaredPostQuery({ postId });
   const navigate = useNavigate();
 
-  const is_superuser = useSelector((state) => state.auth.is_superuser);
+  const postObject = useGetUndeclaredPostQuery({ postId });
+  const currentUserId = useSelector((state) => state.auth.username_id);
+  const currentUserRoles = useSelector((state) => state.auth.roles || []);
 
-  var [chng] = useDeclaredPostMutation();
+  const canApprove = currentUserRoles.some((role) =>
+    ["admin", "supply_manager"].includes(role?.name)
+  );
 
-  var callback = () => {
-    chng({ postId });
-    navigate(-1);
+  const [declarePost] = useDeclaredPostMutation();
+
+  const handleApprove = async () => {
+    try {
+      await declarePost({
+        postId,
+        changed_by_id: currentUserId,
+        comment: "Заявка переведена в active",
+      }).unwrap();
+      navigate("/store/");
+    } catch (error) {
+      console.error("Failed to approve request:", error);
+      alert("Не удалось перевести заявку в активные.");
+    }
   };
 
   const content = progressCheck(
@@ -27,23 +40,21 @@ export const SingleUndeclaretedPost = () => {
       ...postObject,
       data: {
         ...postObject.data,
-        is_superuser,
         postId,
-        textInButton: "Зарегестрировать",
+        mode: "undeclared",
+        canApprove,
+        actionButtonText: "Подписать заявку",
       },
     },
     (data) => {
       return (
         <SinglePostBlock
           data={data}
-          obj={{
-            handleChange: callback,
-            setData: () => {},
-            handleSubmit: () => {},
-          }}
+          onApprove={handleApprove}
         />
       );
     }
   );
+
   return <div>{content}</div>;
 };

@@ -6,21 +6,22 @@ const ROLE_LABELS = {
   default: "Пользователь",
 };
 
-export const UndeclaretedPostBlock = ({ data, isAdmin, onDeclare, onDelete }) => {
+export const ActivePostBlock = ({ data, canManage, onArchive, onDelete }) => {
   const navigate = useNavigate();
 
   const author = data?.created_by_user;
   const createdDate = data?.created_at_formatted || data?.created_at || "Дата неизвестна";
+  const approvedDate = data?.approved_at_formatted || data?.approved_at || "Дата неизвестна";
   const comment = data?.comment?.trim() || "Комментарий отсутствует";
   const itemsCount = data?.items_count ?? data?.items?.length ?? 0;
 
   const handleOpen = () => {
-    navigate(`/undeclared/${data.id}`);
+    navigate(`/store/${data.id}/`);
   };
 
-  const handleDeclare = async (e) => {
+  const handleArchive = async (e) => {
     e.stopPropagation();
-    await onDeclare?.(data.id);
+    await onArchive?.(data.id);
   };
 
   const handleDelete = async (e) => {
@@ -31,10 +32,10 @@ export const UndeclaretedPostBlock = ({ data, isAdmin, onDeclare, onDelete }) =>
   return (
     <div className="group overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-xl transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl">
       <div className="grid grid-cols-1 lg:grid-cols-[320px_minmax(0,1fr)]">
-        <div className="border-b border-slate-100 bg-gradient-to-br from-slate-50 to-indigo-50 p-6 lg:border-b-0 lg:border-r">
+        <div className="border-b border-slate-100 bg-gradient-to-br from-slate-50 to-emerald-50 p-6 lg:border-b-0 lg:border-r">
           <div className="mb-4 flex items-start justify-between gap-3">
-            <div className="inline-flex items-center rounded-xl bg-indigo-100 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-indigo-800">
-              Заявка № {data?.id}
+            <div className="inline-flex items-center rounded-xl bg-emerald-100 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-emerald-800">
+              Активная заявка № {data?.id}
             </div>
 
             <span className="inline-flex items-center rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-medium text-slate-700 shadow-sm">
@@ -81,6 +82,25 @@ export const UndeclaretedPostBlock = ({ data, isAdmin, onDeclare, onDelete }) =>
                   strokeLinecap="round"
                   strokeLinejoin="round"
                   strokeWidth="2"
+                  d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                />
+              </svg>
+              <span className="text-sm font-medium text-slate-700">
+                Подписана: {approvedDate}
+              </span>
+            </div>
+
+            <div className="inline-flex w-full items-center gap-3 rounded-2xl bg-white px-4 py-3 shadow-sm">
+              <svg
+                className="h-5 w-5 text-slate-400"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2"
                   d="M20 13V7a2 2 0 00-2-2h-3V3.5A1.5 1.5 0 0013.5 2h-3A1.5 1.5 0 009 3.5V5H6a2 2 0 00-2 2v6m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0H4"
                 />
               </svg>
@@ -112,14 +132,14 @@ export const UndeclaretedPostBlock = ({ data, isAdmin, onDeclare, onDelete }) =>
                 Открыть
               </button>
 
-              {isAdmin ? (
+              {canManage ? (
                 <div className="flex flex-wrap items-center gap-2">
                   <button
                     type="button"
-                    onClick={handleDeclare}
-                    className="inline-flex items-center justify-center rounded-2xl bg-emerald-500 px-5 py-2.5 text-sm font-semibold text-white shadow-md transition hover:bg-emerald-600"
+                    onClick={handleArchive}
+                    className="inline-flex items-center justify-center rounded-2xl bg-slate-700 px-5 py-2.5 text-sm font-semibold text-white shadow-md transition hover:bg-slate-800"
                   >
-                    Подписать
+                    В архив
                   </button>
 
                   <button

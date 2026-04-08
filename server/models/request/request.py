@@ -24,6 +24,18 @@ class Request(db.Model):
     approved_at = db.Column(db.DateTime, nullable=True)
     closed_at = db.Column(db.DateTime, nullable=True)
 
+    created_by = db.relationship(
+        "User",
+        foreign_keys=[created_by_id],
+        lazy="selectin",
+    )
+
+    approved_by = db.relationship(
+        "User",
+        foreign_keys=[approved_by_id],
+        lazy="selectin",
+    )
+
     items = db.relationship(
         "RequestItem",
         back_populates="request",
