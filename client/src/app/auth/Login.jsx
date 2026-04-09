@@ -6,6 +6,7 @@ import {
   useRegisterMutation,
   useGetTagsQuery,
   useGetUsersQuery,
+  useGetRegistrationRolesQuery,
 } from "../api/apiSlice";
 
 import { setToken } from "./authSlice";
@@ -22,7 +23,6 @@ export const Login = () => {
   const updateUsersTable = useUpdateObjectsTable(setUsersTable);
   const updateTagsTable = useUpdateObjectsTable(setTagsTable);
 
-
   const [mode, setMode] = useState("login");
   const [errorText, setErrorText] = useState("");
   const [successText, setSuccessText] = useState("");
@@ -36,16 +36,19 @@ export const Login = () => {
     username: "",
     password: "",
     full_name: "",
+    role_name: "",
   });
 
   const [auth, { isLoading: isLoginLoading }] = useAuthenticationMutation();
   const [registerUser, { isLoading: isRegisterLoading }] = useRegisterMutation();
 
+  const { data: registrationRoles = [], isLoading: isRolesLoading } = useGetRegistrationRolesQuery(undefined, {
+    skip: mode !== "register",
+  });
 
   const users = useGetUsersQuery(undefined, {
     skip: !authToken,
   });
-
 
   useEffect(() => {
     if (authToken && users?.data) {
@@ -53,6 +56,21 @@ export const Login = () => {
       progressCheck(users, updateUsersTable);
     }
   }, [authToken, users?.data, users, updateUsersTable]);
+
+  useEffect(() => {
+    if (!registrationRoles.length) return;
+
+    setRegisterForm((prev) => {
+      if (prev.role_name && registrationRoles.some((role) => role.name === prev.role_name)) {
+        return prev;
+      }
+
+      return {
+        ...prev,
+        role_name: registrationRoles[0]?.name ?? "",
+      };
+    });
+  }, [registrationRoles]);
 
   const handleLogin = async () => {
     setErrorText("");
@@ -99,7 +117,7 @@ export const Login = () => {
       const response = await registerUser(registerForm);
 
       if (response?.data) {
-        const { token, user } = response.data; 
+        const { token, user } = response.data;
 
         dispatch(
           setToken({
@@ -115,6 +133,7 @@ export const Login = () => {
           username: "",
           password: "",
           full_name: "",
+          role_name: registrationRoles[0]?.name ?? "",
         });
 
         setSuccessText("Регистрация выполнена успешно.");
@@ -311,6 +330,35 @@ export const Login = () => {
 
           <label className="block">
             <span className="mb-2 block text-sm font-medium text-slate-200">
+              Роль
+            </span>
+            <select
+              className="h-12 w-full rounded-2xl border border-white/10 bg-slate-800 px-4 text-sm text-white outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-500/15"
+              value={registerForm.role_name}
+              onChange={(e) =>
+                setRegisterForm({
+                  ...registerForm,
+                  role_name: e.target.value,
+                })
+              }
+              disabled={isRolesLoading || !registrationRoles.length}
+            >
+              {!registrationRoles.length ? (
+                <option value="">
+                  {isRolesLoading ? "Загрузка ролей..." : "Нет доступных ролей"}
+                </option>
+              ) : null}
+
+              {registrationRoles.map((role) => (
+                <option key={role.id} value={role.name}>
+                  {role.description || role.name}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label className="block">
+            <span className="mb-2 block text-sm font-medium text-slate-200">
               Пароль
             </span>
             <input
@@ -330,7 +378,7 @@ export const Login = () => {
           <button
             className="mt-2 inline-flex h-12 w-full items-center justify-center rounded-2xl bg-blue-600 text-sm font-semibold text-white transition hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-60"
             onClick={handleRegister}
-            disabled={isRegisterLoading}
+            disabled={isRegisterLoading || isRolesLoading || !registerForm.role_name}
             type="button"
           >
             {isRegisterLoading ? "Регистрация..." : "Зарегистрироваться"}

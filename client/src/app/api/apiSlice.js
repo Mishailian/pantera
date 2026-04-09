@@ -25,7 +25,7 @@ export const apiSlice = createApi({
     },
     credentials: "include",
   }),
-  tagTypes: ["REQUESTS", "REQUEST", "USERS", "USER", "TAGS", "AUTH"],
+  tagTypes: ["REQUESTS", "REQUEST", "USERS", "USER", "TAGS", "AUTH", "ROLES"],
   endpoints: (builder) => ({
     login: builder.mutation({
       invalidatesTags: ["AUTH"],
@@ -42,6 +42,13 @@ export const apiSlice = createApi({
         url: "/auth/register",
         method: "POST",
         body: payload,
+      }),
+    }),
+    getRegistrationRoles: builder.query({
+      providesTags: ["ROLES"],
+      query: () => ({
+        url: "/auth/roles",
+        method: "GET",
       }),
     }),
 
@@ -353,7 +360,7 @@ export const apiSlice = createApi({
 export const {
   useLoginMutation,
   useRegisterMutation,
-
+  useGetRegistrationRolesQuery,
   useGetUsersQuery,
   useGetUsersDBQuery,
   useGetUserQuery,

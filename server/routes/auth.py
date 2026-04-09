@@ -1,7 +1,8 @@
 from flask import Blueprint, request, jsonify
 
 from services.auth_service import AuthService
-from utils.serializers import serialize_many, serialize_user
+from utils.serializers import serialize_many, serialize_user, serialize_role
+from models.user.role import Role
 
 auth_bp = Blueprint("auth", __name__, url_prefix="/api/v1/auth")
 
@@ -33,6 +34,7 @@ def register():
             username=data.get("username"),
             password=data.get("password"),
             full_name=data.get("full_name"),
+            role_name=data.get("role_name"),
         )
         return jsonify({
             "token": user.token,
@@ -40,6 +42,13 @@ def register():
         }), 201
     except ValueError as e:
         return jsonify({"error": str(e)}), 400
+
+
+@auth_bp.get("/roles")
+def list_roles():
+    roles = Role.query.order_by(Role.id.asc()).all()
+    available_roles = [role for role in roles if role.name != "admin"]
+    return jsonify(serialize_many(available_roles, serialize_role))
 
 
 @auth_bp.get("/users")

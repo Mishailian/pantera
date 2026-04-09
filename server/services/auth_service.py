@@ -1,4 +1,3 @@
-# services/auth_service.py
 from secrets import token_hex
 
 from extensions import db
@@ -16,22 +15,22 @@ class AuthService:
         return role
 
     @staticmethod
-    def create_user(username, password, full_name):
-        """
-        Регистрация нового пользователя.
-        Роль 'default' выдаётся автоматически.
-        """
+    def create_user(username, password, full_name, role_name):
         if not username:
             raise ValueError("username is required")
         if not password:
             raise ValueError("password is required")
         if not full_name:
             raise ValueError("full_name is required")
+        if not role_name:
+            raise ValueError("role_name is required")
 
         if User.query.filter_by(username=username).first():
             raise ValueError("User with this username already exists")
 
-        default_role = AuthService._get_role_or_raise("default")
+        selected_role = AuthService._get_role_or_raise(role_name)
+        if selected_role.name == "admin":
+            raise ValueError("admin role is not available for self-registration")
 
         user = User(
             username=username,
@@ -39,7 +38,7 @@ class AuthService:
             token=token_hex(32),
         )
         user.set_password(password)
-        user.roles = [default_role]
+        user.roles = [selected_role]
 
         db.session.add(user)
         db.session.commit()
@@ -92,8 +91,7 @@ class AuthService:
         target_user.roles = [role]
         db.session.commit()
         return target_user
-    
+
     @staticmethod
     def get_user_by_token(token):
-        """Получить пользователя по токену"""
         return User.query.filter_by(token=token).first()

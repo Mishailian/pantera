@@ -1,0 +1,1568 @@
+authSlice
+import { createSlice } from "@reduxjs/toolkit";
+
+const authSlice = createSlice({
+  name: "auth",
+  initialState: {
+    csrf_token: null,
+    username: null,
+    username_id: null,
+    roles: [],
+    isAuth: false,
+    token: null,
+  },
+  reducers: {
+    setToken: (state, action) => {
+      state.token = action.payload.token;
+      state.isAuth = action.payload.isAuth;
+      state.csrf_token = action.payload.csrf_token ?? null;
+      state.username = action.payload.username;
+      state.roles = action.payload.roles || [];
+      state.username_id = action.payload.username_id;
+    },
+  },
+});
+
+export const { setToken } = authSlice.actions;
+export default authSlice.reducer;
+
+Login
+import { useEffect, useMemo, useState } from "react";
+import { useDispatch, useSelector } from "react-redux";
+
+import {
+  useAuthenticationMutation,
+  useRegisterMutation,
+  useGetTagsQuery,
+  useGetUsersQuery,
+} from "../api/apiSlice";
+
+import { setToken } from "./authSlice";
+import { setTagsTable } from "./tagsSlice";
+import { setUsersTable } from "./usesSlice";
+
+import { progressCheck } from "../../progressCheck";
+import { useUpdateObjectsTable } from "../../static/static";
+
+export const Login = () => {
+  const dispatch = useDispatch();
+  const authToken = useSelector((state) => state.auth.token);
+
+  const updateUsersTable = useUpdateObjectsTable(setUsersTable);
+  const updateTagsTable = useUpdateObjectsTable(setTagsTable);
+
+
+  const [mode, setMode] = useState("login");
+  const [errorText, setErrorText] = useState("");
+  const [successText, setSuccessText] = useState("");
+
+  const [loginForm, setLoginForm] = useState({
+    username: "",
+    password: "",
+  });
+
+  const [registerForm, setRegisterForm] = useState({
+    username: "",
+    password: "",
+    full_name: "",
+  });
+
+  const [auth, { isLoading: isLoginLoading }] = useAuthenticationMutation();
+  const [registerUser, { isLoading: isRegisterLoading }] = useRegisterMutation();
+
+
+  const users = useGetUsersQuery(undefined, {
+    skip: !authToken,
+  });
+
+
+  useEffect(() => {
+    if (authToken && users?.data) {
+      console.log(users);
+      progressCheck(users, updateUsersTable);
+    }
+  }, [authToken, users?.data, users, updateUsersTable]);
+
+  const handleLogin = async () => {
+    setErrorText("");
+    setSuccessText("");
+
+    try {
+      const response = await auth({ initialState: loginForm });
+
+      if (response?.data) {
+        const { token, user } = response.data;
+
+        dispatch(
+          setToken({
+            isAuth: true,
+            username: user?.username ?? null,
+            username_id: user?.id ?? null,
+            roles: user?.roles ?? [],
+            token: token ?? null,
+          })
+        );
+
+        setLoginForm({
+          username: "",
+          password: "",
+        });
+
+        setSuccessText("Вход выполнен успешно.");
+      } else {
+        setErrorText(
+          response?.error?.data?.error || "Не удалось выполнить вход."
+        );
+      }
+    } catch (error) {
+      console.error(error);
+      setErrorText("Ошибка при входе.");
+    }
+  };
+
+  const handleRegister = async () => {
+    setErrorText("");
+    setSuccessText("");
+
+    try {
+      const response = await registerUser(registerForm);
+
+      if (response?.data) {
+        const { token, user } = response.data; 
+
+        dispatch(
+          setToken({
+            isAuth: true,
+            username: user?.username ?? null,
+            username_id: user?.id ?? null,
+            roles: user?.roles ?? [],
+            token: token ?? null,
+          })
+        );
+
+        setRegisterForm({
+          username: "",
+          password: "",
+          full_name: "",
+        });
+
+        setSuccessText("Регистрация выполнена успешно.");
+      } else {
+        setErrorText(
+          response?.error?.data?.error || "Не удалось зарегистрироваться."
+        );
+      }
+    } catch (error) {
+      console.error(error);
+      setErrorText("Ошибка при регистрации.");
+    }
+  };
+
+  const logOut = () => {
+    dispatch(
+      setToken({
+        token: null,
+        isAuth: false,
+        roles: [],
+        username: null,
+        username_id: null,
+      })
+    );
+
+    setErrorText("");
+    setSuccessText("");
+  };
+
+  if (authToken) {
+    return (
+      <div className="mx-auto mt-10 w-full max-w-md rounded-3xl border border-white/10 bg-slate-900/95 p-7 shadow-2xl backdrop-blur">
+        <div className="mb-5">
+          <h2 className="text-2xl font-bold tracking-tight text-white">
+            Вы авторизованы
+          </h2>
+          <p className="mt-2 text-sm leading-6 text-slate-400">
+            Доступ к системе заявок открыт.
+          </p>
+        </div>
+
+        {successText ? (
+          <div className="mb-4 rounded-2xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-200">
+            {successText}
+          </div>
+        ) : null}
+
+        <button
+          className="inline-flex h-12 items-center justify-center rounded-2xl bg-red-600 px-5 text-sm font-semibold text-white transition hover:bg-red-500 active:scale-[0.99]"
+          onClick={logOut}
+          type="button"
+        >
+          Выйти
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="mx-auto mt-10 w-full max-w-md rounded-3xl border border-white/10 bg-slate-900/95 p-7 shadow-2xl backdrop-blur">
+      <div className="mb-6">
+        <h2 className="text-2xl font-bold tracking-tight text-white">
+          Панель доступа
+        </h2>
+        <p className="mt-2 text-sm leading-6 text-slate-400">
+          Войдите в систему или создайте новую учетную запись.
+        </p>
+      </div>
+
+      <div className="mb-5 grid grid-cols-2 gap-2 rounded-2xl bg-slate-800/80 p-1">
+        <button
+          type="button"
+          onClick={() => {
+            setMode("login");
+            setErrorText("");
+            setSuccessText("");
+          }}
+          className={`h-11 rounded-xl text-sm font-semibold transition ${
+            mode === "login"
+              ? "bg-blue-600 text-white shadow"
+              : "text-slate-300 hover:bg-white/5 hover:text-white"
+          }`}
+        >
+          Вход
+        </button>
+
+        <button
+          type="button"
+          onClick={() => {
+            setMode("register");
+            setErrorText("");
+            setSuccessText("");
+          }}
+          className={`h-11 rounded-xl text-sm font-semibold transition ${
+            mode === "register"
+              ? "bg-blue-600 text-white shadow"
+              : "text-slate-300 hover:bg-white/5 hover:text-white"
+          }`}
+        >
+          Регистрация
+        </button>
+      </div>
+
+      {errorText ? (
+        <div className="mb-4 rounded-2xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-200">
+          {errorText}
+        </div>
+      ) : null}
+
+      {successText ? (
+        <div className="mb-4 rounded-2xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-200">
+          {successText}
+        </div>
+      ) : null}
+
+      {mode === "login" ? (
+        <div className="space-y-4">
+          <label className="block">
+            <span className="mb-2 block text-sm font-medium text-slate-200">
+              Логин
+            </span>
+            <input
+              className="h-12 w-full rounded-2xl border border-white/10 bg-slate-800 px-4 text-sm text-white outline-none transition placeholder:text-slate-500 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/15"
+              type="text"
+              value={loginForm.username}
+              onChange={(e) =>
+                setLoginForm({ ...loginForm, username: e.target.value })
+              }
+              placeholder="Введите логин"
+            />
+          </label>
+
+          <label className="block">
+            <span className="mb-2 block text-sm font-medium text-slate-200">
+              Пароль
+            </span>
+            <input
+              className="h-12 w-full rounded-2xl border border-white/10 bg-slate-800 px-4 text-sm text-white outline-none transition placeholder:text-slate-500 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/15"
+              type="password"
+              value={loginForm.password}
+              onChange={(e) =>
+                setLoginForm({ ...loginForm, password: e.target.value })
+              }
+              placeholder="Введите пароль"
+            />
+          </label>
+
+          <button
+            className="mt-2 inline-flex h-12 w-full items-center justify-center rounded-2xl bg-blue-600 text-sm font-semibold text-white transition hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-60"
+            onClick={handleLogin}
+            disabled={isLoginLoading}
+            type="button"
+          >
+            {isLoginLoading ? "Вход..." : "Войти"}
+          </button>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          <label className="block">
+            <span className="mb-2 block text-sm font-medium text-slate-200">
+              Полное имя
+            </span>
+            <input
+              className="h-12 w-full rounded-2xl border border-white/10 bg-slate-800 px-4 text-sm text-white outline-none transition placeholder:text-slate-500 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/15"
+              type="text"
+              value={registerForm.full_name}
+              onChange={(e) =>
+                setRegisterForm({
+                  ...registerForm,
+                  full_name: e.target.value,
+                })
+              }
+              placeholder="Например: Иван Петров"
+            />
+          </label>
+
+          <label className="block">
+            <span className="mb-2 block text-sm font-medium text-slate-200">
+              Логин
+            </span>
+            <input
+              className="h-12 w-full rounded-2xl border border-white/10 bg-slate-800 px-4 text-sm text-white outline-none transition placeholder:text-slate-500 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/15"
+              type="text"
+              value={registerForm.username}
+              onChange={(e) =>
+                setRegisterForm({
+                  ...registerForm,
+                  username: e.target.value,
+                })
+              }
+              placeholder="Придумайте логин"
+            />
+          </label>
+
+          <label className="block">
+            <span className="mb-2 block text-sm font-medium text-slate-200">
+              Пароль
+            </span>
+            <input
+              className="h-12 w-full rounded-2xl border border-white/10 bg-slate-800 px-4 text-sm text-white outline-none transition placeholder:text-slate-500 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/15"
+              type="password"
+              value={registerForm.password}
+              onChange={(e) =>
+                setRegisterForm({
+                  ...registerForm,
+                  password: e.target.value,
+                })
+              }
+              placeholder="Придумайте пароль"
+            />
+          </label>
+
+          <button
+            className="mt-2 inline-flex h-12 w-full items-center justify-center rounded-2xl bg-blue-600 text-sm font-semibold text-white transition hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-60"
+            onClick={handleRegister}
+            disabled={isRegisterLoading}
+            type="button"
+          >
+            {isRegisterLoading ? "Регистрация..." : "Зарегистрироваться"}
+          </button>
+        </div>
+      )}
+    </div>
+  );
+};
+apiSlice
+import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
+
+const buildQueryParams = (params = {}) => {
+  const searchParams = new URLSearchParams();
+
+  Object.entries(params).forEach(([key, value]) => {
+    if (value !== undefined && value !== null && value !== "") {
+      searchParams.append(key, value);
+    }
+  });
+
+  return searchParams.toString();
+};
+
+export const apiSlice = createApi({
+  reducerPath: "api",
+  baseQuery: fetchBaseQuery({
+    baseUrl: import.meta.env.VITE_API_URL || "http://localhost/api/v1",
+    prepareHeaders: (headers, { getState }) => {
+      const token = getState()?.auth?.token;
+      if (token) {
+        headers.set("Authorization", `Token ${token}`);
+      }
+      return headers;
+    },
+    credentials: "include",
+  }),
+  tagTypes: ["REQUESTS", "REQUEST", "USERS", "USER", "TAGS", "AUTH"],
+  endpoints: (builder) => ({
+    login: builder.mutation({
+      invalidatesTags: ["AUTH"],
+      query: (credentials) => ({
+        url: "/auth/login",
+        method: "POST",
+        body: credentials,
+      }),
+    }),
+
+    register: builder.mutation({
+      invalidatesTags: ["AUTH", "USERS"],
+      query: (payload) => ({
+        url: "/auth/register",
+        method: "POST",
+        body: payload,
+      }),
+    }),
+
+    getUsers: builder.query({
+      providesTags: ["USERS"],
+      query: () => ({
+        url: "/users/",
+        method: "GET",
+      }),
+    }),
+
+    getUsersDB: builder.query({
+      providesTags: ["USERS"],
+      query: () => ({
+        url: "/users/",
+        method: "GET",
+      }),
+    }),
+
+    getUser: builder.query({
+      providesTags: (result, error, userId) => [{ type: "USER", id: userId }],
+      query: (userId) => ({
+        url: `/users/${userId}`,
+        method: "GET",
+      }),
+    }),
+
+    updateUserRoles: builder.mutation({
+      invalidatesTags: ["USERS"],
+      query: ({ userId, role }) => ({
+        url: `/users/${userId}/roles`,
+        method: "PATCH",
+        body: { role },
+      }),
+    }),
+
+    getTags: builder.query({
+      providesTags: ["TAGS"],
+      query: () => ({
+        url: "/tags/",
+        method: "GET",
+      }),
+    }),
+
+    getTag: builder.query({
+      providesTags: (result, error, tagId) => [{ type: "TAGS", id: tagId }],
+      query: (tagId) => ({
+        url: `/tags/${tagId}`,
+        method: "GET",
+      }),
+    }),
+
+    addTag: builder.mutation({
+      invalidatesTags: ["TAGS"],
+      query: (payload) => ({
+        url: "/tags/",
+        method: "POST",
+        body: payload,
+      }),
+    }),
+
+    updateTag: builder.mutation({
+      invalidatesTags: ["TAGS"],
+      query: ({ tagId, ...payload }) => ({
+        url: `/tags/${tagId}`,
+        method: "PATCH",
+        body: payload,
+      }),
+    }),
+
+    deleteTag: builder.mutation({
+      invalidatesTags: ["TAGS"],
+      query: (tagId) => ({
+        url: `/tags/${tagId}`,
+        method: "DELETE",
+      }),
+    }),
+
+    getRequests: builder.query({
+      providesTags: ["REQUESTS"],
+      query: (params = {}) => {
+        const queryString = buildQueryParams(params);
+        return {
+          url: `/requests/${queryString ? `?${queryString}` : ""}`,
+          method: "GET",
+        };
+      },
+    }),
+
+    getRequest: builder.query({
+      providesTags: (result, error, requestId) => [{ type: "REQUEST", id: requestId }],
+      query: (requestId) => ({
+        url: `/requests/${requestId}`,
+        method: "GET",
+      }),
+    }),
+
+    addRequest: builder.mutation({
+      invalidatesTags: ["REQUESTS"],
+      query: (payload) => ({
+        url: "/requests/",
+        method: "POST",
+        body: payload,
+      }),
+    }),
+
+    updateRequest: builder.mutation({
+      invalidatesTags: (result, error, { requestId }) => [
+        "REQUESTS",
+        { type: "REQUEST", id: requestId },
+      ],
+      query: ({ requestId, ...payload }) => ({
+        url: `/requests/${requestId}`,
+        method: "PATCH",
+        body: payload,
+      }),
+    }),
+
+    changeRequestStatus: builder.mutation({
+      invalidatesTags: (result, error, { requestId }) => [
+        "REQUESTS",
+        { type: "REQUEST", id: requestId },
+      ],
+      query: ({ requestId, status, changed_by_id, comment }) => ({
+        url: `/requests/${requestId}/status`,
+        method: "PATCH",
+        body: { status, changed_by_id, comment },
+      }),
+    }),
+
+    deleteRequest: builder.mutation({
+      invalidatesTags: ["REQUESTS"],
+      query: (requestId) => ({
+        url: `/requests/${requestId}`,
+        method: "DELETE",
+      }),
+    }),
+
+    addRequestItem: builder.mutation({
+      invalidatesTags: (result, error, { requestId }) => [
+        "REQUESTS",
+        { type: "REQUEST", id: requestId },
+      ],
+      query: ({ requestId, ...payload }) => ({
+        url: `/requests/${requestId}/items`,
+        method: "POST",
+        body: payload,
+      }),
+    }),
+
+    updateRequestItem: builder.mutation({
+      invalidatesTags: ["REQUESTS", "REQUEST"],
+      query: ({ itemId, ...payload }) => ({
+        url: `/requests/items/${itemId}`,
+        method: "PATCH",
+        body: payload,
+      }),
+    }),
+
+    deleteRequestItem: builder.mutation({
+      invalidatesTags: ["REQUESTS", "REQUEST"],
+      query: (itemId) => ({
+        url: `/requests/items/${itemId}`,
+        method: "DELETE",
+      }),
+    }),
+
+    getUndeclaredRequests: builder.query({
+      providesTags: ["REQUESTS"],
+      query: ({ page } = {}) => {
+        const queryString = buildQueryParams({ status: "undeclared", page });
+        return { url: `/requests/?${queryString}`, method: "GET" };
+      },
+    }),
+
+    getActiveRequests: builder.query({
+      providesTags: ["REQUESTS"],
+      query: ({ page } = {}) => {
+        const queryString = buildQueryParams({ status: "active", page });
+        return { url: `/requests/?${queryString}`, method: "GET" };
+      },
+    }),
+
+    getArchivedRequests: builder.query({
+      providesTags: ["REQUESTS"],
+      query: ({ page } = {}) => {
+        const queryString = buildQueryParams({ status: "archived", page });
+        return { url: `/requests/?${queryString}`, method: "GET" };
+      },
+    }),
+
+    getPostsCount: builder.query({
+      providesTags: ["REQUESTS"],
+      query: () => ({ url: "/requests/?count=1&status=active", method: "GET" }),
+    }),
+
+    getUndeclaredPostsCount: builder.query({
+      providesTags: ["REQUESTS"],
+      query: () => ({ url: "/requests/?count=1&status=undeclared", method: "GET" }),
+    }),
+
+    getPostsFilteredCount: builder.query({
+      providesTags: ["REQUESTS"],
+      query: (exId) => ({
+        url: `/requests/?count=1&status=active&assigned_to_id=${exId}`,
+        method: "GET",
+      }),
+    }),
+
+    getArhive: builder.query({
+      providesTags: ["REQUESTS"],
+      query: () => ({ url: "/requests/?status=archived", method: "GET" }),
+    }),
+
+    getPosts: builder.query({
+      providesTags: ["REQUESTS"],
+      query: ({ page } = {}) => {
+        const queryString = buildQueryParams({ status: "active", page });
+        return { url: `/requests/?${queryString}`, method: "GET" };
+      },
+    }),
+
+    getUndeclaredPosts: builder.query({
+      providesTags: ["REQUESTS"],
+      query: ({ page } = {}) => {
+        const queryString = buildQueryParams({ status: "undeclared", page });
+        return { url: `/requests/?${queryString}`, method: "GET" };
+      },
+    }),
+
+    getPost: builder.query({
+      providesTags: (result, error, arg) => [{ type: "REQUEST", id: arg?.postId }],
+      query: ({ postId }) => ({ url: `/requests/${postId}`, method: "GET" }),
+    }),
+
+    getUndeclaredPost: builder.query({
+      providesTags: (result, error, arg) => [{ type: "REQUEST", id: arg?.postId }],
+      query: ({ postId }) => ({ url: `/requests/${postId}`, method: "GET" }),
+    }),
+
+    getFilterPosts: builder.query({
+      providesTags: ["REQUESTS"],
+      query: (params = {}) => {
+        const queryString = buildQueryParams({ ...params, status: "active" });
+        return { url: `/requests/?${queryString}`, method: "GET" };
+      },
+    }),
+
+    declaredPost: builder.mutation({
+      invalidatesTags: ["REQUESTS"],
+      query: ({ postId, changed_by_id, comment }) => ({
+        url: `/requests/${postId}/status`,
+        method: "PATCH",
+        body: { status: "active", changed_by_id, comment },
+      }),
+    }),
+
+    chengeTag: builder.mutation({
+      invalidatesTags: ["TAGS"],
+      query: ({ initialState, tagId }) => ({
+        url: `/tags/${tagId}`,
+        method: "PATCH",
+        body: initialState,
+      }),
+    }),
+
+    chengePost: builder.mutation({
+      invalidatesTags: (result, error, { postId }) => [
+        "REQUESTS",
+        { type: "REQUEST", id: postId },
+      ],
+      query: ({ initialState, postId }) => ({
+        url: `/requests/${postId}`,
+        method: "PATCH",
+        body: initialState,
+      }),
+    }),
+
+    authentication: builder.mutation({
+      invalidatesTags: ["AUTH"],
+      query: ({ initialState }) => ({
+        url: "/auth/login",
+        method: "POST",
+        body: initialState,
+      }),
+    }),
+
+    deletePost: builder.mutation({
+      invalidatesTags: ["REQUESTS"],
+      query: (postId) => ({ url: `/requests/${postId}`, method: "DELETE" }),
+    }),
+
+    deleteUndeclaredPost: builder.mutation({
+      invalidatesTags: ["REQUESTS"],
+      query: (postId) => ({ url: `/requests/${postId}`, method: "DELETE" }),
+    }),
+
+    addPost: builder.mutation({
+      invalidatesTags: ["REQUESTS"],
+      query: ({ initialState }) => ({
+        url: "/requests/",
+        method: "POST",
+        body: initialState,
+      }),
+    }),
+  }),
+});
+
+export const {
+  useLoginMutation,
+  useRegisterMutation,
+
+  useGetUsersQuery,
+  useGetUsersDBQuery,
+  useGetUserQuery,
+  useUpdateUserRolesMutation,
+
+  useGetTagsQuery,
+  useGetTagQuery,
+  useAddTagMutation,
+  useUpdateTagMutation,
+  useDeleteTagMutation,
+
+  useGetRequestsQuery,
+  useGetRequestQuery,
+  useAddRequestMutation,
+  useUpdateRequestMutation,
+  useChangeRequestStatusMutation,
+  useDeleteRequestMutation,
+
+  useAddRequestItemMutation,
+  useUpdateRequestItemMutation,
+  useDeleteRequestItemMutation,
+
+  useGetUndeclaredRequestsQuery,
+  useGetActiveRequestsQuery,
+  useGetArchivedRequestsQuery,
+
+  useGetPostsCountQuery,
+  useGetUndeclaredPostsCountQuery,
+  useGetPostsFilteredCountQuery,
+
+  useGetArhiveQuery,
+  useAuthenticationMutation,
+  useGetPostsQuery,
+  useGetUndeclaredPostsQuery,
+  useGetPostQuery,
+  useGetUndeclaredPostQuery,
+  useDeclaredPostMutation,
+  useGetFilterPostsQuery,
+  useChengeTagMutation,
+  useChengePostMutation,
+  useDeletePostMutation,
+  useDeleteUndeclaredPostMutation,
+  useAddPostMutation,
+} = apiSlice;
+RequireRoles
+import { useSelector } from "react-redux";
+import { Navigate } from "react-router-dom";
+
+export const RequireRoles = ({ allowedRoles, children }) => {
+  const roles = useSelector((state) => state.auth.roles ?? []);
+  const roleNames = roles.map((role) => role.name);
+
+  const hasAccess = allowedRoles.some((role) => roleNames.includes(role));
+
+  if (!hasAccess) {
+    return <Navigate to="/users" replace />;
+  }
+
+  return children;
+};
+role
+from extensions import db
+
+
+user_roles = db.Table(
+    "user_roles",
+    db.Column("user_id", db.Integer, db.ForeignKey("users.id", ondelete="CASCADE"), primary_key=True),
+    db.Column("role_id", db.Integer, db.ForeignKey("roles.id", ondelete="CASCADE"), primary_key=True),
+)
+
+
+class Role(db.Model):
+    __tablename__ = "roles"
+
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(50), unique=True, nullable=False, index=True)
+    description = db.Column(db.String(255), nullable=True)
+
+    users = db.relationship(
+        "User",
+        secondary=user_roles,
+        back_populates="roles",
+        lazy="selectin",
+    )
+
+    def __repr__(self):
+        return f"<Role id={self.id} name={self.name}>"
+
+
+# ──────────────────────────────────────────────
+# Seed: вызывается из create_app после db.create_all()
+# Безопасно запускать повторно — дубликаты не создаются
+# ──────────────────────────────────────────────
+
+INITIAL_ROLES = [
+    {"name": "admin",          "description": "Полный доступ, управление пользователями"},
+    {"name": "supply_manager", "description": "Управление заявками на снабжение"},
+    {"name": "default",        "description": "Базовый доступ"},
+]
+
+
+def seed_roles():
+    created = []
+    for role_data in INITIAL_ROLES:
+        exists = Role.query.filter_by(name=role_data["name"]).first()
+        if not exists:
+            db.session.add(Role(**role_data))
+            created.append(role_data["name"])
+
+    if created:
+        db.session.commit()
+        print(f"[seed_roles] Созданы роли: {', '.join(created)}")
+    else:
+        print("[seed_roles] Роли уже существуют, пропускаем")
+user
+# models/user/user.py
+from datetime import datetime
+from werkzeug.security import generate_password_hash, check_password_hash
+
+from extensions import db
+from models.user.role import user_roles
+
+
+class User(db.Model):
+    __tablename__ = "users"
+
+    id = db.Column(db.Integer, primary_key=True)
+
+    username = db.Column(db.String(150), unique=True, nullable=False, index=True)
+    password_hash = db.Column(db.String(255), nullable=False)
+
+    full_name = db.Column(db.String(150), nullable=False)
+    is_active = db.Column(db.Boolean, nullable=False, default=True)
+
+    token = db.Column(db.String(255), unique=True, nullable=True)
+
+    created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    updated_at = db.Column(
+        db.DateTime,
+        nullable=False,
+        default=datetime.utcnow,
+        onupdate=datetime.utcnow,
+    )
+
+    roles = db.relationship(
+        "Role",
+        secondary=user_roles,
+        back_populates="users",
+        lazy="selectin",
+    )
+
+    def set_password(self, password: str) -> None:
+        self.password_hash = generate_password_hash(password)
+
+    def check_password(self, password: str) -> bool:
+        return check_password_hash(self.password_hash, password)
+
+    def has_role(self, role_name: str) -> bool:
+        return any(role.name == role_name for role in self.roles)
+
+    def is_admin(self) -> bool:
+        return self.has_role("admin")
+
+    def add_role(self, role) -> None:
+        if role not in self.roles:
+            self.roles.append(role)
+
+    def remove_role(self, role) -> None:
+        if role in self.roles:
+            self.roles.remove(role)
+
+    def __repr__(self):
+        return f"<User id={self.id} username={self.username}>"
+auth
+from flask import Blueprint, request, jsonify
+
+from services.auth_service import AuthService
+from utils.serializers import serialize_many, serialize_user
+
+auth_bp = Blueprint("auth", __name__, url_prefix="/api/v1/auth")
+
+
+@auth_bp.post("/login")
+def login():
+    data = request.get_json() or {}
+
+    user = AuthService.authenticate_user(
+        data.get("username"),
+        data.get("password"),
+    )
+
+    if not user:
+        return jsonify({"error": "Invalid credentials"}), 401
+
+    return jsonify({
+        "token": user.token,
+        "user": serialize_user(user),
+    })
+
+
+@auth_bp.post("/register")
+def register():
+    data = request.get_json() or {}
+
+    try:
+        user = AuthService.create_user(
+            username=data.get("username"),
+            password=data.get("password"),
+            full_name=data.get("full_name"),
+        )
+        return jsonify({
+            "token": user.token,
+            "user": serialize_user(user),
+        }), 201
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
+
+
+@auth_bp.get("/users")
+def list_users():
+    users = AuthService.get_users()
+    return jsonify(serialize_many(users, serialize_user))
+
+auth_service
+# services/auth_service.py
+from secrets import token_hex
+
+from extensions import db
+from models.user.user import User
+from models.user.role import Role
+
+
+class AuthService:
+
+    @staticmethod
+    def _get_role_or_raise(role_name: str) -> Role:
+        role = Role.query.filter_by(name=role_name).first()
+        if not role:
+            raise ValueError(f"Role '{role_name}' not found. Run 'flask seed-roles' first.")
+        return role
+
+    @staticmethod
+    def create_user(username, password, full_name):
+        """
+        Регистрация нового пользователя.
+        Роль 'default' выдаётся автоматически.
+        """
+        if not username:
+            raise ValueError("username is required")
+        if not password:
+            raise ValueError("password is required")
+        if not full_name:
+            raise ValueError("full_name is required")
+
+        if User.query.filter_by(username=username).first():
+            raise ValueError("User with this username already exists")
+
+        default_role = AuthService._get_role_or_raise("default")
+
+        user = User(
+            username=username,
+            full_name=full_name,
+            token=token_hex(32),
+        )
+        user.set_password(password)
+        user.roles = [default_role]
+
+        db.session.add(user)
+        db.session.commit()
+        return user
+
+    @staticmethod
+    def authenticate_user(username, password):
+        if not username or not password:
+            return None
+
+        user = User.query.filter_by(username=username).first()
+        if not user:
+            return None
+        if not user.check_password(password):
+            return None
+        if not user.is_active:
+            return None
+
+        if not user.token:
+            user.token = token_hex(32)
+            db.session.commit()
+
+        return user
+
+    @staticmethod
+    def get_users():
+        return User.query.order_by(User.id.asc()).all()
+
+    @staticmethod
+    def get_user_by_id(user_id):
+        return db.session.get(User, user_id)
+
+    @staticmethod
+    def get_user_by_username(username):
+        return User.query.filter_by(username=username).first()
+
+    @staticmethod
+    def assign_role(actor: User, target_user_id: int, role_name: str):
+        if not actor.is_admin():
+            raise PermissionError("Only admin can assign roles")
+
+        target_user = db.session.get(User, target_user_id)
+        if not target_user:
+            raise ValueError(f"User {target_user_id} not found")
+
+        role = Role.query.filter_by(name=role_name).first()
+        if not role:
+            raise ValueError(f"Role '{role_name}' not found")
+
+        target_user.roles = [role]
+        db.session.commit()
+        return target_user
+    
+    @staticmethod
+    def get_user_by_token(token):
+        """Получить пользователя по токену"""
+        return User.query.filter_by(token=token).first()
+init
+from .user.user import User
+from .user.role import Role, user_roles
+
+from .tag.tag_post import Tag_post
+
+from .request.request import Request
+from .request.requestItem import RequestItem
+from .request.requestStatusHistory import RequestStatusHistory
+
+__all__ = [
+    "User",
+    "Role",
+    "user_roles",
+    "Tag_post",
+    "Request",
+    "RequestItem",
+    "RequestStatusHistory",
+]
+UserPage
+import { useParams } from "react-router-dom";
+import { createObjectsPage } from "../../creatFunctions/createObjectsPage";
+import {
+  useChengePostMutation,
+  useGetFilterPostsQuery,
+  useDeletePostMutation,
+} from "../../app/api/apiSlice";
+import { useGetPostsFilteredCountQuery } from "../../app/api/apiSlice";
+
+export const UserPage = () => {
+  const { userId } = useParams("userId");
+  const result = createObjectsPage({
+    queryParams: { ex_i: userId },
+    queryFunction: useGetFilterPostsQuery,
+    alternativeView: () => <h2>👦</h2>,
+    queryPostCount: useGetPostsFilteredCountQuery,
+    chng: useChengePostMutation,
+    del: useDeletePostMutation,
+  });
+
+  return <>{result}</>;
+};
+
+
+
+auth
+from flask import Blueprint, request, jsonify
+
+from services.auth_service import AuthService
+from utils.serializers import serialize_many, serialize_user
+
+auth_bp = Blueprint("auth", __name__, url_prefix="/api/v1/auth")
+
+
+@auth_bp.post("/login")
+def login():
+    data = request.get_json() or {}
+
+    user = AuthService.authenticate_user(
+        data.get("username"),
+        data.get("password"),
+    )
+
+    if not user:
+        return jsonify({"error": "Invalid credentials"}), 401
+
+    return jsonify({
+        "token": user.token,
+        "user": serialize_user(user),
+    })
+
+
+@auth_bp.post("/register")
+def register():
+    data = request.get_json() or {}
+
+    try:
+        user = AuthService.create_user(
+            username=data.get("username"),
+            password=data.get("password"),
+            full_name=data.get("full_name"),
+        )
+        return jsonify({
+            "token": user.token,
+            "user": serialize_user(user),
+        }), 201
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
+
+
+@auth_bp.get("/users")
+def list_users():
+    users = AuthService.get_users()
+    return jsonify(serialize_many(users, serialize_user))
+
+
+serializers.py
+from datetime import date
+from zoneinfo import ZoneInfo
+
+
+def serialize_many(objects, serializer):
+    return [serializer(obj) for obj in objects]
+
+
+def parse_date(date_str):
+    try:
+        return date.fromisoformat(date_str) if date_str else None
+    except Exception:
+        return None
+
+
+def format_datetime_ekb(dt):
+    if not dt:
+        return None
+
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=ZoneInfo("UTC"))
+
+    ekb_dt = dt.astimezone(ZoneInfo("Asia/Yekaterinburg"))
+    return ekb_dt.strftime("%d.%m.%Y %H:%M")
+
+
+def serialize_role(role):
+    return {
+        "id": role.id,
+        "name": role.name,
+        "description": role.description,
+    }
+
+
+def serialize_user(user):
+    return {
+        "id": user.id,
+        "username": user.username,
+        "full_name": user.full_name,
+        "is_active": user.is_active,
+        "roles": [serialize_role(role) for role in user.roles],
+        "created_at": user.created_at.isoformat() if user.created_at else None,
+        "updated_at": user.updated_at.isoformat() if user.updated_at else None,
+    }
+
+
+def serialize_user_min(user):
+    if not user:
+        return None
+
+    first_role = user.roles[0] if user.roles else None
+
+    return {
+        "id": user.id,
+        "username": user.username,
+        "full_name": user.full_name,
+        "role": first_role.name if first_role else None,
+        "role_label": first_role.description if first_role else None,
+    }
+
+
+def serialize_tag(tag):
+    return {
+        "id": tag.id,
+        "name": tag.name,
+    }
+
+
+def serialize_request_item(item):
+    return {
+        "id": item.id,
+        "request_id": item.request_id,
+        "name": item.name,
+        "unit": item.unit,
+        "quantity": float(item.quantity),
+        "description": item.description,
+        "is_done": item.is_done,
+        "created_at": item.created_at.isoformat() if item.created_at else None,
+    }
+
+
+def serialize_request(request_obj):
+    items = [serialize_request_item(item) for item in request_obj.items]
+
+    return {
+        "id": request_obj.id,
+        "status": request_obj.status,
+        "comment": request_obj.comment,
+        "created_by_id": request_obj.created_by_id,
+        "approved_by_id": request_obj.approved_by_id,
+        "created_at": request_obj.created_at.isoformat() if request_obj.created_at else None,
+        "updated_at": request_obj.updated_at.isoformat() if request_obj.updated_at else None,
+        "approved_at": request_obj.approved_at.isoformat() if request_obj.approved_at else None,
+        "closed_at": request_obj.closed_at.isoformat() if request_obj.closed_at else None,
+        "created_at_formatted": format_datetime_ekb(request_obj.created_at),
+        "updated_at_formatted": format_datetime_ekb(request_obj.updated_at),
+        "approved_at_formatted": format_datetime_ekb(request_obj.approved_at),
+        "closed_at_formatted": format_datetime_ekb(request_obj.closed_at),
+        "items_count": len(items),
+        "items_preview": items[:3],
+        "items": items,
+        "created_by_user": serialize_user_min(getattr(request_obj, "created_by", None)),
+        "approved_by_user": serialize_user_min(getattr(request_obj, "approved_by", None)),
+    }
+
+
+role
+from extensions import db
+
+
+user_roles = db.Table(
+    "user_roles",
+    db.Column("user_id", db.Integer, db.ForeignKey("users.id", ondelete="CASCADE"), primary_key=True),
+    db.Column("role_id", db.Integer, db.ForeignKey("roles.id", ondelete="CASCADE"), primary_key=True),
+)
+
+
+class Role(db.Model):
+    __tablename__ = "roles"
+
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(50), unique=True, nullable=False, index=True)
+    description = db.Column(db.String(255), nullable=True)
+
+    users = db.relationship(
+        "User",
+        secondary=user_roles,
+        back_populates="roles",
+        lazy="selectin",
+    )
+
+    def __repr__(self):
+        return f"<Role id={self.id} name={self.name}>"
+
+
+# ──────────────────────────────────────────────
+# Seed: вызывается из create_app после db.create_all()
+# Безопасно запускать повторно — дубликаты не создаются
+# ──────────────────────────────────────────────
+
+INITIAL_ROLES = [
+    {"name": "admin",          "description": "Полный доступ, управление пользователями"},
+    {"name": "supply_manager", "description": "Управление заявками на снабжение"},
+    {"name": "default",        "description": "Базовый доступ"},
+]
+
+
+def seed_roles():
+    created = []
+    for role_data in INITIAL_ROLES:
+        exists = Role.query.filter_by(name=role_data["name"]).first()
+        if not exists:
+            db.session.add(Role(**role_data))
+            created.append(role_data["name"])
+
+    if created:
+        db.session.commit()
+        print(f"[seed_roles] Созданы роли: {', '.join(created)}")
+    else:
+        print("[seed_roles] Роли уже существуют, пропускаем")
+
+User
+# models/user/user.py
+from datetime import datetime
+from werkzeug.security import generate_password_hash, check_password_hash
+
+from extensions import db
+from models.user.role import user_roles
+
+
+class User(db.Model):
+    __tablename__ = "users"
+
+    id = db.Column(db.Integer, primary_key=True)
+
+    username = db.Column(db.String(150), unique=True, nullable=False, index=True)
+    password_hash = db.Column(db.String(255), nullable=False)
+
+    full_name = db.Column(db.String(150), nullable=False)
+    is_active = db.Column(db.Boolean, nullable=False, default=True)
+
+    token = db.Column(db.String(255), unique=True, nullable=True)
+
+    created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    updated_at = db.Column(
+        db.DateTime,
+        nullable=False,
+        default=datetime.utcnow,
+        onupdate=datetime.utcnow,
+    )
+
+    roles = db.relationship(
+        "Role",
+        secondary=user_roles,
+        back_populates="users",
+        lazy="selectin",
+    )
+
+    def set_password(self, password: str) -> None:
+        self.password_hash = generate_password_hash(password)
+
+    def check_password(self, password: str) -> bool:
+        return check_password_hash(self.password_hash, password)
+
+    def has_role(self, role_name: str) -> bool:
+        return any(role.name == role_name for role in self.roles)
+
+    def is_admin(self) -> bool:
+        return self.has_role("admin")
+
+    def add_role(self, role) -> None:
+        if role not in self.roles:
+            self.roles.append(role)
+
+    def remove_role(self, role) -> None:
+        if role in self.roles:
+            self.roles.remove(role)
+
+    def __repr__(self):
+        return f"<User id={self.id} username={self.username}>"
+
+Users
+from flask import Blueprint, request, jsonify
+
+from services.auth_service import AuthService
+from utils.serializers import serialize_many, serialize_user
+
+users_bp = Blueprint("users", __name__, url_prefix="/api/v1/users")
+
+
+@users_bp.get("/")
+def list_users():
+    users = AuthService.get_users()
+    return jsonify(serialize_many(users, serialize_user))
+
+
+@users_bp.get("/<int:user_id>")
+def get_user(user_id):
+    user = AuthService.get_user_by_id(user_id)
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+    return jsonify(serialize_user(user))
+
+
+@users_bp.patch("/<int:user_id>/roles")
+def update_user_role(user_id):
+    data = request.get_json() or {}
+    role_name = data.get("role")
+
+    if not role_name:
+        return jsonify({"error": "role is required"}), 400
+
+    auth_header = request.headers.get("Authorization")
+    if not auth_header or not auth_header.startswith("Token "):
+        return jsonify({"error": "Authorization required"}), 401
+
+    token = auth_header.replace("Token ", "").strip()
+    actor = AuthService.get_user_by_token(token)
+
+    if not actor:
+        return jsonify({"error": "Invalid token"}), 401
+
+    try:
+        updated_user = AuthService.assign_role(actor, user_id, role_name)
+        return jsonify(serialize_user(updated_user)), 200
+    except PermissionError as e:
+        return jsonify({"error": str(e)}), 403
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
+
+Request
+from flask import Blueprint, request, jsonify
+
+from services.request_service import RequestService
+from utils.serializers import serialize_many, serialize_request, serialize_request_item
+
+requests_bp = Blueprint("requests", __name__)
+
+
+@requests_bp.get("/")
+def list_requests():
+    page = request.args.get("page", 0, type=int)
+    status = request.args.get("status", default=None, type=str)
+
+    requests_list = RequestService.get_requests(page=page, status=status)
+    return jsonify(serialize_many(requests_list, serialize_request))
+
+@requests_bp.get("/health")
+def health_check():
+    return jsonify({
+        "status": "ok",
+        "message": "Flask backend is running",
+        "version": "1.0.0"
+    })
+
+
+@requests_bp.get("/<int:request_id>")
+def get_request(request_id):
+    request_obj = RequestService.get_request_by_id(request_id)
+    if not request_obj:
+        return jsonify({"error": "Request not found"}), 404
+
+    return jsonify(serialize_request(request_obj))
+
+
+@requests_bp.post("/")
+def create_request():
+    data = request.get_json() or {}
+
+    items = data.get("items", [])
+    comment = data.get("comment")
+    created_by_id = data.get("created_by_id")
+
+    try:
+        request_obj = RequestService.create_request(
+            items=items,
+            comment=comment,
+            created_by_id=created_by_id,
+        )
+        return jsonify(serialize_request(request_obj)), 201
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
+
+
+@requests_bp.patch("/<int:request_id>")
+def update_request(request_id):
+    data = request.get_json() or {}
+
+    request_obj = RequestService.update_request(request_id, **data)
+    if not request_obj:
+        return jsonify({"error": "Request not found"}), 404
+
+    return jsonify(serialize_request(request_obj))
+
+
+@requests_bp.patch("/<int:request_id>/status")
+def change_request_status(request_id):
+    data = request.get_json() or {}
+
+    new_status = data.get("status")
+    changed_by_id = data.get("changed_by_id")
+    comment = data.get("comment")
+
+    if not new_status:
+        return jsonify({"error": "status is required"}), 400
+
+    try:
+        request_obj = RequestService.change_status(
+            request_id=request_id,
+            new_status=new_status,
+            changed_by_id=changed_by_id,
+            comment=comment,
+        )
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
+
+    if not request_obj:
+        return jsonify({"error": "Request not found"}), 404
+
+    return jsonify(serialize_request(request_obj))
+
+
+@requests_bp.post("/<int:request_id>/items")
+def add_request_item(request_id):
+    data = request.get_json() or {}
+
+    name = data.get("name")
+    unit = data.get("unit")
+    quantity = data.get("quantity")
+    description = data.get("description")
+
+    if not name or not unit or quantity is None:
+        return jsonify({"error": "name, unit and quantity are required"}), 400
+
+    item = RequestService.add_request_item(
+        request_id=request_id,
+        name=name,
+        unit=unit,
+        quantity=quantity,
+        description=description,
+    )
+
+    if not item:
+        return jsonify({"error": "Request not found"}), 404
+
+    return jsonify(serialize_request_item(item)), 201
+
+
+@requests_bp.patch("/items/<int:item_id>")
+def update_request_item(item_id):
+    data = request.get_json() or {}
+
+    item = RequestService.update_request_item(item_id, **data)
+    if not item:
+        return jsonify({"error": "Request item not found"}), 404
+
+    return jsonify(serialize_request_item(item))
+
+
+@requests_bp.delete("/items/<int:item_id>")
+def delete_request_item(item_id):
+    deleted = RequestService.delete_request_item(item_id)
+    if not deleted:
+        return jsonify({"error": "Request item not found"}), 404
+
+    return jsonify({"message": "Request item deleted successfully"}), 200
+
+
+@requests_bp.delete("/<int:request_id>")
+def delete_request(request_id):
+    deleted = RequestService.delete_request(request_id)
+    if not deleted:
+        return jsonify({"error": "Request not found"}), 404
+
+    return jsonify({"message": "Request deleted successfully"}), 200
+
+
+
+
+

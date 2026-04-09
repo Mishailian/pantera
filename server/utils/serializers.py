@@ -2,8 +2,10 @@ from datetime import date
 from zoneinfo import ZoneInfo
 
 
+
 def serialize_many(objects, serializer):
     return [serializer(obj) for obj in objects]
+
 
 
 def parse_date(date_str):
@@ -13,15 +15,19 @@ def parse_date(date_str):
         return None
 
 
+
 def format_datetime_ekb(dt):
     if not dt:
         return None
 
+
     if dt.tzinfo is None:
         dt = dt.replace(tzinfo=ZoneInfo("UTC"))
 
+
     ekb_dt = dt.astimezone(ZoneInfo("Asia/Yekaterinburg"))
     return ekb_dt.strftime("%d.%m.%Y %H:%M")
+
 
 
 def serialize_role(role):
@@ -30,6 +36,7 @@ def serialize_role(role):
         "name": role.name,
         "description": role.description,
     }
+
 
 
 def serialize_user(user):
@@ -44,11 +51,14 @@ def serialize_user(user):
     }
 
 
+
 def serialize_user_min(user):
     if not user:
         return None
 
+
     first_role = user.roles[0] if user.roles else None
+
 
     return {
         "id": user.id,
@@ -59,11 +69,13 @@ def serialize_user_min(user):
     }
 
 
+
 def serialize_tag(tag):
     return {
         "id": tag.id,
         "name": tag.name,
     }
+
 
 
 def serialize_request_item(item):
@@ -79,8 +91,10 @@ def serialize_request_item(item):
     }
 
 
+
 def serialize_request(request_obj):
     items = [serialize_request_item(item) for item in request_obj.items]
+
 
     return {
         "id": request_obj.id,
@@ -88,17 +102,21 @@ def serialize_request(request_obj):
         "comment": request_obj.comment,
         "created_by_id": request_obj.created_by_id,
         "approved_by_id": request_obj.approved_by_id,
+        "archived_by_id": getattr(request_obj, "archived_by_id", None),
         "created_at": request_obj.created_at.isoformat() if request_obj.created_at else None,
         "updated_at": request_obj.updated_at.isoformat() if request_obj.updated_at else None,
         "approved_at": request_obj.approved_at.isoformat() if request_obj.approved_at else None,
         "closed_at": request_obj.closed_at.isoformat() if request_obj.closed_at else None,
+        "archived_at": getattr(request_obj, "archived_at", None) and getattr(request_obj, "archived_at").isoformat(),
         "created_at_formatted": format_datetime_ekb(request_obj.created_at),
         "updated_at_formatted": format_datetime_ekb(request_obj.updated_at),
         "approved_at_formatted": format_datetime_ekb(request_obj.approved_at),
         "closed_at_formatted": format_datetime_ekb(request_obj.closed_at),
+        "archived_at_formatted": format_datetime_ekb(getattr(request_obj, "archived_at", None)),
         "items_count": len(items),
         "items_preview": items[:3],
         "items": items,
         "created_by_user": serialize_user_min(getattr(request_obj, "created_by", None)),
         "approved_by_user": serialize_user_min(getattr(request_obj, "approved_by", None)),
+        "archived_by_user": serialize_user_min(getattr(request_obj, "archived_by", None)),
     }
