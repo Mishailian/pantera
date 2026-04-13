@@ -19,8 +19,16 @@ const authSlice = createSlice({
       state.roles = action.payload.roles || [];
       state.username_id = action.payload.username_id;
     },
+    clearAuth: (state) => {
+      state.csrf_token = null;
+      state.username = null;
+      state.username_id = null;
+      state.roles = [];
+      state.isAuth = false;
+      state.token = null;
+    },
   },
 });
 
-export const { setToken } = authSlice.actions;
+export const { setToken, clearAuth } = authSlice.actions;
 export default authSlice.reducer;

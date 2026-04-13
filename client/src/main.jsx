@@ -19,12 +19,23 @@ import { SingleUndeclaretedPost } from "./routers/UndeclaretedList/SingleUndecla
 import { StrictMode } from "react";
 import { SingleArchivedPost } from "./routers/ArchiveList/SingleArchivedPost";
 import { RequireRoles } from "./routers/guards/RequireRoles";
+import { Profile } from "./routers/User/Profile";           // ← ДОБАВИТЬ
+import { ProfileHistory } from "./routers/User/ProfileHistory";  // ← ДОБАВИТЬ
 
 const router = createBrowserRouter([
   {
     path: "/",
     element: <Root />,
     children: [
+      { path: "profile", element: <Profile /> },
+      { 
+        path: "profile-history",
+        element: (
+          <RequireRoles allowedRoles={["admin", "supplymanager"]}>
+            <ProfileHistory />
+          </RequireRoles>
+        )
+      },
       {
         path: "/undeclared",
         element: (

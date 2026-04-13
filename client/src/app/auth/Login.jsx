@@ -1,15 +1,15 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 
 import {
   useAuthenticationMutation,
   useRegisterMutation,
-  useGetTagsQuery,
   useGetUsersQuery,
   useGetRegistrationRolesQuery,
+  apiSlice,
 } from "../api/apiSlice";
 
-import { setToken } from "./authSlice";
+import { setToken, clearAuth } from "./authSlice";
 import { setTagsTable } from "./tagsSlice";
 import { setUsersTable } from "./usesSlice";
 
@@ -42,9 +42,10 @@ export const Login = () => {
   const [auth, { isLoading: isLoginLoading }] = useAuthenticationMutation();
   const [registerUser, { isLoading: isRegisterLoading }] = useRegisterMutation();
 
-  const { data: registrationRoles = [], isLoading: isRolesLoading } = useGetRegistrationRolesQuery(undefined, {
-    skip: mode !== "register",
-  });
+  const { data: registrationRoles = [], isLoading: isRolesLoading } =
+    useGetRegistrationRolesQuery(undefined, {
+      skip: mode !== "register",
+    });
 
   const users = useGetUsersQuery(undefined, {
     skip: !authToken,
@@ -61,7 +62,10 @@ export const Login = () => {
     if (!registrationRoles.length) return;
 
     setRegisterForm((prev) => {
-      if (prev.role_name && registrationRoles.some((role) => role.name === prev.role_name)) {
+      if (
+        prev.role_name &&
+        registrationRoles.some((role) => role.name === prev.role_name)
+      ) {
         return prev;
       }
 
@@ -82,6 +86,8 @@ export const Login = () => {
       if (response?.data) {
         const { token, user } = response.data;
 
+        dispatch(apiSlice.util.resetApiState());
+
         dispatch(
           setToken({
             isAuth: true,
@@ -89,6 +95,7 @@ export const Login = () => {
             username_id: user?.id ?? null,
             roles: user?.roles ?? [],
             token: token ?? null,
+            csrf_token: null,
           })
         );
 
@@ -119,6 +126,8 @@ export const Login = () => {
       if (response?.data) {
         const { token, user } = response.data;
 
+        dispatch(apiSlice.util.resetApiState());
+
         dispatch(
           setToken({
             isAuth: true,
@@ -126,6 +135,7 @@ export const Login = () => {
             username_id: user?.id ?? null,
             roles: user?.roles ?? [],
             token: token ?? null,
+            csrf_token: null,
           })
         );
 
@@ -149,15 +159,8 @@ export const Login = () => {
   };
 
   const logOut = () => {
-    dispatch(
-      setToken({
-        token: null,
-        isAuth: false,
-        roles: [],
-        username: null,
-        username_id: null,
-      })
-    );
+    dispatch(apiSlice.util.resetApiState());
+    dispatch(clearAuth());
 
     setErrorText("");
     setSuccessText("");
@@ -378,7 +381,9 @@ export const Login = () => {
           <button
             className="mt-2 inline-flex h-12 w-full items-center justify-center rounded-2xl bg-blue-600 text-sm font-semibold text-white transition hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-60"
             onClick={handleRegister}
-            disabled={isRegisterLoading || isRolesLoading || !registerForm.role_name}
+            disabled={
+              isRegisterLoading || isRolesLoading || !registerForm.role_name
+            }
             type="button"
           >
             {isRegisterLoading ? "Регистрация..." : "Зарегистрироваться"}

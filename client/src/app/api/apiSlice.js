@@ -25,7 +25,7 @@ export const apiSlice = createApi({
     },
     credentials: "include",
   }),
-  tagTypes: ["REQUESTS", "REQUEST", "USERS", "USER", "TAGS", "AUTH", "ROLES"],
+  tagTypes: ["REQUESTS", "REQUEST", "USERS", "USER", "TAGS", "AUTH", "ROLES", "PROFILE_HISTORY"],
   endpoints: (builder) => ({
     login: builder.mutation({
       invalidatesTags: ["AUTH"],
@@ -296,6 +296,33 @@ export const apiSlice = createApi({
         return { url: `/requests/?${queryString}`, method: "GET" };
       },
     }),
+    // GET /users/me
+    getCurrentUser: builder.query({
+      query: () => 'users/me',
+      providesTags: ['USER']
+    }),
+
+    // PATCH /users/me
+    updateCurrentUser: builder.mutation({
+      query: ({ full_name }) => ({
+        url: 'users/me',
+        method: 'PATCH',
+        body: { full_name }
+      }),
+      invalidatesTags: ['USER', 'AUTH']
+    }),
+
+    // GET /users/profile-history (protected)
+    getProfileHistory: builder.query({
+      query: (params = {}) => {
+        const queryString = buildQueryParams(params);
+        return {
+          url: `users/profile-history${queryString ? `?${queryString}` : ""}`,
+          method: "GET",
+        };
+      },
+      providesTags: ["PROFILE_HISTORY"],
+    }),
 
     declaredPost: builder.mutation({
       invalidatesTags: ["REQUESTS"],
@@ -365,6 +392,9 @@ export const {
   useGetUsersDBQuery,
   useGetUserQuery,
   useUpdateUserRolesMutation,
+  useGetCurrentUserQuery,
+  useUpdateCurrentUserMutation,
+  useGetProfileHistoryQuery,
 
   useGetTagsQuery,
   useGetTagQuery,

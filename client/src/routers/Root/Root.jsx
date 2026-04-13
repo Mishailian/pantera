@@ -16,7 +16,7 @@ export const Root = () => {
   const token = useSelector((state) => state.auth.token);
   const isAuth = useSelector((state) => state.auth.isAuth);
   const username = useSelector((state) => state.auth.username);
-  const username_id = useSelector((state) => state.auth.username_id);
+  const usernameid = useSelector((state) => state.auth.usernameid);
   const roles = useSelector((state) => state.auth.roles || []);
   const usersTable = useSelector((state) => state.users.usersTable);
 
@@ -41,12 +41,13 @@ export const Root = () => {
   }, [roles]);
 
   const canSeeSupplySections = useMemo(() => {
-    return (
-      roleNames.includes("admin") || roleNames.includes("supply_manager")
-    );
+    return roleNames.includes("admin") || roleNames.includes("supplymanager");
   }, [roleNames]);
 
   const currentPageTitle = useMemo(() => {
+    if (normalizedLocation === "profile") return "Профиль";
+    if (normalizedLocation === "profile-history") return "История имён";
+
     if (normalizedLocation.includes("users")) {
       return usersTable[normalizedLocation.split("users")[1]] ?? "users";
     }
@@ -55,7 +56,7 @@ export const Root = () => {
   }, [normalizedLocation, usersTable, s.names]);
 
   const routes = useMemo(() => {
-    return Object.keys(s.paths)
+    const baseRoutes = Object.keys(s.paths)
       .filter((routeKey) => {
         const path = s.paths[routeKey];
 
@@ -71,6 +72,27 @@ export const Root = () => {
         path: s.paths[routeKey],
         isActive: pathname === s.paths[routeKey],
       }));
+
+    const extraRoutes = [
+      {
+        key: "profile",
+        label: "Профиль",
+        path: "/profile",
+        isActive: pathname === "/profile",
+      },
+      ...(canSeeSupplySections
+        ? [
+            {
+              key: "profile-history",
+              label: "История имён",
+              path: "/profile-history",
+              isActive: pathname === "/profile-history",
+            },
+          ]
+        : []),
+    ];
+
+    return [...extraRoutes, ...baseRoutes];
   }, [pathname, s.names, s.paths, canSeeSupplySections]);
 
   useEffect(() => {
@@ -79,13 +101,13 @@ export const Root = () => {
         setToken({
           token,
           username,
-          username_id,
+          usernameid,
           roles,
           isAuth: true,
         })
       );
     }
-  }, [dispatch, persistedToken, token, username, username_id, roles]);
+  }, [dispatch, persistedToken, token, username, usernameid, roles]);
 
   if (!isAuth) {
     return <Login />;
