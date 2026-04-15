@@ -95,7 +95,6 @@ def serialize_request_item(item):
 def serialize_request(request_obj):
     items = [serialize_request_item(item) for item in request_obj.items]
 
-
     return {
         "id": request_obj.id,
         "status": request_obj.status,
@@ -103,6 +102,7 @@ def serialize_request(request_obj):
         "created_by_id": request_obj.created_by_id,
         "approved_by_id": request_obj.approved_by_id,
         "archived_by_id": getattr(request_obj, "archived_by_id", None),
+        "assigned_to_id": getattr(request_obj, "assigned_to_id", None),
         "created_at": request_obj.created_at.isoformat() if request_obj.created_at else None,
         "updated_at": request_obj.updated_at.isoformat() if request_obj.updated_at else None,
         "approved_at": request_obj.approved_at.isoformat() if request_obj.approved_at else None,
@@ -119,4 +119,7 @@ def serialize_request(request_obj):
         "created_by_user": serialize_user_min(getattr(request_obj, "created_by", None)),
         "approved_by_user": serialize_user_min(getattr(request_obj, "approved_by", None)),
         "archived_by_user": serialize_user_min(getattr(request_obj, "archived_by", None)),
+        "assigned_to_user": serialize_user_min(getattr(request_obj, "assigned_to", None)),
+        "assigned_to_at_archive_id": getattr(request_obj, "assigned_to_at_archive_id", None),
+        "assigned_to_at_archive_user": serialize_user_min(getattr(request_obj, "assigned_to_at_archive", None)),
     }

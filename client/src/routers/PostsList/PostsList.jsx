@@ -17,6 +17,7 @@ export const PostsList = () => {
   );
 
   const [searchTerm, setSearchTerm] = useState("");
+  const [searchField, setSearchField] = useState("created_by");
   const [sortOrder, setSortOrder] = useState("newest");
 
   const { data: posts = [], isLoading, isError } = useGetActiveRequestsQuery();
@@ -32,19 +33,52 @@ export const PostsList = () => {
       const value = searchTerm.toLowerCase();
 
       result = result.filter((post) => {
-        const username = post?.created_by_user?.username?.toLowerCase() || "";
-        const fullName = post?.created_by_user?.full_name?.toLowerCase() || "";
-        const approvedBy = post?.approved_by_user?.full_name?.toLowerCase() || "";
+        const createdByUsername = post?.created_by_user?.username?.toLowerCase() || "";
+        const createdByFullName = post?.created_by_user?.full_name?.toLowerCase() || "";
+        const assignedToUsername = post?.assigned_to_user?.username?.toLowerCase() || "";
+        const assignedToFullName = post?.assigned_to_user?.full_name?.toLowerCase() || "";
+        const approvedByUsername = post?.approved_by_user?.username?.toLowerCase() || "";
+        const approvedByFullName = post?.approved_by_user?.full_name?.toLowerCase() || "";
         const comment = post?.comment?.toLowerCase() || "";
-        const requestId = String(post?.id || "");
+        const requestId = String(post?.id || "").toLowerCase();
 
-        return (
-          username.includes(value) ||
-          fullName.includes(value) ||
-          approvedBy.includes(value) ||
-          comment.includes(value) ||
-          requestId.includes(value)
-        );
+        switch (searchField) {
+          case "created_by":
+            return (
+              createdByUsername.includes(value) ||
+              createdByFullName.includes(value)
+            );
+
+          case "assigned_to":
+            return (
+              assignedToUsername.includes(value) ||
+              assignedToFullName.includes(value)
+            );
+
+          case "approved_by":
+            return (
+              approvedByUsername.includes(value) ||
+              approvedByFullName.includes(value)
+            );
+
+          case "comment":
+            return comment.includes(value);
+
+          case "request_id":
+            return requestId.includes(value);
+
+          default:
+            return (
+              createdByUsername.includes(value) ||
+              createdByFullName.includes(value) ||
+              assignedToUsername.includes(value) ||
+              assignedToFullName.includes(value) ||
+              approvedByUsername.includes(value) ||
+              approvedByFullName.includes(value) ||
+              comment.includes(value) ||
+              requestId.includes(value)
+            );
+        }
       });
     }
 
@@ -60,7 +94,7 @@ export const PostsList = () => {
     });
 
     return result;
-  }, [posts, searchTerm, sortOrder]);
+  }, [posts, searchTerm, searchField, sortOrder]);
 
   const handleArchive = async (requestId) => {
     try {
@@ -114,9 +148,9 @@ export const PostsList = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-6">
       <div className="mx-auto max-w-[1800px]">
-        <div className="mb-8 rounded-3xl border border-slate-200 bg-white p-8 shadow-xl">
-          <div className="flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
-            <div>
+        <div className="mb-8 rounded-3xl border border-slate-200 bg-white p-8 shadow-xl overflow-hidden">
+          <div className="grid grid-cols-1 gap-5 xl:grid-cols-[minmax(240px,320px)_minmax(0,1fr)] xl:items-end">
+            <div className="min-w-0">
               <h1 className="text-3xl font-bold tracking-tight text-slate-800">
                 Активные заявки
               </h1>
@@ -125,23 +159,37 @@ export const PostsList = () => {
               </p>
             </div>
 
-            <div className="flex flex-col gap-3 md:flex-row md:items-center">
-              <input
-                type="text"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder="Поиск по номеру, логину, имени, подписавшему, комментарию..."
-                className="h-12 w-full rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm shadow-sm focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 md:w-96"
-              />
+            <div className="min-w-0">
+              <div className="grid grid-cols-1 gap-3 lg:grid-cols-[260px_minmax(0,1fr)_220px]">
+                <select
+                  value={searchField}
+                  onChange={(e) => setSearchField(e.target.value)}
+                  className="h-12 w-full min-w-0 rounded-2xl border border-slate-200 bg-white px-4 text-sm shadow-sm focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+                >
+                  <option value="created_by">Создатель</option>
+                  <option value="assigned_to">Назначенный пользователь</option>
+                  <option value="approved_by">Подписавший</option>
+                  <option value="comment">Комментарий</option>
+                  <option value="request_id">Номер заявки</option>
+                </select>
 
-              <select
-                value={sortOrder}
-                onChange={(e) => setSortOrder(e.target.value)}
-                className="h-12 rounded-2xl border border-slate-200 bg-white px-4 text-sm shadow-sm focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
-              >
-                <option value="newest">Сначала новые</option>
-                <option value="oldest">Сначала старые</option>
-              </select>
+                <input
+                  type="text"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  placeholder="Поиск по выбранному полю..."
+                  className="h-12 w-full min-w-0 rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm shadow-sm focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+                />
+
+                <select
+                  value={sortOrder}
+                  onChange={(e) => setSortOrder(e.target.value)}
+                  className="h-12 w-full min-w-0 rounded-2xl border border-slate-200 bg-white px-4 text-sm shadow-sm focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+                >
+                  <option value="newest">Сначала новые</option>
+                  <option value="oldest">Сначала старые</option>
+                </select>
+              </div>
             </div>
           </div>
         </div>
@@ -168,8 +216,7 @@ export const PostsList = () => {
               <p className="text-slate-500">
                 {searchTerm
                   ? "Попробуйте изменить параметры поиска"
-                  : "Сейчас нет активных заявок"
-                }
+                  : "Сейчас нет активных заявок"}
               </p>
             </div>
           )}

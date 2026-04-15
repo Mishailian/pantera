@@ -1,5 +1,29 @@
 import React from "react";
 
+const STATUS_META = {
+  archived: {
+    label: "Архивная",
+    badge: "bg-slate-100 text-slate-700 ring-slate-200",
+  },
+  active: {
+    label: "Активная",
+    badge: "bg-emerald-100 text-emerald-800 ring-emerald-200",
+  },
+  undeclared: {
+    label: "На рассмотрении",
+    badge: "bg-amber-100 text-amber-800 ring-amber-200",
+  },
+};
+
+const InfoCard = ({ label, value, sub }) => (
+  <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+    <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+      {label}
+    </p>
+    <p className="mt-2 text-base font-semibold text-slate-900">{value || "—"}</p>
+    {sub ? <p className="mt-1 text-xs text-slate-500">{sub}</p> : null}
+  </div>
+);
 
 export const SinglePostBlock = ({ data }) => {
   const {
@@ -9,6 +33,8 @@ export const SinglePostBlock = ({ data }) => {
     created_by_user,
     approved_by_user,
     archived_by_user,
+    assigned_to_user,
+    assigned_to_at_archive_user,
     created_at_formatted,
     updated_at_formatted,
     approved_at_formatted,
@@ -17,154 +43,205 @@ export const SinglePostBlock = ({ data }) => {
     items,
     items_count,
     mode = "active",
-    canManage = false,
   } = data || {};
 
+  const statusKey = STATUS_META[status] ? status : "undeclared";
+  const statusMeta = STATUS_META[statusKey];
+  const archiveAssigned = assigned_to_at_archive_user || assigned_to_user;
 
   return (
-    <div className="mx-auto w-full max-w-5xl p-8">
-      <div className="mb-8 rounded-3xl bg-white p-8 shadow-2xl">
-        {/* Заголовок */}
-        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-          <div>
-            <h2 className="text-2xl font-bold tracking-tight text-slate-800">
-              Заявка #{id}
-            </h2>
-            <p className="mt-1 text-sm text-slate-500">
-              <span className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-wide ${
-                status === "archived" 
-                  ? "bg-slate-200 text-slate-700" 
-                  : status === "active" 
-                  ? "bg-emerald-100 text-emerald-800" 
-                  : "bg-amber-100 text-amber-800"
-              }`}>
-                {status === "archived" ? "Архивная" : status === "active" ? "Активная" : "На рассмотрении"}
-              </span>
-            </p>
-          </div>
-          {mode === "archived" && (
-            <div className="flex items-center gap-2 rounded-2xl bg-slate-100 px-4 py-2 text-sm font-medium text-slate-700">
-              <span className="h-2 w-2 rounded-full bg-slate-400"></span>
-              Архивная заявка
-            </div>
-          )}
-        </div>
+    <div className="mx-auto w-full max-w-6xl p-4 sm:p-6 lg:p-8">
+      <div className="overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-[0_20px_60px_rgba(15,23,42,0.08)]">
+        <div className="border-b border-slate-100 bg-gradient-to-b from-slate-50 to-white px-5 py-5 sm:px-8 sm:py-7">
+          <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+            <div className="min-w-0">
+              <div className="mb-4 flex flex-wrap items-center gap-3">
+                <div className="inline-flex items-center rounded-full bg-slate-100 px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-slate-600">
+                  Заявка #{id}
+                </div>
+                <div
+                  className={`inline-flex items-center rounded-full px-4 py-2 text-xs font-semibold uppercase tracking-wide ring-1 ${statusMeta.badge}`}
+                >
+                  {statusMeta.label}
+                </div>
+                {mode === "archived" ? (
+                  <div className="inline-flex items-center rounded-full bg-slate-900 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-white">
+                    Архив
+                  </div>
+                ) : null}
+              </div>
 
+              <h2 className="text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">
+                {created_by_user?.full_name || created_by_user?.username || "Неизвестно"}
+              </h2>
 
-        {/* Инфоблоки */}
-        <div className="mt-8 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
-          <div className="rounded-2xl border border-slate-200 bg-white p-4">
-            <p className="text-sm text-slate-500">Автор заявки</p>
-            <p className="mt-1 font-medium text-slate-800">
-              {created_by_user?.full_name || created_by_user?.username || "Неизвестно"}
-            </p>
-            {created_by_user?.role_label && (
-              <p className="text-xs text-slate-500">@{created_by_user.username} • {created_by_user.role_label}</p>
-            )}
-          </div>
-
-
-          <div className="rounded-2xl border border-slate-200 bg-white p-4">
-            <p className="text-sm text-slate-500">Создано</p>
-            <p className="mt-1 font-medium text-slate-800">{created_at_formatted || "—"}</p>
-          </div>
-
-
-          {approved_by_user && (
-            <div className="rounded-2xl border border-slate-200 bg-white p-4">
-              <p className="text-sm text-slate-500">Кто одобрил</p>
-              <p className="mt-1 font-medium text-slate-800">
-                {approved_by_user.full_name}
-              </p>
-              <p className="text-xs text-slate-500">
-                {approved_at_formatted || "—"}
+              <p className="mt-2 text-sm text-slate-500">
+                @{created_by_user?.username || "unknown"}
+                {created_by_user?.role_label ? ` • ${created_by_user.role_label}` : ""}
               </p>
             </div>
-          )}
 
-
-          {mode === "archived" && archived_by_user && (
-            <div className="rounded-2xl border border-slate-200 bg-white p-4">
-              <p className="text-sm text-slate-500">Кто архивировал</p>
-              <div className="mt-1 space-y-1">
-                <p className="font-medium text-slate-800">
-                  {archived_by_user.full_name}
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:w-[320px]">
+              <div className="rounded-2xl bg-slate-50 px-4 py-4">
+                <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+                  Позиции
                 </p>
-                <p className="text-xs text-slate-500">
-                  @{archived_by_user.username} • {archived_at_formatted || "—"}
+                <p className="mt-2 text-3xl font-bold text-slate-900">
+                  {items_count || 0}
+                </p>
+              </div>
+              <div className="rounded-2xl bg-slate-50 px-4 py-4">
+                <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+                  Обновлено
+                </p>
+                <p className="mt-2 text-sm font-semibold leading-5 text-slate-800">
+                  {updated_at_formatted || "—"}
                 </p>
               </div>
             </div>
-          )}
-
-
-          {mode === "archived" && !archived_by_user && (
-            <div className="rounded-2xl border border-slate-200 bg-white p-4">
-              <p className="text-sm text-slate-500">Архивирована</p>
-              <p className="mt-1 font-medium text-slate-800">
-                {archived_at_formatted || closed_at_formatted || "—"}
-              </p>
-            </div>
-          )}
+          </div>
         </div>
 
-
-        {/* Комментарий */}
-        {comment && comment.trim() && (
-          <div className="mt-8 rounded-2xl border border-slate-200 bg-slate-50 p-6">
-            <h4 className="mb-3 text-sm font-medium text-slate-700">Комментарий</h4>
-            <p className="whitespace-pre-wrap text-slate-800">{comment}</p>
+        <div className="px-5 py-5 sm:px-8 sm:py-8">
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
+            <InfoCard
+              label="Создатель"
+              value={created_by_user?.full_name || created_by_user?.username}
+              sub={
+                created_by_user?.username
+                  ? `@${created_by_user.username}${created_by_user?.role_label ? ` • ${created_by_user.role_label}` : ""}`
+                  : null
+              }
+            />
+            <InfoCard label="Дата создания" value={created_at_formatted || "—"} />
+            <InfoCard
+              label="Кто одобрил"
+              value={approved_by_user?.full_name || "—"}
+              sub={
+                approved_by_user?.username
+                  ? `${approved_at_formatted || "—"} • @${approved_by_user.username}`
+                  : approved_at_formatted || null
+              }
+            />
+            <InfoCard
+              label={mode === "archived" ? "Архивирована" : "Статус"}
+              value={mode === "archived" ? archived_at_formatted || closed_at_formatted || "—" : statusMeta.label}
+              sub={
+                mode === "archived" && archived_by_user
+                  ? `@${archived_by_user.username} • ${archived_by_user.full_name}`
+                  : null
+              }
+            />
           </div>
-        )}
 
+          {mode === "archived" ? (
+            <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2">
+              <InfoCard
+                label="Кто был закреплён"
+                value={archiveAssigned?.full_name || "Не был назначен"}
+                sub={
+                  archiveAssigned?.username
+                    ? `@${archiveAssigned.username}${archiveAssigned?.role_label ? ` • ${archiveAssigned.role_label}` : ""}`
+                    : "На момент архивирования ответственный не был назначен"
+                }
+              />
+              <InfoCard
+                label="Кто архивировал"
+                value={archived_by_user?.full_name || "—"}
+                sub={
+                  archived_by_user?.username
+                    ? `@${archived_by_user.username} • ${archived_at_formatted || "—"}`
+                    : archived_at_formatted || null
+                }
+              />
+            </div>
+          ) : null}
 
-        {/* Позиции заявки */}
-        <div className="mt-12">
-          <h3 className="mb-6 text-lg font-semibold text-slate-800">
-            Позиции заявки ({items_count || 0})
-          </h3>
-          {items && items.length > 0 ? (
-            <div className="space-y-4">
-              {items.map((item, index) => (
-                <div key={item.id || index} className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-                  <div className="grid grid-cols-1 gap-4 md:grid-cols-4 lg:grid-cols-6">
-                    <div>
-                      <p className="text-sm font-medium text-slate-700">Наименование</p>
-                      <p className="mt-1 text-slate-800">{item.name}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-slate-700">Ед. изм.</p>
-                      <p className="mt-1 text-slate-800">{item.unit}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-slate-700">Количество</p>
-                      <p className="mt-1 font-medium text-slate-800">{item.quantity}</p>
-                    </div>
-                    <div className={`col-span-1 ${item.is_done ? 'text-emerald-600' : 'text-amber-600'}`}>
-                      <p className="text-sm font-medium text-slate-700">Статус</p>
-                      <span className={`mt-1 inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                        item.is_done 
-                          ? 'bg-emerald-100 text-emerald-800' 
-                          : 'bg-amber-100 text-amber-800'
-                      }`}>
-                        {item.is_done ? 'Выполнено' : 'В работе'}
-                      </span>
-                    </div>
-                    {item.description && (
-                      <div className="col-span-full">
-                        <p className="text-sm font-medium text-slate-700">Примечание</p>
-                        <p className="mt-1 text-slate-800">{item.description}</p>
+          {comment && comment.trim() ? (
+            <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-5">
+              <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+                Комментарий
+              </p>
+              <p className="mt-3 whitespace-pre-wrap text-sm leading-7 text-slate-700">
+                {comment}
+              </p>
+            </div>
+          ) : null}
+
+          <div className="mt-8">
+            <div className="mb-4 flex items-end justify-between gap-4">
+              <h3 className="text-lg font-semibold text-slate-900">
+                Позиции заявки
+              </h3>
+              <span className="text-sm text-slate-500">
+                {items_count || 0} шт.
+              </span>
+            </div>
+
+            {items && items.length > 0 ? (
+              <div className="space-y-3">
+                {items.map((item, index) => (
+                  <div
+                    key={item.id || index}
+                    className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"
+                  >
+                    <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-6 xl:items-start">
+                      <div className="xl:col-span-2">
+                        <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+                          Наименование
+                        </p>
+                        <p className="mt-2 text-base font-semibold text-slate-900">
+                          {item.name}
+                        </p>
+                        {item.description ? (
+                          <p className="mt-2 text-sm leading-6 text-slate-600">
+                            {item.description}
+                          </p>
+                        ) : null}
                       </div>
-                    )}
+
+                      <div>
+                        <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+                          Ед. изм.
+                        </p>
+                        <p className="mt-2 text-sm font-semibold text-slate-800">
+                          {item.unit}
+                        </p>
+                      </div>
+
+                      <div>
+                        <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+                          Количество
+                        </p>
+                        <p className="mt-2 text-sm font-semibold text-slate-800">
+                          {item.quantity}
+                        </p>
+                      </div>
+
+                      <div>
+                        <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+                          Статус
+                        </p>
+                        <span
+                          className={`mt-2 inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${
+                            item.is_done
+                              ? "bg-emerald-100 text-emerald-800"
+                              : "bg-amber-100 text-amber-800"
+                          }`}
+                        >
+                          {item.is_done ? "Выполнено" : "В работе"}
+                        </span>
+                      </div>
+                    </div>
                   </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="rounded-2xl border-2 border-dashed border-slate-300 bg-slate-50 p-12 text-center text-sm text-slate-500">
-              Позиции заявки отсутствуют
-            </div>
-          )}
+                ))}
+              </div>
+            ) : (
+              <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-10 text-center text-sm text-slate-500">
+                Позиции заявки отсутствуют
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>

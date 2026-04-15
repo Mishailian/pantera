@@ -14,6 +14,7 @@ def list_requests():
     requests_list = RequestService.get_requests(page=page, status=status)
     return jsonify(serialize_many(requests_list, serialize_request))
 
+
 @requests_bp.get("/health")
 def health_check():
     return jsonify({
@@ -55,9 +56,12 @@ def create_request():
 def update_request(request_id):
     data = request.get_json() or {}
 
-    request_obj = RequestService.update_request(request_id, **data)
-    if not request_obj:
-        return jsonify({"error": "Request not found"}), 404
+    try:
+        request_obj = RequestService.update_request(request_id, **data)
+        if not request_obj:
+            return jsonify({"error": "Request not found"}), 404
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
 
     return jsonify(serialize_request(request_obj))
 
