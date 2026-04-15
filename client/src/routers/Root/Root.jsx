@@ -16,7 +16,7 @@ export const Root = () => {
   const token = useSelector((state) => state.auth.token);
   const isAuth = useSelector((state) => state.auth.isAuth);
   const username = useSelector((state) => state.auth.username);
-  const usernameid = useSelector((state) => state.auth.usernameid);
+  const username_id = useSelector((state) => state.auth.username_id);
   const roles = useSelector((state) => state.auth.roles || []);
   const usersTable = useSelector((state) => state.users.usersTable);
 
@@ -41,7 +41,7 @@ export const Root = () => {
   }, [roles]);
 
   const canSeeSupplySections = useMemo(() => {
-    return roleNames.includes("admin") || roleNames.includes("supplymanager");
+    return roleNames.includes("admin") || roleNames.includes("supply_manager");
   }, [roleNames]);
 
   const currentPageTitle = useMemo(() => {
@@ -60,7 +60,7 @@ export const Root = () => {
       .filter((routeKey) => {
         const path = s.paths[routeKey];
 
-        if (["/store/", "/undeclared/", "/archived/"].includes(path)) {
+        if (["/store/", "/undeclared/", "/archived/", "/tagList/"].includes(path)) {
           return canSeeSupplySections;
         }
 
@@ -101,13 +101,13 @@ export const Root = () => {
         setToken({
           token,
           username,
-          usernameid,
+          username_id,
           roles,
           isAuth: true,
         })
       );
     }
-  }, [dispatch, persistedToken, token, username, usernameid, roles]);
+  }, [dispatch, persistedToken, token, username, username_id, roles]);
 
   if (!isAuth) {
     return <Login />;

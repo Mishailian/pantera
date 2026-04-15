@@ -1,19 +1,18 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
-const AVAILABLE_ROLES = ["admin", "supply_manager", "default"];
-
-const ROLE_LABELS = {
-  admin: "Администратор",
-  supply_manager: "Снабженец",
-  default: "Пользователь",
-};
-
-export const UserRow = ({ user, isAdmin, onRoleChange }) => {
-  const currentRoleName = user.roles?.[0]?.name || "default";
+export const UserRow = ({ user, isAdmin, onRoleChange, availableRoles = [] }) => {
+  const currentRoleName = user.roles?.[0]?.name || "";
 
   const [editing, setEditing] = useState(false);
   const [selectedRole, setSelectedRole] = useState(currentRoleName);
   const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    setSelectedRole(currentRoleName);
+  }, [currentRoleName]);
+
+  const currentRoleLabel =
+    availableRoles.find((role) => role.value === currentRoleName)?.label || currentRoleName;
 
   const handleSave = async () => {
     setSaving(true);
@@ -37,7 +36,7 @@ export const UserRow = ({ user, isAdmin, onRoleChange }) => {
 
         <div className="mt-1">
           <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-blue-500/20 text-blue-300 border border-blue-500/30">
-            {ROLE_LABELS[currentRoleName] || currentRoleName}
+            {currentRoleLabel}
           </span>
         </div>
       </div>
@@ -58,9 +57,9 @@ export const UserRow = ({ user, isAdmin, onRoleChange }) => {
                 onChange={(e) => setSelectedRole(e.target.value)}
                 className="rounded-xl border border-white/10 bg-slate-900 px-3 py-2 text-sm text-white outline-none"
               >
-                {AVAILABLE_ROLES.map((role) => (
-                  <option key={role} value={role}>
-                    {ROLE_LABELS[role] || role}
+                {availableRoles.map((role) => (
+                  <option key={role.value} value={role.value}>
+                    {role.label}
                   </option>
                 ))}
               </select>

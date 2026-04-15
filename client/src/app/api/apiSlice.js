@@ -35,6 +35,22 @@ export const apiSlice = createApi({
         body: credentials,
       }),
     }),
+    getRoles: builder.query({
+      providesTags: ["ROLES"],
+      query: () => ({
+        url: "/roles/",
+        method: "GET",
+      }),
+    }),
+
+    addRole: builder.mutation({
+      invalidatesTags: ["ROLES"],
+      query: (payload) => ({
+        url: "/roles/",
+        method: "POST",
+        body: payload,
+      }),
+    }),
 
     register: builder.mutation({
       invalidatesTags: ["AUTH", "USERS"],
@@ -304,12 +320,12 @@ export const apiSlice = createApi({
 
     // PATCH /users/me
     updateCurrentUser: builder.mutation({
-      query: ({ full_name }) => ({
-        url: 'users/me',
-        method: 'PATCH',
-        body: { full_name }
+      query: ({ full_name, role_name }) => ({
+        url: "users/me",
+        method: "PATCH",
+        body: { full_name, role_name },
       }),
-      invalidatesTags: ['USER', 'AUTH']
+      invalidatesTags: ["USER", "AUTH"],
     }),
 
     // GET /users/profile-history (protected)
@@ -395,6 +411,8 @@ export const {
   useGetCurrentUserQuery,
   useUpdateCurrentUserMutation,
   useGetProfileHistoryQuery,
+  useGetRolesQuery,
+  useAddRoleMutation,
 
   useGetTagsQuery,
   useGetTagQuery,

@@ -9,7 +9,7 @@ from routes.auth import auth_bp
 from routes.tags import tags_bp
 from routes.users import users_bp
 from routes.request import requests_bp
-
+from routes.roles import roles_bp
 from errors.handlers import register_error_handlers
 
 
@@ -31,6 +31,7 @@ def create_app(config_class=Config):
     app.register_blueprint(users_bp, url_prefix="/api/v1/users")
     app.register_blueprint(tags_bp, url_prefix="/api/v1/tags")
     app.register_blueprint(requests_bp, url_prefix="/api/v1/requests")
+    app.register_blueprint(roles_bp, url_prefix="/api/v1/roles")
 
     register_error_handlers(app)
 

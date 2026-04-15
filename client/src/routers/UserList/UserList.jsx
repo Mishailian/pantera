@@ -1,25 +1,36 @@
 import { useMemo, useState } from "react";
 import { useSelector } from "react-redux";
-import { useGetUsersQuery, useUpdateUserRolesMutation } from "../../app/api/apiSlice";
+import {
+  useGetUsersQuery,
+  useUpdateUserRolesMutation,
+  useGetRegistrationRolesQuery,
+} from "../../app/api/apiSlice";
 import { UserRow } from "./UserRow";
-
-const ROLE_OPTIONS = [
-  { value: "", label: "Все роли" },
-  { value: "admin", label: "Администратор" },
-  { value: "supply_manager", label: "Снабженец" },
-  { value: "default", label: "Пользователь" },
-];
 
 export const UserList = () => {
   const currentUserRoles = useSelector((state) => state.auth.roles || []);
   const isAdmin = currentUserRoles.some((role) => role?.name === "admin");
 
   const { data: users = [], isLoading, isError } = useGetUsersQuery();
+  const { data: roles = [] } = useGetRegistrationRolesQuery();
   const [updateUserRoles] = useUpdateUserRolesMutation();
 
   const [usernameFilter, setUsernameFilter] = useState("");
   const [fullNameFilter, setFullNameFilter] = useState("");
   const [roleFilter, setRoleFilter] = useState("");
+
+  const roleOptions = useMemo(() => {
+    const base = [{ value: "", label: "Все роли" }];
+
+    const mappedRoles = roles.map((role) => ({
+      value: role.name,
+      label: role.description || role.name,
+    }));
+
+    return isAdmin
+      ? [...base, { value: "admin", label: "Администратор" }, ...mappedRoles]
+      : [...base, ...mappedRoles];
+  }, [roles, isAdmin]);
 
   const handleRoleChange = async (userId, newRole) => {
     try {
@@ -89,7 +100,7 @@ export const UserList = () => {
             onChange={(e) => setRoleFilter(e.target.value)}
             className="h-11 w-full rounded-xl border border-white/10 bg-slate-800 px-4 text-sm text-white outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-500/15"
           >
-            {ROLE_OPTIONS.map((role) => (
+            {roleOptions.map((role) => (
               <option key={role.value} value={role.value}>
                 {role.label}
               </option>
@@ -110,6 +121,7 @@ export const UserList = () => {
               user={user}
               isAdmin={isAdmin}
               onRoleChange={handleRoleChange}
+              availableRoles={roleOptions.filter((role) => role.value !== "")}
             />
           ))
         ) : (

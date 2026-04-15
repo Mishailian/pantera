@@ -1,5 +1,5 @@
 from flask import Blueprint, request, jsonify
-
+from models.user.role import Role
 from services.auth_service import AuthService
 from utils.serializers import serialize_many, serialize_user
 from extensions import db
@@ -61,36 +61,48 @@ def get_current_user():
 
 # PATCH /api/v1/users/me — обновить full_name
 @users_bp.patch("/me")
-@users_bp.patch("/me")
 def update_current_user():
     data = request.get_json() or {}
-    new_full_name = data.get("full_name")
 
-    if not new_full_name:
-        return jsonify({"error": "full_name required"}), 400
+    new_full_name = (data.get("full_name") or "").strip()
+    new_role_name = (data.get("role_name") or "").strip()
 
-    token = request.headers.get("Authorization", "").replace("Token ", "")
+    token = request.headers.get("Authorization", "").replace("Token ", "").strip()
     actor = AuthService.get_user_by_token(token)
 
     if not actor:
         return jsonify({"error": "Invalid token"}), 401
 
-    if actor.full_name == new_full_name:
-        return jsonify({"error": "Имя не изменилось"}), 400
+    has_full_name_change = bool(new_full_name) and new_full_name != actor.full_name
+    current_role_name = actor.roles[0].name if actor.roles else None
+    has_role_change = bool(new_role_name) and new_role_name != current_role_name
 
-    history = UserProfileHistory(
-        target_user_id=actor.id,
-        changed_by_user_id=actor.id,
-        old_full_name=actor.full_name,
-        new_full_name=new_full_name,
-    )
-    db.session.add(history)
+    if not has_full_name_change and not has_role_change:
+        return jsonify({"error": "Нет изменений для сохранения"}), 400
 
-    actor.full_name = new_full_name
+    if has_full_name_change:
+        history = UserProfileHistory(
+            target_user_id=actor.id,
+            changed_by_user_id=actor.id,
+            old_full_name=actor.full_name,
+            new_full_name=new_full_name,
+        )
+        db.session.add(history)
+        actor.full_name = new_full_name
+
+    if has_role_change:
+        if new_role_name == "admin":
+            return jsonify({"error": "Нельзя назначить себе роль admin"}), 400
+
+        role = Role.query.filter_by(name=new_role_name).first()
+        if not role:
+            return jsonify({"error": f"Role '{new_role_name}' not found"}), 400
+
+        actor.roles = [role]
+
     db.session.commit()
 
     return jsonify(serialize_user(actor)), 200
-
 # GET /api/v1/users/profile-history — история (только admin/supplymanager)
 
 @users_bp.get("/profile-history")
@@ -103,7 +115,7 @@ def get_profile_history():
     token = request.headers.get("Authorization", "").replace("Token ", "").strip()
     actor = AuthService.get_user_by_token(token)
 
-    if not actor or not (actor.has_role("admin") or actor.has_role("supplymanager")):
+    if not actor or not (actor.has_role("admin") or actor.has_role("supply_manager")):
         return jsonify({"error": "Access denied"}), 403
 
     username = request.args.get("username", "").strip()

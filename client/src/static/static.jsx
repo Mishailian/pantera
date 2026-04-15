@@ -24,7 +24,7 @@ export var staticApi = () => {
       auth: "Вход",
       addPost: "Добавить",
       addUser: "Пользователь",
-      tagList: "Тэги",
+      tagList: "Роли",
     },
 
     document: {

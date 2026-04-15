@@ -33,8 +33,29 @@ class Role(db.Model):
 
 INITIAL_ROLES = [
     {"name": "admin",          "description": "Полный доступ, управление пользователями"},
-    {"name": "supply_manager", "description": "Управление заявками на снабжение"},
-    {"name": "default",        "description": "Базовый доступ"},
+    {"name": "supply_manager", "description": "Отдел снабжения"},
+    {"name": "main_accounting_department",        "description": "главная бухгалтерия"},
+    {"name": "legal_department",        "description": "Юридический отдел"},
+    {"name": "planning_and_economic_department",        "description": "Планово-экономический отдел"},
+    {"name": "finance_department",        "description": "Финансовый отдел"},
+    {"name": "sales_department",        "description": "Отдел сбыта"},
+    {"name": "hr_department",        "description": "Отдел по управлению персоналом"},
+    {"name": "special_department",        "description": "Специальный отдел"},
+    {"name": "it_department",        "description": "ОИТ"},
+    {"name": "technical_control_department",        "description": "ОТК"},
+    {"name": "labor_protection",        "description": "Бюро охраны труда и промышленной безопасности"},
+    {"name": "design_and_technology_department",        "description": "Конструторско-технологический отдел"},
+    {"name": "factory_laboratory",        "description": "ЗЛ"},
+    {"name": "machine_shop",        "description": "МЦ"},
+    {"name": "tire_manufacturing_preparatory_workshop",        "description": "Подготовительный цех шинного производства"},
+    {"name": "security_service",        "description": "Служба безопасности"},
+    {"name": "electricians",        "description": "Служба главного энергетика"},
+    {"name": "department_metrology",        "description": "Отдел метрологии"},
+    {"name": "mechanics",        "description": "Служба главного механика"},
+    {"name": "repairmen",        "description": "РСГ"},
+    {"name": "steam_supply_shop",        "description": "ЦПВС"},
+    {"name": "tire_manufacturing",        "description": "Шинное производство"},
+
 ]
 
 
