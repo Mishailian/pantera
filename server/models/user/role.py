@@ -55,7 +55,7 @@ INITIAL_ROLES = [
     {"name": "repairmen",        "description": "РСГ"},
     {"name": "steam_supply_shop",        "description": "ЦПВС"},
     {"name": "tire_manufacturing",        "description": "Шинное производство"},
-
+    {"name": "tire_manufacturing_preparatory_workshop",        "description": "Подготовительный цех шинного производства"},
 ]
 
 
