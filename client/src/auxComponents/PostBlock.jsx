@@ -4,7 +4,7 @@ import { useSelector } from "react-redux";
 
 import { PostForm } from "../forms/PostForm";
 import { ChooseBlock } from "./ChooseBlock";
-import { PostBlockButtons } from "./postBlockButtons";
+import { PostBlockButtons } from "./PostBlockButtons";
 import { ChooseExecutor } from "./ChooseExecutor";
 
 export const PostBlock = memo((props) => {
