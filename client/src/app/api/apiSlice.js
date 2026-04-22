@@ -15,7 +15,7 @@ const buildQueryParams = (params = {}) => {
 export const apiSlice = createApi({
   reducerPath: "api",
   baseQuery: fetchBaseQuery({
-    fullUrl: import.meta.env.VITE_API_URL || "http://localhost/api/v1",
+    baseUrl: import.meta.env.VITE_API_URL || "http://localhost/api/v1",
     prepareHeaders: (headers, { getState }) => {
       const token = getState()?.auth?.token;
       if (token) {
