@@ -63,7 +63,7 @@ export const apiSlice = createApi({
     getRegistrationRoles: builder.query({
       providesTags: ["ROLES"],
       query: () => ({
-        url: "/auth/roles",
+        url: "/roles",
         method: "GET",
       }),
     }),
