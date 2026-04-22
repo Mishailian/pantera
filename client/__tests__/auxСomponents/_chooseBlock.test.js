@@ -1,7 +1,7 @@
 import { expect, describe, test, vi, it, beforeEach } from "vitest";
 import { fireEvent, render, screen } from "@testing-library/react";
 import { renderHook } from "@testing-library/react";
-import { _chooseBlock } from "../../src/auxСomponents/_chooseBlock";
+import { _chooseBlock } from "../../src/auxComponents/_chooseBlock";
 
 var mockedSetClouse = vi.fn();
 var mockedCallback = vi.fn();

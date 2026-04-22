@@ -4,7 +4,7 @@ import {
   useGetUndeclaredPostQuery,
   useDeclaredPostMutation,
 } from "../../app/api/apiSlice";
-import { SinglePostBlock } from "../../auxСomponents/SinglePostBlock";
+import { SinglePostBlock } from "../../auxComponents/SinglePostBlock";
 import { progressCheck } from "../../progressCheck";
 
 export const SingleUndeclaretedPost = () => {

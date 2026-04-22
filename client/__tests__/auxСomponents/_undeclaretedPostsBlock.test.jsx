@@ -1,7 +1,7 @@
 import { expect, describe, test, vi, it, beforeEach } from "vitest";
 import { fireEvent, render, screen } from "@testing-library/react";
 import { renderHook } from "@testing-library/react";
-import { _undeclaretedPostsBlock } from "../../src/auxСomponents/_undeclaretedPostsBlock";
+import { _undeclaretedPostsBlock } from "../../src/auxComponents/_undeclaretedPostsBlock";
 
 var mockedFn = vi.fn();
 describe("test _undeclaretedPostsBlock", () => {

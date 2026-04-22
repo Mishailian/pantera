@@ -1,6 +1,6 @@
 import { expect, describe, test, vi, it, beforeEach } from "vitest";
 import { fireEvent, render, screen } from "@testing-library/react";
-import { _tasksInputFields } from "../../src/auxСomponents/_tasksInputFields";
+import { _tasksInputFields } from "../../src/auxComponents/_tasksInputFields";
 
 let mockedFn = vi.fn();
 describe("test tasks input fields", () => {

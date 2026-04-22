@@ -1,7 +1,7 @@
 import { expect, describe, test, vi, it, beforeEach } from "vitest";
 import { fireEvent, render, screen } from "@testing-library/react";
 import { renderHook } from "@testing-library/react";
-import { _postBlockButtons } from "../../src/auxСomponents/_postBlockButtons";
+import { _postBlockButtons } from "../../src/auxComponents/_postBlockButtons";
 
 var mockedDellete = vi.fn();
 var mockedNavigate = vi.fn();

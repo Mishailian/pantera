@@ -6,7 +6,7 @@ import {
   useDeleteUndeclaredPostMutation,
   useDeclaredPostMutation,
 } from "../../app/api/apiSlice";
-import { UndeclaretedPostBlock } from "../../auxСomponents/UndeclaretedPostBlock";
+import { UndeclaretedPostBlock } from "../../auxComponents/UndeclaretedPostBlock";
 
 export const UndeclaretedList = () => {
   const currentUserRoles = useSelector((state) => state.auth.roles || []);

@@ -1,7 +1,7 @@
 import { useSelector } from "react-redux";
 import { useParams } from "react-router-dom";
 import { useGetRequestQuery } from "../../app/api/apiSlice";
-import { SinglePostBlock } from "../../auxСomponents/SinglePostBlock";
+import { SinglePostBlock } from "../../auxComponents/SinglePostBlock";
 import { progressCheck } from "../../progressCheck";
 
 

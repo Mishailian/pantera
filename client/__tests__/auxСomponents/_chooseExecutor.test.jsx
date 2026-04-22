@@ -1,7 +1,7 @@
 import { expect, describe, test, vi, it, beforeEach } from "vitest";
 import { fireEvent, render, screen } from "@testing-library/react";
 import { renderHook } from "@testing-library/react";
-import { _chooseExecutor } from "../../src/auxСomponents/_chooseExecutor";
+import { _chooseExecutor } from "../../src/auxComponents/_chooseExecutor";
 
 let mockedFn = vi.fn();
 describe("test choose executor", () => {

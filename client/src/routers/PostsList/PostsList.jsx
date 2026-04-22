@@ -6,7 +6,7 @@ import {
   useDeleteRequestMutation,
   useChangeRequestStatusMutation,
 } from "../../app/api/apiSlice";
-import { ActivePostBlock } from "../../auxСomponents/ActivePostBlock";
+import { ActivePostBlock } from "../../auxComponents/ActivePostBlock";
 
 export const PostsList = () => {
   const currentUserRoles = useSelector((state) => state.auth.roles || []);

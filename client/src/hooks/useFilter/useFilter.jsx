@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { filterByCondition } from "../../creatFunctions/filterFunctions/filterFunctions";
-import { FilterJsx } from "../../auxСomponents/FilterJsx";
+import { FilterJsx } from "../../auxComponents/FilterJsx";
 
 export const useFilter = () => {
   const [isrevers, setrevers] = useState({ reverse: false });

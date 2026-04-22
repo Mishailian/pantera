@@ -3,7 +3,7 @@ import { createObjects } from "./createObjects";
 import { progressCheck } from "../progressCheck";
 import { createPaginationControl } from "./createPaginationControl";
 import { useSelector } from "react-redux";
-import { PostBlock } from "../auxСomponents/PostBlock";
+import { PostBlock } from "../auxComponents/PostBlock";
 
 export const createObjectsPage = (props) => {
   const { currentPage, PaginationControl } = createPaginationControl({

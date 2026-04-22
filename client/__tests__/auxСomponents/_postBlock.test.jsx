@@ -1,7 +1,7 @@
 import { expect, describe, test, vi, it, beforeEach } from "vitest";
 import { fireEvent, render, screen } from "@testing-library/react";
 import { renderHook } from "@testing-library/react";
-import { _postBlock } from "../../src/auxСomponents/_postBlock";
+import { _postBlock } from "../../src/auxComponents/_postBlock";
 
 let mockedChengePost = vi.fn();
 let mockedDeletePost = vi.fn();
