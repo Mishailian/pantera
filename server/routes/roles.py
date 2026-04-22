@@ -22,10 +22,6 @@ def get_actor_from_request():
 
 @roles_bp.get("/")
 def list_roles():
-    actor = get_actor_from_request()
-    if not actor or not actor.has_role("admin"):
-        return jsonify({"error": "Access denied"}), 403
-
     roles = Role.query.order_by(Role.id.asc()).all()
     return jsonify(serialize_many(roles, serialize_role)), 200
 
