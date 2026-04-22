@@ -15,7 +15,8 @@ const buildQueryParams = (params = {}) => {
 export const apiSlice = createApi({
   reducerPath: "api",
   baseQuery: fetchBaseQuery({
-    baseUrl: import.meta.env.VITE_API_URL || "http://172.29.99.230:81/api/v1",
+    //baseUrl: import.meta.env.VITE_API_URL || "http://172.29.99.230:81/api/v1",
+    baseUrl: import.meta.env.VITE_API_URL,
     prepareHeaders: (headers, { getState }) => {
       const token = getState()?.auth?.token;
       if (token) {
@@ -63,7 +64,7 @@ export const apiSlice = createApi({
     getRegistrationRoles: builder.query({
       providesTags: ["ROLES"],
       query: () => ({
-        url: "/roles",
+        url: "/roles/",
         method: "GET",
       }),
     }),
