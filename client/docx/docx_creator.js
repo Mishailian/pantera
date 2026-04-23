@@ -9,7 +9,6 @@ import {
   TextRun,
   ImageRun,
   WidthType,
-  convertInchesToTwip,
   AlignmentType,
 } from "docx";
 import { saveAs } from "file-saver";
@@ -17,7 +16,56 @@ import { saveAs } from "file-saver";
 const defaultFont = "Times New Roman";
 const defaultSize = 24;
 
-export const docxCreator = (data) => {
+const createSignerParagraphs = (selectedSigners = []) => {
+  if (!selectedSigners.length) {
+    return [
+      new Paragraph(""),
+      new Paragraph({
+        alignment: AlignmentType.LEFT,
+        text: "",
+      }),
+      new Paragraph({
+        alignment: AlignmentType.LEFT,
+        children: [
+          new TextRun({
+            text: "________________________",
+          }),
+        ],
+      }),
+      new Paragraph(""),
+      new Paragraph({
+        alignment: AlignmentType.LEFT,
+        text: "",
+      }),
+      new Paragraph({
+        alignment: AlignmentType.LEFT,
+        children: [
+          new TextRun({
+            text: "________________________",
+          }),
+        ],
+      }),
+    ];
+  }
+
+  return selectedSigners.flatMap((signer) => [
+    new Paragraph(""),
+    new Paragraph({
+      alignment: AlignmentType.LEFT,
+      text: "",
+    }),
+    new Paragraph({
+      alignment: AlignmentType.LEFT,
+      children: [
+        new TextRun({
+          text: `${signer} ________________________________`,
+        }),
+      ],
+    }),
+  ]);
+};
+
+export const docxCreator = (data, selectedSigners = []) => {
   const tableCreator = (
     state,
     { columnWidths, cellWidth, headers, content }
@@ -82,6 +130,8 @@ export const docxCreator = (data) => {
     content: ["title", "units", "quantity", "deadline"],
   });
 
+  const signerParagraphs = createSignerParagraphs(selectedSigners);
+
   const doc = new Document({
     styles: {
       default: {
@@ -132,7 +182,7 @@ export const docxCreator = (data) => {
                 size: 18,
               }),
               new TextRun({
-                text: "		     В РАБОТУ ",
+                text: "\t\t     В РАБОТУ ",
                 bold: true,
                 italics: true,
               }),
@@ -212,27 +262,7 @@ export const docxCreator = (data) => {
           new Paragraph(""),
           new Paragraph(""),
 
-          new Paragraph({
-            alignment: AlignmentType.LEFT,
-            text: "СОГЛАСОВАНО: ",
-          }),
-
-          new Paragraph({
-            alignment: AlignmentType.CENTER,
-            text: "________________________",
-          }),
-
-          new Paragraph(""),
-
-          new Paragraph({
-            alignment: AlignmentType.LEFT,
-            text: "СОГЛАСОВАНО: ",
-          }),
-
-          new Paragraph({
-            alignment: AlignmentType.CENTER,
-            text: "________________________",
-          }),
+          ...signerParagraphs,
         ],
       },
     ],

@@ -12,6 +12,7 @@ class RequestService:
     ITEMS_PER_PAGE = 14
 
     VALID_STATUSES = {"undeclared", "active", "archived"}
+    VALID_ITEM_STATUSES = {"in_progress", "done", "rejected"}
 
     @staticmethod
     def _calculate_page(page: int):
@@ -27,10 +28,8 @@ class RequestService:
     @staticmethod
     def get_requests(page=0, status=None):
         query = RequestService._base_query()
-
         if status:
             query = query.filter(Request.status == status)
-
         start, end = RequestService._calculate_page(page)
         return query.slice(start, end).all()
 
@@ -63,16 +62,23 @@ class RequestService:
         request_obj = Request(
             status="undeclared",
             comment=comment,
-            created_by_id=created_by_id,
+            created_by_id=created_by_id
         )
 
         for item in items:
+            work_status = item.get("work_status")
+            is_done = item.get("is_done", item.get("isdone", False))
+
+            if work_status not in RequestService.VALID_ITEM_STATUSES:
+                work_status = "done" if is_done else "in_progress"
+
             request_item = RequestItem(
                 name=item["name"],
                 unit=item["unit"],
                 quantity=item["quantity"],
                 description=item.get("description"),
-                is_done=item.get("is_done", False),
+                work_status=work_status,
+                is_done=bool(is_done or work_status == "done")
             )
             request_obj.items.append(request_item)
 
@@ -88,7 +94,6 @@ class RequestService:
         )
         db.session.add(history_record)
         db.session.commit()
-
         return request_obj
 
     @staticmethod
@@ -97,11 +102,7 @@ class RequestService:
         if not request_obj:
             return None
 
-        allowed_fields = {
-            "comment",
-            "assigned_to_id",
-        }
-
+        allowed_fields = {"comment", "assigned_to_id"}
         for key, value in kwargs.items():
             if key in allowed_fields:
                 if key == "assigned_to_id" and value is not None:
@@ -150,10 +151,8 @@ class RequestService:
             changed_by_id=changed_by_id,
             comment=comment,
         )
-
         db.session.add(history_record)
         db.session.commit()
-
         return request_obj
 
     @staticmethod
@@ -162,13 +161,23 @@ class RequestService:
         if not item:
             return None
 
-        allowed_fields = {
-            "name",
-            "unit",
-            "quantity",
-            "description",
-            "is_done",
-        }
+        request_obj = item.request
+        if request_obj and request_obj.status == "archived":
+            raise ValueError("Archived request items cannot be changed")
+
+        allowed_fields = {"name", "unit", "quantity", "description", "is_done", "work_status"}
+
+        if "isdone" in kwargs and "is_done" not in kwargs:
+            kwargs["is_done"] = kwargs.pop("isdone")
+
+        if "work_status" in kwargs:
+            work_status = kwargs.get("work_status")
+            if work_status not in RequestService.VALID_ITEM_STATUSES:
+                raise ValueError(f"Invalid item status: {work_status}")
+            kwargs["is_done"] = work_status == "done"
+
+        if "is_done" in kwargs and "work_status" not in kwargs:
+            kwargs["work_status"] = "done" if bool(kwargs.get("is_done")) else "in_progress"
 
         for key, value in kwargs.items():
             if key in allowed_fields:
@@ -190,8 +199,8 @@ class RequestService:
             quantity=quantity,
             description=description,
             is_done=False,
+            work_status="in_progress",
         )
-
         db.session.add(item)
         db.session.commit()
         return item
@@ -201,7 +210,6 @@ class RequestService:
         item = db.session.get(RequestItem, item_id)
         if not item:
             return False
-
         db.session.delete(item)
         db.session.commit()
         return True
@@ -215,6 +223,9 @@ class RequestService:
         history_records = RequestStatusHistory.query.filter_by(request_id=request_id).all()
         for history_record in history_records:
             db.session.delete(history_record)
+
+        for item_in_request in request_obj.items:
+            db.session.delete(item_in_request)
 
         db.session.delete(request_obj)
         db.session.commit()

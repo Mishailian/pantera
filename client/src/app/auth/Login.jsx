@@ -40,12 +40,17 @@ export const Login = () => {
   });
 
   const [auth, { isLoading: isLoginLoading }] = useAuthenticationMutation();
-  const [registerUser, { isLoading: isRegisterLoading }] = useRegisterMutation();
+  const [registerUser, { isLoading: isRegisterLoading }] =
+    useRegisterMutation();
 
   const { data: registrationRoles = [], isLoading: isRolesLoading } =
     useGetRegistrationRolesQuery(undefined, {
       skip: mode !== "register",
     });
+
+  const availableRegistrationRoles = registrationRoles.filter(
+    (role) => role?.name !== "admin"
+  );
 
   const users = useGetUsersQuery(undefined, {
     skip: !authToken,
@@ -59,22 +64,22 @@ export const Login = () => {
   }, [authToken, users?.data, users, updateUsersTable]);
 
   useEffect(() => {
-    if (!registrationRoles.length) return;
+    if (!availableRegistrationRoles.length) return;
 
     setRegisterForm((prev) => {
       if (
         prev.role_name &&
-        registrationRoles.some((role) => role.name === prev.role_name)
+        availableRegistrationRoles.some((role) => role.name === prev.role_name)
       ) {
         return prev;
       }
 
       return {
         ...prev,
-        role_name: registrationRoles[0]?.name ?? "",
+        role_name: availableRegistrationRoles[0]?.name ?? "",
       };
     });
-  }, [registrationRoles]);
+  }, [availableRegistrationRoles]);
 
   const handleLogin = async () => {
     setErrorText("");
@@ -143,7 +148,7 @@ export const Login = () => {
           username: "",
           password: "",
           full_name: "",
-          role_name: registrationRoles[0]?.name ?? "",
+          role_name: availableRegistrationRoles[0]?.name ?? "",
         });
 
         setSuccessText("Регистрация выполнена успешно.");
@@ -344,15 +349,15 @@ export const Login = () => {
                   role_name: e.target.value,
                 })
               }
-              disabled={isRolesLoading || !registrationRoles.length}
+              disabled={isRolesLoading || !availableRegistrationRoles.length}
             >
-              {!registrationRoles.length ? (
+              {!availableRegistrationRoles.length ? (
                 <option value="">
                   {isRolesLoading ? "Загрузка ролей..." : "Нет доступных ролей"}
                 </option>
               ) : null}
 
-              {registrationRoles.map((role) => (
+              {availableRegistrationRoles.map((role) => (
                 <option key={role.id} value={role.name}>
                   {role.description || role.name}
                 </option>
@@ -382,7 +387,9 @@ export const Login = () => {
             className="mt-2 inline-flex h-12 w-full items-center justify-center rounded-2xl bg-blue-600 text-sm font-semibold text-white transition hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-60"
             onClick={handleRegister}
             disabled={
-              isRegisterLoading || isRolesLoading || !registerForm.role_name
+              isRegisterLoading ||
+              isRolesLoading ||
+              !registerForm.role_name
             }
             type="button"
           >

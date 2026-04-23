@@ -11,6 +11,23 @@ from routes.users import users_bp
 from routes.request import requests_bp
 from routes.roles import roles_bp
 from errors.handlers import register_error_handlers
+from utils.logger import setup_logger
+
+
+def _ensure_request_item_work_status(app):
+    try:
+        from sqlalchemy import inspect, text
+
+        inspector = inspect(db.engine)
+        if "request_items" not in inspector.get_table_names():
+            return
+
+        columns = {col["name"] for col in inspector.get_columns("request_items")}
+        if "work_status" not in columns:
+            db.session.execute(text("ALTER TABLE request_items ADD COLUMN work_status VARCHAR(32) NOT NULL DEFAULT 'in_progress'"))
+            db.session.commit()
+    except Exception:
+        db.session.rollback()
 
 
 def create_app(config_class=Config):
@@ -26,6 +43,9 @@ def create_app(config_class=Config):
     db.init_app(app)
     migrate.init_app(app, db)
 
+    # Инициализируем логирование
+    setup_logger(app)
+
     app.register_blueprint(health_bp, url_prefix="/api/v1/health")
     app.register_blueprint(auth_bp, url_prefix="/api/v1/auth")
     app.register_blueprint(users_bp, url_prefix="/api/v1/users")
@@ -37,13 +57,13 @@ def create_app(config_class=Config):
 
     @app.route("/")
     def index():
+        app.logger.info("Главная страница была запрошена")
         return {"status": "ok", "message": "Backend is running"}
 
     with app.app_context():
         import models  # noqa
         db.create_all()
-
-        # ── Заполняем роли при первом старте ──
+        _ensure_request_item_work_status(app)
         from models.user.role import seed_roles
         seed_roles()
 

@@ -2,10 +2,8 @@ from datetime import date
 from zoneinfo import ZoneInfo
 
 
-
 def serialize_many(objects, serializer):
     return [serializer(obj) for obj in objects]
-
 
 
 def parse_date(date_str):
@@ -15,19 +13,15 @@ def parse_date(date_str):
         return None
 
 
-
 def format_datetime_ekb(dt):
     if not dt:
         return None
 
-
     if dt.tzinfo is None:
         dt = dt.replace(tzinfo=ZoneInfo("UTC"))
 
-
     ekb_dt = dt.astimezone(ZoneInfo("Asia/Yekaterinburg"))
     return ekb_dt.strftime("%d.%m.%Y %H:%M")
-
 
 
 def serialize_role(role):
@@ -36,7 +30,6 @@ def serialize_role(role):
         "name": role.name,
         "description": role.description,
     }
-
 
 
 def serialize_user(user):
@@ -51,14 +44,11 @@ def serialize_user(user):
     }
 
 
-
 def serialize_user_min(user):
     if not user:
         return None
 
-
     first_role = user.roles[0] if user.roles else None
-
 
     return {
         "id": user.id,
@@ -69,13 +59,11 @@ def serialize_user_min(user):
     }
 
 
-
 def serialize_tag(tag):
     return {
         "id": tag.id,
         "name": tag.name,
     }
-
 
 
 def serialize_request_item(item):
@@ -87,9 +75,9 @@ def serialize_request_item(item):
         "quantity": float(item.quantity),
         "description": item.description,
         "is_done": item.is_done,
+        "work_status": getattr(item, "work_status", "in_progress"),
         "created_at": item.created_at.isoformat() if item.created_at else None,
     }
-
 
 
 def serialize_request(request_obj):

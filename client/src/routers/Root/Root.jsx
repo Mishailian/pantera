@@ -47,6 +47,7 @@ export const Root = () => {
   const currentPageTitle = useMemo(() => {
     if (normalizedLocation === "profile") return "Профиль";
     if (normalizedLocation === "profile-history") return "История имён";
+    if (normalizedLocation === "auth") return "Вход";
 
     if (normalizedLocation.includes("users")) {
       return usersTable[normalizedLocation.split("users")[1]] ?? "users";
@@ -109,7 +110,20 @@ export const Root = () => {
     }
   }, [dispatch, persistedToken, token, username, username_id, roles]);
 
-  if (!isAuth) {
+  useEffect(() => {
+    if (!token || !isAuth) {
+      if (pathname !== "/auth") {
+        navigate("/auth", { replace: true });
+      }
+      return;
+    }
+
+    if (pathname === "/" || pathname === "/auth") {
+      navigate("/profile", { replace: true });
+    }
+  }, [token, isAuth, pathname, navigate]);
+
+  if (!token || !isAuth) {
     return <Login />;
   }
 
