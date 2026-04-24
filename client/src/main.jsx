@@ -1,26 +1,33 @@
 import ReactDOM from "react-dom/client";
+import { StrictMode } from "react";
+import { createBrowserRouter, RouterProvider } from "react-router-dom";
+import { Provider } from "react-redux";
+import { PersistGate } from "redux-persist/integration/react";
+
 import "./index.css";
 import store, { persistor } from "./app/store";
-import { Provider } from "react-redux";
+
 import { Root } from "./routers/Root/Root";
-import { createBrowserRouter, RouterProvider } from "react-router-dom";
-import { PostsList } from "./routers/PostsList/PostsList";
 import { Login } from "./app/auth/Login";
-import { PersistGate } from "redux-persist/integration/react";
+
 import { UserList } from "./routers/UserList/UserList";
 import { SinglePost } from "./routers/Post/SinglePost";
 import { AddPost } from "./routers/Post/AddPost";
 import { AddUser } from "./routers/User/AddUser";
 import { UserPage } from "./routers/User/UserPage";
 import { TagList } from "./routers/Tags/TagList";
-import { UndeclaretedList } from "./routers/UndeclaretedList/UndeclaretedList";
-import { ArchiveList } from "./routers/ArchiveList/ArchiveList";
 import { SingleUndeclaretedPost } from "./routers/UndeclaretedList/SingleUndeclaretedPost";
-import { StrictMode } from "react";
 import { SingleArchivedPost } from "./routers/ArchiveList/SingleArchivedPost";
 import { RequireRoles } from "./routers/guards/RequireRoles";
-import { Profile } from "./routers/User/Profile";           // ← ДОБАВИТЬ
-import { ProfileHistory } from "./routers/User/ProfileHistory";  // ← ДОБАВИТЬ
+import { Profile } from "./routers/User/Profile";
+import { ProfileHistory } from "./routers/User/ProfileHistory";
+import { RequestsTabsPage } from "./routers/RequestsTabsPage";
+
+const RequestsTabRoute = ({ tab }) => (
+  <RequireRoles allowedRoles={["admin", "supply_manager"]}>
+    <RequestsTabsPage tab={tab} />
+  </RequireRoles>
+);
 
 const router = createBrowserRouter([
   {
@@ -28,48 +35,23 @@ const router = createBrowserRouter([
     element: <Root />,
     children: [
       { path: "profile", element: <Profile /> },
-      { 
-        path: "profile-history",
-        element: (
-          <RequireRoles allowedRoles={["admin", "supplymanager"]}>
-            <ProfileHistory />
-          </RequireRoles>
-        )
+      { path: "profile-history", element: <ProfileHistory /> },
+
+      {
+        path: "store",
+        element: <RequestsTabRoute tab="store" />,
       },
       {
-        path: "/undeclared",
-        element: (
-          <RequireRoles allowedRoles={["admin", "supply_manager"]}>
-            <UndeclaretedList />
-          </RequireRoles>
-        ),
+        path: "undeclared",
+        element: <RequestsTabRoute tab="undeclared" />,
       },
       {
-        path: "/archived",
-        element: (
-          <RequireRoles allowedRoles={["admin", "supply_manager"]}>
-            <ArchiveList />
-          </RequireRoles>
-        ),
+        path: "archived",
+        element: <RequestsTabRoute tab="archived" />,
       },
+
       {
-        path: "/archived/:postId",
-        element: (
-          <RequireRoles allowedRoles={["admin", "supply_manager"]}>
-            <SingleArchivedPost />
-          </RequireRoles>
-        ),
-      },
-      {
-        path: "/store",
-        element: (
-          <RequireRoles allowedRoles={["admin", "supply_manager"]}>
-            <PostsList />
-          </RequireRoles>
-        ),
-      },
-      {
-        path: "/store/:postId",
+        path: "store/:postId",
         element: (
           <RequireRoles allowedRoles={["admin", "supply_manager"]}>
             <SinglePost />
@@ -77,7 +59,7 @@ const router = createBrowserRouter([
         ),
       },
       {
-        path: "/undeclared/:postId",
+        path: "undeclared/:postId",
         element: (
           <RequireRoles allowedRoles={["admin", "supply_manager"]}>
             <SingleUndeclaretedPost />
@@ -85,27 +67,36 @@ const router = createBrowserRouter([
         ),
       },
       {
-        path: "/users",
+        path: "archived/:postId",
+        element: (
+          <RequireRoles allowedRoles={["admin", "supply_manager"]}>
+            <SingleArchivedPost />
+          </RequireRoles>
+        ),
+      },
+
+      {
+        path: "users",
         element: <UserList />,
       },
       {
-        path: "/users/:userId",
+        path: "users/:userId",
         element: <UserPage />,
       },
       {
-        path: "/auth",
+        path: "auth",
         element: <Login />,
       },
       {
-        path: "/addPost",
+        path: "addPost",
         element: <AddPost />,
       },
       {
-        path: "/addUser",
+        path: "addUser",
         element: <AddUser />,
       },
       {
-        path: "/tagList",
+        path: "tagList",
         element: <TagList />,
       },
     ],

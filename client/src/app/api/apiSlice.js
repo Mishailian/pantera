@@ -26,6 +26,9 @@ export const apiSlice = createApi({
     },
     credentials: "include",
   }),
+  refetchOnFocus: true,
+  refetchOnReconnect: true,
+  keepUnusedDataFor: 5,
   tagTypes: ["REQUESTS", "REQUEST", "USERS", "USER", "TAGS", "AUTH", "ROLES", "PROFILE_HISTORY"],
   endpoints: (builder) => ({
     login: builder.mutation({
@@ -319,6 +322,14 @@ export const apiSlice = createApi({
       providesTags: ['USER']
     }),
 
+    getMyRequests: builder.query({
+      query: () => ({
+        url: "users/me/requests",
+        method: "GET",
+      }),
+      providesTags: ["REQUESTS"],
+    }),
+
     // PATCH /users/me
     updateCurrentUser: builder.mutation({
       query: ({ full_name, role_name }) => ({
@@ -452,5 +463,6 @@ export const {
   useChengePostMutation,
   useDeletePostMutation,
   useDeleteUndeclaredPostMutation,
+  useGetMyRequestsQuery,
   useAddPostMutation,
 } = apiSlice;

@@ -1,3 +1,5 @@
+from models.request.request import Request
+from utils.serializers import serialize_many, serialize_user, serialize_request
 from flask import Blueprint, request, jsonify
 from models.user.role import Role
 from services.auth_service import AuthService
@@ -178,3 +180,21 @@ def get_profile_history():
         })
 
     return jsonify(result), 200
+
+# GET /api/v1/users/me/requests — история заявок текущего пользователя
+@users_bp.get("/me/requests")
+def get_my_requests():
+    token = request.headers.get("Authorization", "").replace("Token ", "").strip()
+    actor = AuthService.get_user_by_token(token)
+
+    if not actor:
+        return jsonify({"error": "Invalid token"}), 401
+
+    requests_list = (
+        Request.query
+        .filter(Request.created_by_id == actor.id)
+        .order_by(Request.created_at.desc())
+        .all()
+    )
+
+    return jsonify(serialize_many(requests_list, serialize_request)), 200

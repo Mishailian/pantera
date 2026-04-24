@@ -1,16 +1,58 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import {
-  useGetRegistrationRolesQuery,
-  useGetUsersQuery,
-  useUpdateRequestMutation,
-} from "../app/api/apiSlice";
 import { useSelector } from "react-redux";
+import { useGetUsersQuery, useUpdateRequestMutation } from "../app/api/apiSlice";
 
-const ROLE_LABELS = {
-  admin: "Администратор",
-  supply_manager: "Снабженец",
-  default: "Пользователь",
+const STATUS_LABELS = {
+  active: {
+    label: "Активна",
+    badge: "bg-emerald-50 text-emerald-700 ring-emerald-200",
+  },
+  undeclared: {
+    label: "Без подписи",
+    badge: "bg-amber-50 text-amber-700 ring-amber-200",
+  },
+  archived: {
+    label: "В архиве",
+    badge: "bg-slate-100 text-slate-700 ring-slate-200",
+  },
+};
+
+const getUserDisplay = (user) => {
+  if (!user) {
+    return {
+      username: "—",
+      fullName: "—",
+    };
+  }
+
+  return {
+    username: user.username || "—",
+    fullName: user.full_name || user.fullname || "—",
+  };
+};
+
+const formatDateParts = (value) => {
+  if (!value) {
+    return { date: "—", time: "—" };
+  }
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    const raw = String(value);
+    const [d, t] = raw.split(" ");
+    return {
+      date: d || raw,
+      time: t || "—",
+    };
+  }
+
+  const pad = (n) => String(n).padStart(2, "0");
+
+  return {
+    date: `${pad(date.getDate())}.${pad(date.getMonth() + 1)}.${date.getFullYear()}`,
+    time: `${pad(date.getHours())}:${pad(date.getMinutes())}`,
+  };
 };
 
 export const ActivePostBlock = ({ data, canManage, onArchive, onDelete }) => {
@@ -18,46 +60,43 @@ export const ActivePostBlock = ({ data, canManage, onArchive, onDelete }) => {
   const currentUserRoles = useSelector((state) => state.auth.roles || []);
   const isAdmin = currentUserRoles.some((role) => role?.name === "admin");
 
+  const assignedToId = data?.assigned_to_id ?? data?.assignedtoid ?? null;
+
   const [isAssigning, setIsAssigning] = useState(false);
-  const [selectedUserId, setSelectedUserId] = useState(
-    data?.assigned_to_id ? String(data.assigned_to_id) : ""
-  );
   const [assignError, setAssignError] = useState("");
+  const [selectedUserId, setSelectedUserId] = useState(
+    assignedToId ? String(assignedToId) : ""
+  );
 
   const [updateRequest, { isLoading: isSavingAssign }] = useUpdateRequestMutation();
+  const { data: users = [] } = useGetUsersQuery(undefined, { skip: !isAdmin });
 
-  const { data: allRoles = [] } = useGetRegistrationRolesQuery();
-  const { data: users = [] } = useGetUsersQuery(undefined, {
-    skip: !isAdmin,
-  });
-
-  // снабженцы — только пользователи с ролью supply_manager
   const supplyUsers = useMemo(() => {
     return users.filter((user) =>
       user?.roles?.some((role) => role?.name === "supply_manager")
     );
   }, [users]);
 
-  const assignedUser = data?.assigned_to_user;
+  const requestId = data?.id;
+  const status = data?.status || "active";
+  const statusMeta = STATUS_LABELS[status] || STATUS_LABELS.active;
 
-  const author = data?.created_by_user;
-  const createdDate = data?.created_at_formatted || data?.created_at || "Дата неизвестна";
-  const approvedDate = data?.approved_at_formatted || data?.approved_at || "Дата неизвестна";
-  const comment = data?.comment?.trim() || "Комментарий отсутствует";
-  const itemsCount = data?.items_count ?? data?.items?.length ?? 0;
+  const createdAt = data?.created_at || data?.createdat || null;
+  const createdDate = formatDateParts(createdAt);
+
+  const itemsCount =
+    data?.items_count ??
+    data?.itemscount ??
+    data?.items?.length ??
+    0;
+
+  const author = getUserDisplay(data?.created_by_user || data?.createdbyuser || null);
+  const assignedUser = getUserDisplay(data?.assigned_to_user || data?.assignedtouser || null);
 
   const handleOpen = () => {
-    navigate(`/store/${data.id}/`);
-  };
-
-  const handleArchive = async (e) => {
-    e.stopPropagation();
-    await onArchive?.(data.id);
-  };
-
-  const handleDelete = async (e) => {
-    e.stopPropagation();
-    await onDelete?.(data.id);
+    if (status === "archived") return navigate(`/archived/${requestId}`);
+    if (status === "undeclared") return navigate(`/undeclared/${requestId}`);
+    navigate(`/store/${requestId}`);
   };
 
   const handleAssignSave = async () => {
@@ -65,223 +104,219 @@ export const ActivePostBlock = ({ data, canManage, onArchive, onDelete }) => {
 
     try {
       await updateRequest({
-        requestId: data.id,
+        requestId,
         assigned_to_id: selectedUserId ? Number(selectedUserId) : null,
       }).unwrap();
-
       setIsAssigning(false);
     } catch (error) {
-      setAssignError(error?.data?.error || "Не удалось назначить пользователя");
+      setAssignError(error?.data?.error || "Не удалось сохранить");
     }
   };
 
   return (
-    <div className="group overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-xl transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl">
-      <div className="grid grid-cols-1 lg:grid-cols-[340px_minmax(0,1fr)]">
-        <div className="border-b border-slate-100 bg-gradient-to-br from-slate-50 to-emerald-50 p-6 lg:border-b-0 lg:border-r">
-          <div className="mb-4 flex items-start justify-between gap-3">
-            <div className="inline-flex items-center rounded-xl bg-emerald-100 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-emerald-800">
-              Активная заявка № {data?.id}
-            </div>
-
-            <span className="inline-flex items-center rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-medium text-slate-700 shadow-sm">
-              {ROLE_LABELS[author?.role] || author?.role_label || "Пользователь"}
-            </span>
+    <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
+      <div className="grid grid-cols-1 gap-3 text-sm xl:grid-cols-[40px_90px_90px_160px_80px_190px_170px] xl:items-center xl:gap-3">
+        <div>
+          <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-400 xl:hidden">
+            №
           </div>
+          <div className="text-base font-semibold text-slate-900">#{requestId}</div>
+        </div>
 
-          <div className="space-y-2">
-            <h3 className="text-3xl font-bold tracking-tight text-slate-900">
-              @{author?.username || "unknown"}
-            </h3>
-
-            <p className="text-base leading-8 text-slate-600">
-              {author?.full_name || "Неизвестный пользователь"}
-            </p>
+        <div className="w-[110px]">
+          <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-400 xl:hidden">
+            Дата создания
           </div>
-
-          <div className="mt-6 space-y-3">
-            <div className="inline-flex w-full items-center gap-3 rounded-2xl bg-white px-4 py-3 shadow-sm">
-              <svg
-                className="h-5 w-5 text-slate-400"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth="2"
-                  d="M8 7V3m8 4V3m-9 8h10m-11 9h12a2 2 0 002-2V7a2 2 0 00-2-2H6a2 2 0 00-2 2v11a2 2 0 002 2z"
-                />
-              </svg>
-              <span className="text-sm font-medium text-slate-700">{createdDate}</span>
-            </div>
-
-            <div className="inline-flex w-full items-center gap-3 rounded-2xl bg-white px-4 py-3 shadow-sm">
-              <svg
-                className="h-5 w-5 text-slate-400"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth="2"
-                  d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-                />
-              </svg>
-              <span className="text-sm font-medium text-slate-700">
-                Подписана: {approvedDate}
-              </span>
-            </div>
-
-            <div className="inline-flex w-full items-center gap-3 rounded-2xl bg-white px-4 py-3 shadow-sm">
-              <svg
-                className="h-5 w-5 text-slate-400"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth="2"
-                  d="M20 13V7a2 2 0 00-2-2h-3V3.5A1.5 1.5 0 0013.5 2h-3A1.5 1.5 0 009 3.5V5H6a2 2 0 00-2 2v6m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0H4"
-                />
-              </svg>
-              <span className="text-sm font-medium text-slate-700">
-                Позиций: {itemsCount}
-              </span>
-            </div>
-
-            <div className="inline-flex w-full items-center gap-3 rounded-2xl bg-white px-4 py-3 shadow-sm">
-              <svg
-                className="h-5 w-5 text-slate-400"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth="2"
-                  d="M8 7h8M8 11h8M8 15h5m-9 4h14a2 2 0 002-2V5a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
-                />
-              </svg>
-              <div className="flex min-w-0 flex-col">
-                <span className="text-xs font-semibold uppercase tracking-wide text-slate-400">
-                  Назначен
-                </span>
-                <span className="text-sm font-medium text-slate-700">
-                  {assignedUser
-                    ? `@${assignedUser.username} — ${assignedUser.full_name}`
-                    : "Не назначен"}
-                </span>
-              </div>
-            </div>
-
-            {isAdmin ? (
-              <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-                {!isAssigning ? (
-                  <button
-                    type="button"
-                    onClick={() => setIsAssigning(true)}
-                    className="inline-flex h-11 items-center justify-center rounded-2xl bg-blue-600 px-4 text-sm font-semibold text-white transition hover:bg-blue-500"
-                  >
-                    Назначить снабженца
-                  </button>
-                ) : (
-                  <div className="space-y-3">
-                    <div className="text-xs font-semibold uppercase tracking-wide text-slate-400">
-                      Выбор снабженца
-                    </div>
-
-                    <select
-                      value={selectedUserId}
-                      onChange={(e) => setSelectedUserId(e.target.value)}
-                      className="h-11 w-full rounded-2xl border border-slate-300 bg-white px-4 text-sm text-slate-900 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-500/15"
-                    >
-                      <option value="">Не назначен</option>
-                      {supplyUsers.map((user) => (
-                        <option key={user.id} value={user.id}>
-                          @{user.username} — {user.full_name}
-                        </option>
-                      ))}
-                    </select>
-
-                    {assignError ? (
-                      <div className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
-                        {assignError}
-                      </div>
-                    ) : null}
-
-                    <div className="flex gap-2">
-                      <button
-                        type="button"
-                        onClick={handleAssignSave}
-                        disabled={isSavingAssign}
-                        className="inline-flex h-10 items-center justify-center rounded-2xl bg-slate-900 px-4 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
-                      >
-                        {isSavingAssign ? "Сохранение..." : "Сохранить"}
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() => setIsAssigning(false)}
-                        className="inline-flex h-10 items-center justify-center rounded-2xl border border-slate-300 bg-white px-4 text-sm font-semibold text-slate-700 transition hover:bg-slate-100"
-                      >
-                        Отмена
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
-            ) : null}
+          <div className="text-[13px] font-medium leading-4 text-slate-700">
+            <div>{createdDate.date}</div>
+            <div className="mt-1 text-slate-500">{createdDate.time}</div>
           </div>
         </div>
 
-        <div className="flex min-w-0 flex-col">
-          <div className="p-6">
-            <h4 className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-500">
-              Комментарий
-            </h4>
+        <div className="w-[110px]">
+          <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-400 xl:hidden">
+            Статус
+          </div>
+          <span className={`inline-flex max-w-full items-center rounded-full px-2.5 py-1 text-[12px] font-semibold ring-1 ${statusMeta.badge}`}>
+            {statusMeta.label}
+          </span>
+        </div>
 
-            <div className="rounded-2xl border border-slate-100 bg-slate-50 px-4 py-4 text-sm leading-6 text-slate-700">
-              {comment}
-            </div>
+        <div className="w-[180px] min-w-0">
+          <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-400 xl:hidden">
+            Создатель
+          </div>
+          <div className="break-all text-[13px] font-semibold leading-4 text-slate-900">
+            {author.username}
+          </div>
+          <div className="mt-1 whitespace-normal break-words text-[13px] leading-4 text-slate-500">
+            {author.fullName}
+          </div>
+        </div>
+
+        <div className="w-[80px]">
+          <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-400 xl:hidden">
+            Позиций
+          </div>
+          <div className="text-[13px] font-semibold text-slate-700">{itemsCount}</div>
+        </div>
+
+        <div className="w-[150px] min-w-0">
+          <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-400 xl:hidden">
+            Назначенный пользователь
           </div>
 
-          <div className="border-t border-slate-100 bg-slate-50 px-6 py-4">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <button
-                type="button"
-                onClick={handleOpen}
-                className="inline-flex items-center justify-center rounded-2xl border border-slate-200 bg-white px-5 py-2.5 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-100"
-              >
-                Открыть
-              </button>
-
-              {canManage ? (
-                <div className="flex flex-wrap items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={handleArchive}
-                    className="inline-flex items-center justify-center rounded-2xl bg-slate-700 px-5 py-2.5 text-sm font-semibold text-white shadow-md transition hover:bg-slate-800"
+          {isAdmin && canManage ? (
+            !isAssigning ? (
+              <div className="min-w-0">
+                <div className="flex items-start gap-1">
+                  <div
+                    className="min-w-0 flex-1 break-all text-[13px] font-semibold leading-4 text-slate-900"
+                    title={assignedUser.username}
                   >
-                    В архив
-                  </button>
+                    {assignedUser.username}
+                  </div>
 
                   <button
                     type="button"
-                    onClick={handleDelete}
-                    className="inline-flex items-center justify-center rounded-2xl bg-rose-500 px-5 py-2.5 text-sm font-semibold text-white shadow-md transition hover:bg-rose-600"
+                    onClick={() => setIsAssigning(true)}
+                    className="mt-0.5 inline-flex h-8 min-w-[30px] shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-slate-50 px-1.5 text-slate-500 transition hover:bg-slate-100 hover:text-slate-700"
+                    title="Назначить пользователя"
                   >
-                    Удалить
+                    <svg
+                      className="h-3.5 w-3.5"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                      strokeWidth="2"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M15.232 5.232l3.536 3.536M9 11l6.768-6.768a2.5 2.5 0 113.536 3.536L12.536 14.536A4 4 0 019.708 15.7L6 16l.3-3.708A4 4 0 017.464 9.464L14.232 2.696"
+                      />
+                    </svg>
                   </button>
                 </div>
-              ) : null}
-            </div>
+
+                <div
+                  className="mt-1 whitespace-normal break-words text-[13px] leading-4 text-slate-500"
+                  title={assignedUser.fullName}
+                >
+                  {assignedUser.fullName}
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <select
+                  value={selectedUserId}
+                  onChange={(e) => setSelectedUserId(e.target.value)}
+                  className="h-8 w-full rounded-lg border border-slate-300 bg-white px-2 text-xs outline-none focus:border-slate-500"
+                >
+                  <option value="">Не назначен</option>
+                  {supplyUsers.map((user) => (
+                    <option key={user.id} value={user.id}>
+                      {user.username || "—"} — {user.full_name || user.fullname || "—"}
+                    </option>
+                  ))}
+                </select>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={handleAssignSave}
+                    disabled={isSavingAssign}
+                    className="inline-flex h-7 items-center justify-center rounded-lg bg-slate-900 px-2.5 text-[11px] font-medium text-white transition hover:bg-slate-800 disabled:opacity-60"
+                  >
+                    Сохранить
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsAssigning(false);
+                      setAssignError("");
+                    }}
+                    className="inline-flex h-7 items-center justify-center rounded-lg border border-slate-300 bg-white px-2.5 text-[11px] font-medium text-slate-700 transition hover:bg-slate-50"
+                  >
+                    Отмена
+                  </button>
+                </div>
+
+                {assignError ? (
+                  <div className="text-[11px] text-rose-600">{assignError}</div>
+                ) : null}
+              </div>
+            )
+          ) : (
+            <>
+              <div className="break-all text-[13px] font-semibold leading-4 text-slate-900">
+                {assignedUser.username}
+              </div>
+              <div className="mt-1 whitespace-normal break-words text-[13px] leading-4 text-slate-500">
+                {assignedUser.fullName}
+              </div>
+            </>
+          )}
+        </div>
+
+        <div className="w-[170px]">
+          <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-400 xl:hidden">
+            Действия
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={handleOpen}
+              className="inline-flex h-8 items-center justify-center rounded-xl bg-slate-900 px-3 text-[13px] font-semibold text-white transition hover:bg-black"
+            >
+              Открыть
+            </button>
+
+            {canManage && status !== "archived" ? (
+              <button
+                type="button"
+                onClick={() => onArchive?.(requestId)}
+                className="inline-flex h-8 w-8 items-center justify-center rounded-xl border border-slate-200 bg-slate-50 text-slate-600 transition hover:bg-slate-100"
+                title="Архивировать"
+              >
+                <svg
+                  className="h-4 w-4"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                  strokeWidth="2"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"
+                  />
+                </svg>
+              </button>
+            ) : null}
+
+            {canManage ? (
+              <button
+                type="button"
+                onClick={() => onDelete?.(requestId)}
+                className="inline-flex h-8 w-8 items-center justify-center rounded-xl border border-rose-100 bg-rose-50 text-rose-600 transition hover:bg-rose-100"
+                title="Удалить"
+              >
+                <svg
+                  className="h-4 w-4"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                  strokeWidth="2"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                  />
+                </svg>
+              </button>
+            ) : null}
           </div>
         </div>
       </div>

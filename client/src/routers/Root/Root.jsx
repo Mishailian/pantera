@@ -46,8 +46,11 @@ export const Root = () => {
 
   const currentPageTitle = useMemo(() => {
     if (normalizedLocation === "profile") return "Профиль";
-    if (normalizedLocation === "profile-history") return "История имён";
+    if (normalizedLocation === "profile-history") return "История";
     if (normalizedLocation === "auth") return "Вход";
+    if (normalizedLocation === "store") return "Заявки";
+    if (normalizedLocation === "undeclared") return "Без подписи";
+    if (normalizedLocation === "archived") return "Архив";
 
     if (normalizedLocation.includes("users")) {
       return usersTable[normalizedLocation.split("users")[1]] ?? "users";
@@ -57,40 +60,60 @@ export const Root = () => {
   }, [normalizedLocation, usersTable, s.names]);
 
   const routes = useMemo(() => {
+    const hiddenPaths = ["/profile", "/profile-history"];
+    // Прячем эти два пути из левого меню, так как они теперь внутри /store/
+    const hiddenSidebarPaths = ["/undeclared/", "/archived/"]; 
+    const hiddenForWorkers = ["/users/"];
+    const supplyOnlyPaths = ["/store/", "/undeclared/", "/archived/", "/tagList/"];
+    const supplyTabsPaths = ["/store/", "/undeclared/", "/archived/"];
+
     const baseRoutes = Object.keys(s.paths)
       .filter((routeKey) => {
         const path = s.paths[routeKey];
 
-        if (["/store/", "/undeclared/", "/archived/", "/tagList/"].includes(path)) {
+        if (!path) return false;
+        if (hiddenPaths.includes(path)) return false;
+        if (hiddenSidebarPaths.includes(path)) return false; // Скрываем из сайдбара
+
+        if (hiddenForWorkers.includes(path) || path.startsWith("/users")) {
+          return canSeeSupplySections;
+        }
+
+        if (supplyOnlyPaths.includes(path)) {
           return canSeeSupplySections;
         }
 
         return true;
       })
-      .map((routeKey) => ({
-        key: routeKey,
-        label: s.names[routeKey],
-        path: s.paths[routeKey],
-        isActive: pathname === s.paths[routeKey],
-      }));
+      .map((routeKey) => {
+        const path = s.paths[routeKey];
+        
+        // Левая кнопка "Заявки" должна быть активна, если мы находимся в любом из трёх табов
+        const isActive = path === "/store/" 
+          ? supplyTabsPaths.includes(pathname) 
+          : pathname === path;
+
+        return {
+          key: `base-${routeKey}`,
+          label: path === "/store/" ? "Заявки" : s.names[routeKey],
+          path: path,
+          isActive,
+        };
+      });
 
     const extraRoutes = [
       {
-        key: "profile",
+        key: "extra-profile",
         label: "Профиль",
         path: "/profile",
         isActive: pathname === "/profile",
       },
-      ...(canSeeSupplySections
-        ? [
-            {
-              key: "profile-history",
-              label: "История имён",
-              path: "/profile-history",
-              isActive: pathname === "/profile-history",
-            },
-          ]
-        : []),
+      {
+        key: "extra-profile-history",
+        label: "История",
+        path: "/profile-history",
+        isActive: pathname === "/profile-history",
+      },
     ];
 
     return [...extraRoutes, ...baseRoutes];

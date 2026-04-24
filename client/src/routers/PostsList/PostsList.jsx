@@ -160,11 +160,11 @@ export const PostsList = () => {
             </div>
 
             <div className="min-w-0">
-              <div className="grid grid-cols-1 gap-3 lg:grid-cols-[260px_minmax(0,1fr)_220px]">
+              <div className="grid grid-cols-1 gap-3 lg:grid-cols-[180px_minmax(0,1fr)_190px] xl:grid-cols-[200px_minmax(0,1fr)_210px]">
                 <select
                   value={searchField}
                   onChange={(e) => setSearchField(e.target.value)}
-                  className="h-12 w-full min-w-0 rounded-2xl border border-slate-200 bg-white px-4 text-sm shadow-sm focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+                  className="h-12 w-full min-w-0 rounded-2xl border border-slate-200 bg-white px-3 text-sm shadow-sm focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
                 >
                   <option value="created_by">Создатель</option>
                   <option value="assigned_to">Назначенный пользователь</option>
@@ -184,7 +184,7 @@ export const PostsList = () => {
                 <select
                   value={sortOrder}
                   onChange={(e) => setSortOrder(e.target.value)}
-                  className="h-12 w-full min-w-0 rounded-2xl border border-slate-200 bg-white px-4 text-sm shadow-sm focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+                  className="h-12 w-full min-w-0 rounded-2xl border border-slate-200 bg-white px-3 text-sm shadow-sm focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
                 >
                   <option value="newest">Сначала новые</option>
                   <option value="oldest">Сначала старые</option>

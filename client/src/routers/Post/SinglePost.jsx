@@ -30,7 +30,6 @@ export const SinglePost = () => {
 
   return <div>{content}</div>;
 };
-
 // export const SinglePost = () => {
 //   var content;
 //   const [aboutLines, setAboutline] = useState();
