@@ -1,7 +1,8 @@
 import { useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { useSelector } from "react-redux";
 import { useGetUsersQuery, useUpdateRequestMutation } from "../app/api/apiSlice";
+
 
 const STATUS_LABELS = {
   active: {
@@ -55,8 +56,11 @@ const formatDateParts = (value) => {
   };
 };
 
-export const ActivePostBlock = ({ data, canManage, onArchive, onDelete }) => {
+export const ActivePostBlock = ({ data, canManage, onArchive, onDelete, onSign }) => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const isUndeclaredPage = location.pathname.includes('/undeclared');
+  const isArchivedPage = location.pathname.includes('/archived');
   const currentUserRoles = useSelector((state) => state.auth.roles || []);
   const isAdmin = currentUserRoles.some((role) => role?.name === "admin");
 
@@ -94,6 +98,22 @@ export const ActivePostBlock = ({ data, canManage, onArchive, onDelete }) => {
   const assignedUser = getUserDisplay(data?.assigned_to_user || data?.assignedtouser || null);
 
   const handleOpen = () => {
+    // Безопасно извлекаем названия ролей, независимо от того, массив это объектов или строк
+    const roleNames = currentUserRoles.map((role) => 
+      typeof role === "string" ? role : role?.name
+    ).filter(Boolean);
+
+    // Проверяем, есть ли нужные права
+    const hasPrivileges = roleNames.some((roleName) =>
+      ["admin", "supply_manager"].includes(roleName)
+    );
+
+    // Если прав НЕТ — идём по пути для обычного сотрудника
+    if (!hasPrivileges) {
+      return navigate(`/my-requests/${requestId}`);
+    }
+
+    // Если права ЕСТЬ — идём по админским путям
     if (status === "archived") return navigate(`/archived/${requestId}`);
     if (status === "undeclared") return navigate(`/undeclared/${requestId}`);
     navigate(`/store/${requestId}`);
@@ -272,48 +292,42 @@ export const ActivePostBlock = ({ data, canManage, onArchive, onDelete }) => {
               Открыть
             </button>
 
-            {canManage && status !== "archived" ? (
+            {/* ЛОГИКА АРХИВА / ПОДПИСИ */}
+            {canManage && isUndeclaredPage ? (
+              // Если мы на странице "Без подписи" — показываем кнопку "Подписать"
+              <button
+                type="button"
+                onClick={() => onSign?.(requestId)}
+                className="inline-flex h-8 items-center justify-center rounded-xl bg-emerald-100 px-3 text-[13px] font-semibold text-emerald-700 transition hover:bg-emerald-200"
+                title="Подписать заявку"
+              >
+                Подписать
+              </button>
+            ) : canManage && status !== "archived" && !isUndeclaredPage ? (
+              // Если мы на обычных страницах — показываем кнопку "В архив"
               <button
                 type="button"
                 onClick={() => onArchive?.(requestId)}
                 className="inline-flex h-8 w-8 items-center justify-center rounded-xl border border-slate-200 bg-slate-50 text-slate-600 transition hover:bg-slate-100"
                 title="Архивировать"
               >
-                <svg
-                  className="h-4 w-4"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                  strokeWidth="2"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"
-                  />
+                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
                 </svg>
               </button>
             ) : null}
 
-            {canManage ? (
+            {/* ЛОГИКА УДАЛЕНИЯ */}
+            {canManage && !isArchivedPage ? (
+              // Если мы НЕ в архиве — показываем корзину
               <button
                 type="button"
                 onClick={() => onDelete?.(requestId)}
                 className="inline-flex h-8 w-8 items-center justify-center rounded-xl border border-rose-100 bg-rose-50 text-rose-600 transition hover:bg-rose-100"
                 title="Удалить"
               >
-                <svg
-                  className="h-4 w-4"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                  strokeWidth="2"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                  />
+                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                 </svg>
               </button>
             ) : null}

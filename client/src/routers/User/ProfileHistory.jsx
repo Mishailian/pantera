@@ -177,7 +177,7 @@ const MyRequestsTab = () => {
                     </td>
                     <td className="px-4 py-3">
                       <span
-                        className={`rounded-full px-3 py-1 text-xs font-semibold ${statusStyle}`}
+                        className={`inline-flex items-center whitespace-nowrap rounded-full px-3 py-1 text-xs font-semibold ${statusStyle}`}
                       >
                         {statusLabel}
                       </span>
@@ -191,7 +191,7 @@ const MyRequestsTab = () => {
                     <td className="px-4 py-3 text-right">
                       <button
                         type="button"
-                        onClick={() => navigate(`/store/${request.id}`)}
+                        onClick={() => navigate(`/my-requests/${request.id}`)}
                         className="rounded-lg bg-black px-4 py-2 text-sm font-semibold text-white transition hover:opacity-90"
                       >
                         Открыть заявку

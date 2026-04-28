@@ -11,9 +11,7 @@ export var staticApi = () => {
       store: "/store/",
       undeclared: "/undeclared/",
       archived: "/archived/",
-      auth: "/auth/",
       addPost: "/addPost/",
-      addUser: "/addUser/",
       tagList: "/tagList/",
     },
     names: {
@@ -21,9 +19,7 @@ export var staticApi = () => {
       archived: "Архив",
       undeclared: "Без подписи",
       users: "Пользователи",
-      auth: "Вход",
       addPost: "Добавить",
-      addUser: "Пользователь",
       tagList: "Роли",
     },
 

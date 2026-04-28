@@ -3,8 +3,9 @@ import { useEffect, useMemo } from "react";
 import { useDispatch, useSelector } from "react-redux";
 
 import { staticApi } from "../../static/static";
-import { setToken } from "../../app/auth/authSlice";
+import { setToken, clearAuth } from "../../app/auth/authSlice";
 import { Login } from "../../app/auth/Login";
+import { apiSlice } from "../../app/api/apiSlice";
 
 export const Root = () => {
   const s = staticApi();
@@ -47,7 +48,6 @@ export const Root = () => {
   const currentPageTitle = useMemo(() => {
     if (normalizedLocation === "profile") return "Профиль";
     if (normalizedLocation === "profile-history") return "История";
-    if (normalizedLocation === "auth") return "Вход";
     if (normalizedLocation === "store") return "Заявки";
     if (normalizedLocation === "undeclared") return "Без подписи";
     if (normalizedLocation === "archived") return "Архив";
@@ -60,9 +60,8 @@ export const Root = () => {
   }, [normalizedLocation, usersTable, s.names]);
 
   const routes = useMemo(() => {
-    const hiddenPaths = ["/profile", "/profile-history"];
-    // Прячем эти два пути из левого меню, так как они теперь внутри /store/
-    const hiddenSidebarPaths = ["/undeclared/", "/archived/"]; 
+    const hiddenPaths = ["/profile", "/profile-history", "/auth"];
+    const hiddenSidebarPaths = ["/undeclared/", "/archived/"];
     const hiddenForWorkers = ["/users/"];
     const supplyOnlyPaths = ["/store/", "/undeclared/", "/archived/", "/tagList/"];
     const supplyTabsPaths = ["/store/", "/undeclared/", "/archived/"];
@@ -73,7 +72,7 @@ export const Root = () => {
 
         if (!path) return false;
         if (hiddenPaths.includes(path)) return false;
-        if (hiddenSidebarPaths.includes(path)) return false; // Скрываем из сайдбара
+        if (hiddenSidebarPaths.includes(path)) return false;
 
         if (hiddenForWorkers.includes(path) || path.startsWith("/users")) {
           return canSeeSupplySections;
@@ -87,11 +86,11 @@ export const Root = () => {
       })
       .map((routeKey) => {
         const path = s.paths[routeKey];
-        
-        // Левая кнопка "Заявки" должна быть активна, если мы находимся в любом из трёх табов
-        const isActive = path === "/store/" 
-          ? supplyTabsPaths.includes(pathname) 
-          : pathname === path;
+
+        const isActive =
+          path === "/store/"
+            ? supplyTabsPaths.includes(pathname)
+            : pathname === path;
 
         return {
           key: `base-${routeKey}`,
@@ -146,13 +145,19 @@ export const Root = () => {
     }
   }, [token, isAuth, pathname, navigate]);
 
+  const handleLogout = () => {
+    dispatch(apiSlice.util.resetApiState());
+    dispatch(clearAuth());
+    navigate("/auth", { replace: true });
+  };
+
   if (!token || !isAuth) {
     return <Login />;
   }
 
   return (
     <div className="flex min-h-screen bg-stone-100 text-stone-900">
-      <aside className="flex w-[260px] shrink-0 flex-col justify-between border-r border-stone-300 bg-white px-6 py-8 shadow-sm">
+      <aside className="flex w-[260px] shrink-0 flex-col border-r border-stone-300 bg-white px-6 py-8 shadow-sm">
         <div>
           <div className="mb-12">
             <div className="text-2xl tracking-tight">УралШина</div>
@@ -174,6 +179,14 @@ export const Root = () => {
             ))}
           </nav>
         </div>
+
+        <button
+          type="button"
+          onClick={handleLogout}
+          className="mt-8 inline-flex h-12 w-full items-center justify-center rounded-2xl bg-red-600 px-4 text-sm font-semibold text-white transition hover:bg-red-500 active:scale-[0.99]"
+        >
+          Выйти из аккаунта
+        </button>
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">

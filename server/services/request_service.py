@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, date
 
 from extensions import db
 from models.request.request import Request
@@ -24,6 +24,19 @@ class RequestService:
     @staticmethod
     def _base_query():
         return Request.query.order_by(Request.created_at.desc())
+
+    @staticmethod
+    def _parse_deadline(value):
+        if not value:
+            return None
+        if isinstance(value, date):
+            return value
+        if isinstance(value, str):
+            try:
+                return datetime.strptime(value, "%Y-%m-%d").date()
+            except ValueError:
+                raise ValueError("deadline must be in YYYY-MM-DD format")
+        raise ValueError("deadline has invalid format")
 
     @staticmethod
     def get_requests(page=0, status=None):
@@ -72,11 +85,14 @@ class RequestService:
             if work_status not in RequestService.VALID_ITEM_STATUSES:
                 work_status = "done" if is_done else "in_progress"
 
+            deadline = RequestService._parse_deadline(item.get("deadline"))
+
             request_item = RequestItem(
                 name=item["name"],
                 unit=item["unit"],
                 quantity=item["quantity"],
                 description=item.get("description"),
+                deadline=deadline,
                 work_status=work_status,
                 is_done=bool(is_done or work_status == "done")
             )
@@ -165,10 +181,21 @@ class RequestService:
         if request_obj and request_obj.status == "archived":
             raise ValueError("Archived request items cannot be changed")
 
-        allowed_fields = {"name", "unit", "quantity", "description", "is_done", "work_status"}
+        allowed_fields = {
+            "name",
+            "unit",
+            "quantity",
+            "description",
+            "deadline",
+            "is_done",
+            "work_status",
+        }
 
         if "isdone" in kwargs and "is_done" not in kwargs:
             kwargs["is_done"] = kwargs.pop("isdone")
+
+        if "deadline" in kwargs:
+            kwargs["deadline"] = RequestService._parse_deadline(kwargs.get("deadline"))
 
         if "work_status" in kwargs:
             work_status = kwargs.get("work_status")
@@ -187,7 +214,7 @@ class RequestService:
         return item
 
     @staticmethod
-    def add_request_item(request_id, name, unit, quantity, description=None):
+    def add_request_item(request_id, name, unit, quantity, description=None, deadline=None):
         request_obj = RequestService.get_request_by_id(request_id)
         if not request_obj:
             return None
@@ -198,6 +225,7 @@ class RequestService:
             unit=unit,
             quantity=quantity,
             description=description,
+            deadline=RequestService._parse_deadline(deadline),
             is_done=False,
             work_status="in_progress",
         )

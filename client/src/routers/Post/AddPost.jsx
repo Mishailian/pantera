@@ -6,13 +6,13 @@ import { docxCreator } from "../../../docx/docx_creator";
 const UNIT_OPTIONS = ["мм", "см", "м", "кг", "шт", "комп", "упак", "компл"];
 
 const AVAILABLE_SIGNERS = [
-  "Суслов",
-  "Гуда",
-  "Чеченева",
-  "Новосёлова",
-  "Голубцов",
-  "Ложкин",
-  "Славных",
+  "Суслов В. А.",
+  "Гуда Т. А.",
+  "Чеченева А. А.",
+  "Новосёлова Е. О.",
+  "Голубцов Е. С.",
+  "Ложкин И. М.",
+  "Славных М. А.",
 ];
 
 const createEmptyRow = (id, prevRow = null, shouldRepeat = false) => ({
@@ -50,6 +50,7 @@ const mapRowsToRequestPayload = (rows, currentUserId) => {
       unit: String(row.units).trim(),
       quantity: Number(row.quantity),
       description: row?.about ? String(row.about).trim() : "",
+      deadline: row?.deadline ? String(row.deadline).trim() : null, // ДОБАВИЛИ ЭТУ СТРОКУ
     }));
 
   return {
@@ -105,7 +106,7 @@ const UnitField = ({ value, onChange }) => {
           setOpen(true);
         }}
         placeholder="Выбрать или вписать"
-        className="h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 pr-12 text-sm text-slate-800 outline-none transition focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10"
+        className="h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 pr-12 text-sm text-slate-800 shadow-sm outline-none transition focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10"
       />
 
       <button
@@ -224,6 +225,7 @@ const SignersModal = ({
 export const AddPost = () => {
   const authUserId = useSelector((state) => state.auth.username_id);
   const [addPost, { isLoading }] = useAddPostMutation();
+  const [purpose, setPurpose] = useState("");
 
   const [repeatNext, setRepeatNext] = useState(false);
   const [rows, setRows] = useState([createEmptyRow(1)]);
@@ -265,6 +267,7 @@ export const AddPost = () => {
 
   const handleCreatePost = async () => {
     const payload = mapRowsToRequestPayload(rows, authUserId);
+    payload.comment = purpose;
 
     if (!payload.items.length) {
       alert(
@@ -293,6 +296,7 @@ export const AddPost = () => {
 
       setRows([createEmptyRow(1)]);
       setSelectedSigners([]);
+      setPurpose("");
       alert("Заявка успешно создана.");
     } catch (error) {
       console.error(error);
@@ -307,10 +311,25 @@ export const AddPost = () => {
           <h1 className="mb-8 text-4xl font-bold tracking-tight text-slate-900 md:text-5xl">
             Служебная записка
           </h1>
+          
+          <div className="mb-8 rounded-3xl border border-slate-200 bg-indigo-50/50 p-6">
+            <label className="block">
+              <span className="mb-3 block text-sm font-bold uppercase tracking-[0.1em] text-indigo-900">
+                Цель покупки *
+              </span>
+              <textarea
+                value={purpose}
+                onChange={(e) => setPurpose(e.target.value)}
+                placeholder="Опишите, для какой цели вы заказываете данные пункты"
+                rows={3}
+                className="w-full resize-none rounded-2xl border border-slate-200 bg-white px-5 py-4 text-base text-slate-800 shadow-sm outline-none transition focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10"
+              />
+            </label>
+          </div>
 
           <div className="mb-4 hidden grid-cols-[2.2fr_1.1fr_0.8fr_1.1fr_1.8fr_88px] gap-4 border-b border-slate-200 pb-3 text-sm font-semibold uppercase tracking-[0.08em] text-slate-500 lg:grid">
             <div>Наименование</div>
-            <div>Еденица измерения</div>
+            <div>Единица измерения</div>
             <div>Количество</div>
             <div>Планируемый срок</div>
             <div>Дополнительная информация</div>
@@ -321,10 +340,10 @@ export const AddPost = () => {
             {rows.map((row, index) => (
               <div
                 key={row.id}
-                className="grid gap-4 rounded-3xl border border-slate-200 bg-slate-50/60 p-4 lg:grid-cols-[2.2fr_1.1fr_0.8fr_1.1fr_1.8fr_88px] lg:items-start"
+                className="grid gap-4 rounded-3xl border border-slate-200 bg-slate-50/80 p-5 shadow-sm transition hover:bg-slate-100/50 lg:grid-cols-[2.2fr_1.1fr_0.8fr_1.1fr_1.8fr_88px] lg:items-start"
               >
                 <div className="lg:hidden">
-                  <div className="mb-1 text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">
+                  <div className="mb-2 text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">
                     Позиция {index + 1}
                   </div>
                 </div>
@@ -338,13 +357,13 @@ export const AddPost = () => {
                     value={row.title}
                     onChange={(e) => updateRow(row.id, "title", e.target.value)}
                     placeholder="Наименование"
-                    className="h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm text-slate-800 outline-none transition focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10"
+                    className="h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm text-slate-800 shadow-sm outline-none transition focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10"
                   />
                 </label>
 
                 <label className="block">
                   <span className="mb-2 block text-xs font-semibold uppercase tracking-[0.08em] text-slate-500 lg:hidden">
-                    Еденица измерения
+                    Единица измерения
                   </span>
                   <UnitField
                     value={row.units}
@@ -362,7 +381,7 @@ export const AddPost = () => {
                     step="1"
                     value={row.quantity}
                     onChange={(e) => updateRow(row.id, "quantity", e.target.value)}
-                    className="h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm text-slate-800 outline-none transition focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10"
+                    className="h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm text-slate-800 shadow-sm outline-none transition focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10"
                   />
                 </label>
 
@@ -374,7 +393,7 @@ export const AddPost = () => {
                     type="date"
                     value={row.deadline}
                     onChange={(e) => updateRow(row.id, "deadline", e.target.value)}
-                    className="h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm text-slate-800 outline-none transition focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10"
+                    className="h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm text-slate-800 shadow-sm outline-none transition focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10"
                   />
                 </label>
 
@@ -387,18 +406,18 @@ export const AddPost = () => {
                     value={row.about}
                     onChange={(e) => updateRow(row.id, "about", e.target.value)}
                     placeholder="Комментарий"
-                    className="h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm text-slate-800 outline-none transition focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10"
+                    className="h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm text-slate-800 shadow-sm outline-none transition focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10"
                   />
                 </label>
 
-                <div>
-                  <span className="mb-2 block text-xs font-semibold uppercase tracking-[0.08em] text-slate-500 lg:hidden">
+                <div className="flex h-full items-end lg:items-start">
+                  <span className="mb-2 hidden text-xs font-semibold uppercase tracking-[0.08em] text-slate-500 lg:hidden">
                     Удалить
                   </span>
                   <button
                     type="button"
                     onClick={() => removeRow(row.id)}
-                    className="flex h-12 w-full items-center justify-center rounded-2xl bg-rose-500 text-xl font-bold text-white transition hover:bg-rose-600 active:scale-95"
+                    className="flex h-12 w-full items-center justify-center rounded-2xl bg-rose-500 text-xl font-bold text-white shadow-sm transition hover:bg-rose-600 active:scale-95"
                   >
                     -
                   </button>

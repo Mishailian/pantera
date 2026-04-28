@@ -101,6 +101,7 @@ def add_request_item(request_id):
     unit = data.get("unit")
     quantity = data.get("quantity")
     description = data.get("description")
+    deadline = data.get("deadline")
 
     if not name or not unit or quantity is None:
         return jsonify({"error": "name, unit and quantity are required"}), 400
@@ -111,13 +112,13 @@ def add_request_item(request_id):
         unit=unit,
         quantity=quantity,
         description=description,
+        deadline=deadline,
     )
 
     if not item:
         return jsonify({"error": "Request not found"}), 404
 
     return jsonify(serialize_request_item(item)), 201
-
 
 @requests_bp.patch("/items/<int:item_id>")
 def update_request_item(item_id):

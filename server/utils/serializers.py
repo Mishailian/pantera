@@ -74,6 +74,7 @@ def serialize_request_item(item):
         "unit": item.unit,
         "quantity": float(item.quantity),
         "description": item.description,
+        "deadline": item.deadline.isoformat() if getattr(item, "deadline", None) else None,
         "is_done": item.is_done,
         "work_status": getattr(item, "work_status", "in_progress"),
         "created_at": item.created_at.isoformat() if item.created_at else None,

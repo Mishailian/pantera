@@ -3,7 +3,6 @@ import { StrictMode } from "react";
 import { createBrowserRouter, RouterProvider } from "react-router-dom";
 import { Provider } from "react-redux";
 import { PersistGate } from "redux-persist/integration/react";
-
 import "./index.css";
 import store, { persistor } from "./app/store";
 
@@ -11,23 +10,25 @@ import { Root } from "./routers/Root/Root";
 import { Login } from "./app/auth/Login";
 
 import { UserList } from "./routers/UserList/UserList";
-import { SinglePost } from "./routers/Post/SinglePost";
 import { AddPost } from "./routers/Post/AddPost";
 import { AddUser } from "./routers/User/AddUser";
 import { UserPage } from "./routers/User/UserPage";
 import { TagList } from "./routers/Tags/TagList";
-import { SingleUndeclaretedPost } from "./routers/UndeclaretedList/SingleUndeclaretedPost";
-import { SingleArchivedPost } from "./routers/ArchiveList/SingleArchivedPost";
 import { RequireRoles } from "./routers/guards/RequireRoles";
 import { Profile } from "./routers/User/Profile";
 import { ProfileHistory } from "./routers/User/ProfileHistory";
 import { RequestsTabsPage } from "./routers/RequestsTabsPage";
+
+// Подключаем наш новый универсальный компонент просмотра заявки
+import { UniversalSinglePost } from "./routers/Post/UniversalSinglePost";
+
 
 const RequestsTabRoute = ({ tab }) => (
   <RequireRoles allowedRoles={["admin", "supply_manager"]}>
     <RequestsTabsPage tab={tab} />
   </RequireRoles>
 );
+
 
 const router = createBrowserRouter([
   {
@@ -36,7 +37,8 @@ const router = createBrowserRouter([
     children: [
       { path: "profile", element: <Profile /> },
       { path: "profile-history", element: <ProfileHistory /> },
-
+      
+      // --- Списки заявок (вкладки) ---
       {
         path: "store",
         element: <RequestsTabRoute tab="store" />,
@@ -50,11 +52,16 @@ const router = createBrowserRouter([
         element: <RequestsTabRoute tab="archived" />,
       },
 
+      // --- Детальный просмотр заявки (Универсальный) ---
+      {
+        path: "my-requests/:postId",
+        element: <UniversalSinglePost />, // Доступно обычному работяге без проверки ролей
+      },
       {
         path: "store/:postId",
         element: (
           <RequireRoles allowedRoles={["admin", "supply_manager"]}>
-            <SinglePost />
+            <UniversalSinglePost />
           </RequireRoles>
         ),
       },
@@ -62,7 +69,7 @@ const router = createBrowserRouter([
         path: "undeclared/:postId",
         element: (
           <RequireRoles allowedRoles={["admin", "supply_manager"]}>
-            <SingleUndeclaretedPost />
+            <UniversalSinglePost />
           </RequireRoles>
         ),
       },
@@ -70,11 +77,12 @@ const router = createBrowserRouter([
         path: "archived/:postId",
         element: (
           <RequireRoles allowedRoles={["admin", "supply_manager"]}>
-            <SingleArchivedPost />
+            <UniversalSinglePost />
           </RequireRoles>
         ),
       },
 
+      // --- Остальные маршруты ---
       {
         path: "users",
         element: <UserList />,
@@ -102,6 +110,7 @@ const router = createBrowserRouter([
     ],
   },
 ]);
+
 
 const root = ReactDOM.createRoot(document.getElementById("root"));
 root.render(

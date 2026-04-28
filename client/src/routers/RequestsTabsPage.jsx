@@ -9,6 +9,7 @@ import {
   useGetUndeclaredPostsCountQuery,
   useGetArhiveQuery,
   useDeleteRequestMutation,
+  useDeclaredPostMutation,
   useChangeRequestStatusMutation,
 } from "../app/api/apiSlice";
 import { ActivePostBlock } from "../auxComponents/ActivePostBlock";
@@ -70,6 +71,7 @@ export const RequestsTabsPage = ({ tab = "store" }) => {
 
   const [archiveRequest] = useChangeRequestStatusMutation();
   const [deleteRequest] = useDeleteRequestMutation();
+  const [declarePost] = useDeclaredPostMutation();
 
   const filteredPosts = useMemo(() => {
     let result = [...posts];
@@ -154,6 +156,19 @@ export const RequestsTabsPage = ({ tab = "store" }) => {
     } catch (error) {
       console.error(error);
       alert("Не удалось удалить заявку.");
+    }
+  };
+  
+  const handleSign = async (requestId) => {
+    try {
+      await declarePost({
+        postId: requestId,
+        changed_by_id: currentUserId,
+        comment: "Заявка переведена в активные из списка",
+      }).unwrap();
+    } catch (error) {
+      console.error(error);
+      alert("Не удалось подписать заявку.");
     }
   };
 
@@ -262,6 +277,7 @@ export const RequestsTabsPage = ({ tab = "store" }) => {
                 canManage={canManage}
                 onArchive={handleArchive}
                 onDelete={handleDelete}
+                onSign={handleSign}
               />
             ))}
           </div>

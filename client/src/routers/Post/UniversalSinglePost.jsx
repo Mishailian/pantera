@@ -1,24 +1,33 @@
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { useSelector } from "react-redux";
 import {
-  useGetUndeclaredPostQuery,
+  useGetPostQuery,
   useDeclaredPostMutation,
 } from "../../app/api/apiSlice";
 import { SinglePostBlock } from "../../auxComponents/SinglePostBlock";
 import { progressCheck } from "../../progressCheck";
 
-export const SingleUndeclaretedPost = () => {
+export const UniversalSinglePost = () => {
   const { postId } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
 
-  const postObject = useGetUndeclaredPostQuery({ postId });
+  // Строго определяем контекст (откуда открыли заявку)
+  let mode = "active";
+  if (location.pathname.includes("/undeclared")) mode = "undeclared";
+  else if (location.pathname.includes("/archived")) mode = "archived";
+  else if (location.pathname.includes("/my-requests")) mode = "my-requests";
+
   const currentUserId = useSelector((state) => state.auth.username_id);
   const currentUserRoles = useSelector((state) => state.auth.roles || []);
 
-  const canApprove = currentUserRoles.some((role) =>
-    ["admin", "supply_manager"].includes(role?.name)
+  // Флаг админа (для точечных проверок внутри, если понадобятся)
+  const isAdmin = currentUserRoles.some((role) =>
+    (typeof role === "string" ? role : role?.name) === "admin"
   );
 
+  // Универсальный запрос данных заявки
+  const postObject = useGetPostQuery({ postId });
   const [declarePost] = useDeclaredPostMutation();
 
   const handleApprove = async () => {
@@ -41,16 +50,17 @@ export const SingleUndeclaretedPost = () => {
       data: {
         ...postObject.data,
         postId,
-        mode: "undeclared",
-        canApprove,
-        actionButtonText: "Подписать заявку",
+        mode,
+        isAdmin,
+        // Если мы НЕ в истории личных заявок, значит мы смотрим заявку с полными правами
+        canManage: mode !== "my-requests",
       },
     },
     (data) => {
       return (
         <SinglePostBlock
           data={data}
-          onApprove={handleApprove}
+          onApprove={mode === "undeclared" ? handleApprove : undefined}
         />
       );
     }

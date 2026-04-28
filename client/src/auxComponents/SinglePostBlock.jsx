@@ -1,4 +1,6 @@
 import React from "react";
+import { useUpdateRequestItemMutation } from "../app/api/apiSlice";
+import { ExpandableText } from "./ExpandableText";
 
 const STATUS_META = {
   archived: {
@@ -20,12 +22,30 @@ const InfoCard = ({ label, value, sub }) => (
     <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
       {label}
     </p>
-    <p className="mt-2 text-base font-semibold text-slate-900">{value || "—"}</p>
+    <p className="mt-2 text-base font-semibold text-slate-900">
+      {value || "—"}
+    </p>
     {sub ? <p className="mt-1 text-xs text-slate-500">{sub}</p> : null}
   </div>
 );
 
-export const SinglePostBlock = ({ data }) => {
+const getPlannedDate = (item) => {
+  return (
+    item?.deadline_formatted ||
+    item?.planned_deadline_formatted ||
+    item?.planned_date_formatted ||
+    item?.deadline ||
+    item?.planned_deadline ||
+    item?.planned_date ||
+    item?.planned_at ||
+    "—"
+  );
+};
+
+export const SinglePostBlock = ({ data, onApprove }) => {
+  const [updateRequestItem, { isLoading: isUpdating }] =
+    useUpdateRequestItemMutation();
+
   const {
     id,
     status,
@@ -50,6 +70,19 @@ export const SinglePostBlock = ({ data }) => {
   const statusMeta = STATUS_META[statusKey];
   const archiveAssigned = assigned_to_at_archive_user || assigned_to_user;
 
+  const handleItemStatusChange = async (itemId, newStatus) => {
+    try {
+      await updateRequestItem({
+        itemId,
+        status: newStatus,
+        is_done: newStatus === "done",
+      }).unwrap();
+    } catch (error) {
+      console.error("Failed to update item status:", error);
+      alert("Не удалось обновить статус позиции.");
+    }
+  };
+
   return (
     <div className="mx-auto w-full max-w-6xl p-4 sm:p-6 lg:p-8">
       <div className="overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-[0_20px_60px_rgba(15,23,42,0.08)]">
@@ -60,11 +93,13 @@ export const SinglePostBlock = ({ data }) => {
                 <div className="inline-flex items-center rounded-full bg-slate-100 px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-slate-600">
                   Заявка #{id}
                 </div>
+
                 <div
                   className={`inline-flex items-center rounded-full px-4 py-2 text-xs font-semibold uppercase tracking-wide ring-1 ${statusMeta.badge}`}
                 >
                   {statusMeta.label}
                 </div>
+
                 {mode === "archived" ? (
                   <div className="inline-flex items-center rounded-full bg-slate-900 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-white">
                     Архив
@@ -75,12 +110,16 @@ export const SinglePostBlock = ({ data }) => {
               {canManage ? (
                 <>
                   <h2 className="text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">
-                    {created_by_user?.full_name || created_by_user?.username || "Неизвестно"}
+                    {created_by_user?.full_name ||
+                      created_by_user?.username ||
+                      "Неизвестно"}
                   </h2>
 
                   <p className="mt-2 text-sm text-slate-500">
                     @{created_by_user?.username || "unknown"}
-                    {created_by_user?.role_label ? ` • ${created_by_user.role_label}` : ""}
+                    {created_by_user?.role_label
+                      ? ` • ${created_by_user.role_label}`
+                      : ""}
                   </p>
                 </>
               ) : (
@@ -132,11 +171,20 @@ export const SinglePostBlock = ({ data }) => {
                   value={created_by_user?.full_name || created_by_user?.username}
                   sub={
                     created_by_user?.username
-                      ? `@${created_by_user.username}${created_by_user?.role_label ? ` • ${created_by_user.role_label}` : ""}`
+                      ? `@${created_by_user.username}${
+                          created_by_user?.role_label
+                            ? ` • ${created_by_user.role_label}`
+                            : ""
+                        }`
                       : null
                   }
                 />
-                <InfoCard label="Дата создания" value={created_at_formatted || "—"} />
+
+                <InfoCard
+                  label="Дата создания"
+                  value={created_at_formatted || "—"}
+                />
+
                 <InfoCard
                   label="Кто одобрил"
                   value={approved_by_user?.full_name || "—"}
@@ -146,9 +194,14 @@ export const SinglePostBlock = ({ data }) => {
                       : approved_at_formatted || null
                   }
                 />
+
                 <InfoCard
                   label={mode === "archived" ? "Архивирована" : "Статус"}
-                  value={mode === "archived" ? archived_at_formatted || closed_at_formatted || "—" : statusMeta.label}
+                  value={
+                    mode === "archived"
+                      ? archived_at_formatted || closed_at_formatted || "—"
+                      : statusMeta.label
+                  }
                   sub={
                     mode === "archived" && archived_by_user
                       ? `@${archived_by_user.username} • ${archived_by_user.full_name}`
@@ -164,16 +217,23 @@ export const SinglePostBlock = ({ data }) => {
                     value={archiveAssigned?.full_name || "Не был назначен"}
                     sub={
                       archiveAssigned?.username
-                        ? `@${archiveAssigned.username}${archiveAssigned?.role_label ? ` • ${archiveAssigned.role_label}` : ""}`
+                        ? `@${archiveAssigned.username}${
+                            archiveAssigned?.role_label
+                              ? ` • ${archiveAssigned.role_label}`
+                              : ""
+                          }`
                         : "На момент архивирования ответственный не был назначен"
                     }
                   />
+
                   <InfoCard
                     label="Кто архивировал"
                     value={archived_by_user?.full_name || "—"}
                     sub={
                       archived_by_user?.username
-                        ? `@${archived_by_user.username} • ${archived_at_formatted || "—"}`
+                        ? `@${archived_by_user.username} • ${
+                            archived_at_formatted || "—"
+                          }`
                         : archived_at_formatted || null
                     }
                   />
@@ -183,19 +243,38 @@ export const SinglePostBlock = ({ data }) => {
           ) : (
             <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
               <InfoCard label="№ заявки" value={id ? `#${id}` : "—"} />
-              <InfoCard label="Дата создания" value={created_at_formatted || "—"} />
+              <InfoCard
+                label="Дата создания"
+                value={created_at_formatted || "—"}
+              />
               <InfoCard label="Статус" value={statusMeta.label} />
             </div>
           )}
 
-          {canManage && comment && comment.trim() ? (
-            <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-5">
-              <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
-                Комментарий
+          {comment && comment.trim() ? (
+            <div className="mt-4 rounded-2xl border border-indigo-100 bg-indigo-50/50 p-5">
+              <p className="text-xs font-bold uppercase tracking-wide text-indigo-800">
+                Цель покупки
               </p>
-              <p className="mt-3 whitespace-pre-wrap text-sm leading-7 text-slate-700">
-                {comment}
-              </p>
+
+              <ExpandableText
+                text={comment}
+                limit={30}
+                className="mt-3 w-full"
+                textClassName="w-full whitespace-pre-wrap break-words text-sm leading-7 text-slate-800"
+              />
+            </div>
+          ) : null}
+
+          {canManage && mode === "undeclared" && onApprove ? (
+            <div className="mt-6 flex justify-end">
+              <button
+                type="button"
+                onClick={onApprove}
+                className="inline-flex h-12 items-center justify-center rounded-xl bg-emerald-600 px-6 font-semibold text-white shadow-sm transition hover:bg-emerald-500"
+              >
+                Подписать заявку
+              </button>
             </div>
           ) : null}
 
@@ -211,61 +290,111 @@ export const SinglePostBlock = ({ data }) => {
 
             {items && items.length > 0 ? (
               <div className="space-y-3">
-                {items.map((item, index) => (
-                  <div
-                    key={item.id || index}
-                    className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"
-                  >
-                    <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-6 xl:items-start">
-                      <div className="xl:col-span-2">
-                        <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
-                          Наименование
-                        </p>
-                        <p className="mt-2 text-base font-semibold text-slate-900">
-                          {item.name}
-                        </p>
-                        {item.description ? (
-                          <p className="mt-2 text-sm leading-6 text-slate-600">
-                            {item.description}
+                {items.map((item, index) => {
+                  const currentStatus =
+                    item.status || (item.is_done ? "done" : "in_progress");
+                  const plannedDate = getPlannedDate(item);
+
+                  return (
+                    <div
+                      key={item.id || index}
+                      className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"
+                    >
+                      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1.2fr)_minmax(0,1.5fr)] xl:items-start">
+                        <div>
+                          <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+                            Наименование
                           </p>
-                        ) : null}
+                          <p className="mt-2 text-base font-semibold text-slate-900">
+                            {item.name}
+                          </p>
+                        </div>
+
+                        <div>
+                          <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+                            Ед. изм.
+                          </p>
+                          <p className="mt-2 text-sm font-semibold text-slate-800">
+                            {item.unit}
+                          </p>
+                        </div>
+
+                        <div>
+                          <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+                            Количество
+                          </p>
+                          <p className="mt-2 text-sm font-semibold text-slate-800">
+                            {item.quantity}
+                          </p>
+                        </div>
+
+                        <div>
+                          <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+                            Планируемый срок
+                          </p>
+                          <p className="mt-2 text-sm font-semibold text-slate-800">
+                            {plannedDate}
+                          </p>
+                        </div>
+
+                        <div className="flex flex-col justify-start">
+                          <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+                            Статус пункта
+                          </p>
+
+                          <div className="mt-2">
+                            {canManage &&
+                            (mode === "active" || mode === "undeclared") ? (
+                              <select
+                                disabled={isUpdating}
+                                value={currentStatus}
+                                onChange={(e) =>
+                                  handleItemStatusChange(item.id, e.target.value)
+                                }
+                                className="h-8 w-full min-w-[130px] rounded-lg border border-slate-200 bg-white px-2.5 text-xs font-semibold text-slate-700 outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 disabled:opacity-50"
+                              >
+                                <option value="in_progress">В работе</option>
+                                <option value="done">Выполнено</option>
+                                <option value="rejected">Отказ</option>
+                              </select>
+                            ) : (
+                              <span
+                                className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${
+                                  currentStatus === "done"
+                                    ? "bg-emerald-100 text-emerald-800"
+                                    : currentStatus === "rejected"
+                                    ? "bg-rose-100 text-rose-800"
+                                    : "bg-amber-100 text-amber-800"
+                                }`}
+                              >
+                                {currentStatus === "done"
+                                  ? "Выполнено"
+                                  : currentStatus === "rejected"
+                                  ? "Отказ"
+                                  : "В работе"}
+                              </span>
+                            )}
+                          </div>
+                        </div>
                       </div>
 
-                      <div>
-                        <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
-                          Ед. изм.
-                        </p>
-                        <p className="mt-2 text-sm font-semibold text-slate-800">
-                          {item.unit}
-                        </p>
-                      </div>
+                      {item.description && item.description.trim() ? (
+                        <div className="mt-4 rounded-xl border border-slate-100 bg-slate-50 px-4 py-4">
+                          <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+                            Комментарий
+                          </p>
 
-                      <div>
-                        <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
-                          Количество
-                        </p>
-                        <p className="mt-2 text-sm font-semibold text-slate-800">
-                          {item.quantity}
-                        </p>
-                      </div>
-
-                      <div>
-                        <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
-                          Статус пункта
-                        </p>
-                        <span
-                          className={`mt-2 inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${
-                            item.is_done
-                              ? "bg-emerald-100 text-emerald-800"
-                              : "bg-amber-100 text-amber-800"
-                          }`}
-                        >
-                          {item.is_done ? "Выполнено" : "В работе"}
-                        </span>
-                      </div>
+                          <ExpandableText
+                            text={item.description}
+                            limit={20}
+                            className="mt-2 w-full"
+                            textClassName="w-full whitespace-pre-wrap break-words text-sm leading-6 text-slate-700"
+                          />
+                        </div>
+                      ) : null}
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             ) : (
               <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-10 text-center text-sm text-slate-500">

@@ -8,7 +8,7 @@ export const RequireRoles = ({ allowedRoles, children }) => {
   const hasAccess = allowedRoles.some((role) => roleNames.includes(role));
 
   if (!hasAccess) {
-    return <Navigate to="/users" replace />;
+    return <Navigate to="/profile" replace />;
   }
 
   return children;
