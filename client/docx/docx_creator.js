@@ -23,10 +23,10 @@ import { saveAs } from "file-saver";
 const DOCX_CONFIG = {
   font: {
     family: "Times New Roman",
-    defaultSize: 24,
+    defaultSize: 28,
     smallSize: 18,
     headerSize: 20,
-    titleSize: 32,
+    titleSize: 40,
   },
 
   page: {
@@ -43,16 +43,8 @@ const DOCX_CONFIG = {
     logoHeight: 120,
     afterLogoSpacing: 120,
 
-    topLineText:
-      "          __________          _______________          ",
-    workLabel: "В РАБОТУ",
-    workTail: " __________________/___________/",
-
     topLineAfterSpacing: 0,
     topLabelsAfterSpacing: 80,
-
-    labelsLine:
-      "             (дата)                  (стр. подразделение)                              (кому)",
 
     receiverIndentLeft: 7200,
   },
@@ -68,7 +60,7 @@ const DOCX_CONFIG = {
   },
 
   requestNumber: {
-    prefix: "№ заявки: ",
+    prefix: "№ ",
     beforeSpacing: 180,
     afterSpacing: 120,
   },
@@ -84,12 +76,12 @@ const DOCX_CONFIG = {
     cellMarginLeft: 70,
     cellMarginRight: 70,
     lineSpacing: 276,
-    headerFontSize: 20,
-    bodyFontSize: 22,
+    headerFontSize: 22,
+    bodyFontSize: 24,
     headers: [
       "№",
       "Наименование",
-      "Ед",
+      "Ед.",
       "Колл",
       "Планируемый срок приобретения",
       "Фактический срок приобретения",
@@ -99,8 +91,8 @@ const DOCX_CONFIG = {
 
   signers: {
     lineText: "_______________________________",
-    gapBeforeFirst: 120,
-    gapBetween: 80,
+    gapBeforeFirst: 240,
+    gapBetween: 500,
   },
 };
 
@@ -183,7 +175,7 @@ const createCell = (text, options = {}) =>
           before: 0,
           after: 0,
           line: DOCX_CONFIG.table.lineSpacing,
-        },
+          },
         children: [
           new TextRun({
             text: text ?? "",
@@ -234,38 +226,47 @@ const createTopHeaderParagraphs = () => [
     ],
   }),
 
+  // Первая строка: длинное подчёркивание слева и "В РАБОТУ" справа
   new Paragraph({
     spacing: {
       after: DOCX_CONFIG.header.topLineAfterSpacing,
     },
     tabStops: [
       {
-        type: TabStopType.CENTER,
-        position: 6500,
+        type: TabStopType.RIGHT,
+        position: 10000,
       },
     ],
     children: [
       new TextRun({
-        text: DOCX_CONFIG.header.topLineText,
+        text: "__________________________",
       }),
       new TextRun({
-        text: DOCX_CONFIG.header.workLabel,
+        text: "\tВ РАБОТУ ________/______/",
         bold: true,
         italics: true,
-      }),
-      new TextRun({
-        text: DOCX_CONFIG.header.workTail,
       }),
     ],
   }),
 
+  // Вторая строка: "(дата)" слева и "(кому)" справа под подчёркиванием
   new Paragraph({
     spacing: {
       after: DOCX_CONFIG.header.topLabelsAfterSpacing,
     },
+    tabStops: [
+      {
+        type: TabStopType.RIGHT,
+        position: 10000,
+      },
+    ],
     children: [
       new TextRun({
-        text: DOCX_CONFIG.header.labelsLine,
+        text: "(дата)",
+        size: DOCX_CONFIG.font.smallSize,
+      }),
+      new TextRun({
+        text: "\t(кому)",
         size: DOCX_CONFIG.font.smallSize,
       }),
     ],
@@ -338,7 +339,8 @@ const createRequestTable = (rows) =>
               width: DOCX_CONFIG.table.columnWidths[4],
             }),
             createCell(row.actualDeadline, {
-              width: DOCX_CONFIG.table.columnWidths[5],
+              width:
+              DOCX_CONFIG.table.columnWidths[5],
             }),
             createCell(row.comment, {
               alignment: AlignmentType.LEFT,
