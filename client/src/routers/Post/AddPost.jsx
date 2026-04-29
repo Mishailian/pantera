@@ -24,19 +24,6 @@ const createEmptyRow = (id, prevRow = null, shouldRepeat = false) => ({
   about: shouldRepeat && prevRow ? prevRow.about ?? "" : "",
 });
 
-const mapRowsToDocxPayload = (rows) => {
-  return rows.reduce((acc, row, index) => {
-    acc[index + 1] = {
-      title: row.title,
-      units: row.units,
-      quantity: row.quantity,
-      deadline: row.deadline,
-      about: row.about,
-    };
-    return acc;
-  }, {});
-};
-
 const mapRowsToRequestPayload = (rows, currentUserId) => {
   const items = rows
     .filter((row) => {
@@ -50,7 +37,7 @@ const mapRowsToRequestPayload = (rows, currentUserId) => {
       unit: String(row.units).trim(),
       quantity: Number(row.quantity),
       description: row?.about ? String(row.about).trim() : "",
-      deadline: row?.deadline ? String(row.deadline).trim() : null, // ДОБАВИЛИ ЭТУ СТРОКУ
+      deadline: row?.deadline ? String(row.deadline).trim() : null,
     }));
 
   return {
@@ -232,8 +219,6 @@ export const AddPost = () => {
   const [signersOpen, setSignersOpen] = useState(false);
   const [selectedSigners, setSelectedSigners] = useState([]);
 
-  const docxPayload = useMemo(() => mapRowsToDocxPayload(rows), [rows]);
-
   const updateRow = (id, field, value) => {
     setRows((prev) =>
       prev.map((row) => (row.id === id ? { ...row, [field]: value } : row))
@@ -282,17 +267,11 @@ export const AddPost = () => {
     }
 
     try {
-      docxCreator(docxPayload, selectedSigners);
-
-      const response = await addPost({
+      const createdRequest = await addPost({
         initialState: payload,
-      });
+      }).unwrap();
 
-      if (response?.error) {
-        console.error(response.error);
-        alert(response?.error?.data?.error || "Не удалось создать заявку.");
-        return;
-      }
+      docxCreator(createdRequest, selectedSigners);
 
       setRows([createEmptyRow(1)]);
       setSelectedSigners([]);
@@ -300,7 +279,7 @@ export const AddPost = () => {
       alert("Заявка успешно создана.");
     } catch (error) {
       console.error(error);
-      alert("Произошла ошибка при создании заявки.");
+      alert(error?.data?.error || "Не удалось создать заявку.");
     }
   };
 
@@ -311,7 +290,7 @@ export const AddPost = () => {
           <h1 className="mb-8 text-4xl font-bold tracking-tight text-slate-900 md:text-5xl">
             Служебная записка
           </h1>
-          
+
           <div className="mb-8 rounded-3xl border border-slate-200 bg-indigo-50/50 p-6">
             <label className="block">
               <span className="mb-3 block text-sm font-bold uppercase tracking-[0.1em] text-indigo-900">

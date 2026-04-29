@@ -10,50 +10,23 @@ import {
   ImageRun,
   WidthType,
   AlignmentType,
+  BorderStyle,
+  VerticalAlign,
 } from "docx";
 import { saveAs } from "file-saver";
 
 const defaultFont = "Times New Roman";
 const defaultSize = 24;
+const BORDER_COLOR = "000000";
+const BORDER_SIZE = 8;
 
 const createSignerParagraphs = (selectedSigners = []) => {
   if (!selectedSigners.length) {
-    return [
-      new Paragraph(""),
-      new Paragraph({
-        alignment: AlignmentType.LEFT,
-        text: "",
-      }),
-      new Paragraph({
-        alignment: AlignmentType.LEFT,
-        children: [
-          new TextRun({
-            text: "________________________",
-          }),
-        ],
-      }),
-      new Paragraph(""),
-      new Paragraph({
-        alignment: AlignmentType.LEFT,
-        text: "",
-      }),
-      new Paragraph({
-        alignment: AlignmentType.LEFT,
-        children: [
-          new TextRun({
-            text: "________________________",
-          }),
-        ],
-      }),
-    ];
+    return [];
   }
 
   return selectedSigners.flatMap((signer) => [
     new Paragraph(""),
-    new Paragraph({
-      alignment: AlignmentType.LEFT,
-      text: "",
-    }),
     new Paragraph({
       alignment: AlignmentType.LEFT,
       children: [
@@ -65,72 +38,130 @@ const createSignerParagraphs = (selectedSigners = []) => {
   ]);
 };
 
-export const docxCreator = (data, selectedSigners = []) => {
-  const tableCreator = (
-    state,
-    { columnWidths, cellWidth, headers, content }
-  ) => {
-    const cellCreator = (object) => {
-      if (object instanceof Date) object = object.toLocaleDateString();
+const formatDeadline = (value) => {
+  if (!value) return "";
+  if (value instanceof Date) return value.toLocaleDateString("ru-RU");
 
-      return new TableCell({
-        width: cellWidth,
+  if (typeof value === "string") {
+    const parts = value.split("-");
+    if (parts.length === 3) {
+      return `${parts[2]}.${parts[1]}.${parts[0]}`;
+    }
+  }
+
+  return String(value);
+};
+
+const normalizeText = (value) => {
+  if (value === null || value === undefined) return "";
+  return String(value).trim();
+};
+
+const mapRequestToDocxRows = (requestData) => {
+  const items = Array.isArray(requestData?.items) ? requestData.items : [];
+
+  return items.map((item, index) => ({
+    number: `${index + 1}`,
+    title: normalizeText(item?.name),
+    units: normalizeText(item?.unit),
+    quantity: item?.quantity ?? "",
+    plannedDeadline: formatDeadline(item?.deadline),
+    actualDeadline: "",
+    comment: normalizeText(item?.description),
+  }));
+};
+
+const createCellBorders = () => ({
+  top: { style: BorderStyle.SINGLE, size: BORDER_SIZE, color: BORDER_COLOR },
+  bottom: { style: BorderStyle.SINGLE, size: BORDER_SIZE, color: BORDER_COLOR },
+  left: { style: BorderStyle.SINGLE, size: BORDER_SIZE, color: BORDER_COLOR },
+  right: { style: BorderStyle.SINGLE, size: BORDER_SIZE, color: BORDER_COLOR },
+});
+
+const createCell = (text, options = {}) =>
+  new TableCell({
+    width: options.width,
+    verticalAlign: options.verticalAlign ?? VerticalAlign.CENTER,
+    margins: {
+      top: 70,
+      bottom: 70,
+      left: 70,
+      right: 70,
+    },
+    borders: createCellBorders(),
+    children: [
+      new Paragraph({
+        alignment: options.alignment ?? AlignmentType.CENTER,
+        spacing: {
+          before: 0,
+          after: 0,
+          line: 276,
+        },
         children: [
-          new Paragraph({
-            alignment: AlignmentType.CENTER,
-            text: `${object ?? ""}`,
+          new TextRun({
+            text: text ?? "",
+            bold: options.bold ?? false,
+            size: options.size ?? 22,
           }),
         ],
-      });
-    };
-
-    const headerCreator = () => {
-      return new TableRow({
-        children: headers.map((el) => cellCreator(el)),
-      });
-    };
-
-    const rowCreator = () => {
-      const rows = [];
-
-      for (const [key, value] of Object.entries(state)) {
-        const contentOfCurrentRow = content.map((field) =>
-          cellCreator(value[field])
-        );
-
-        rows.push(
-          new TableRow({
-            children: [cellCreator(key), ...contentOfCurrentRow],
-          })
-        );
-      }
-
-      return rows;
-    };
-
-    return new Table({
-      columnWidths,
-      rows: [headerCreator(), ...rowCreator()],
-    });
-  };
-
-  const table = tableCreator(data, {
-    columnWidths: [444, 4500, 1407, 1407, 2420],
-    cellWidth: {
-      size: 3505,
-      type: WidthType.AUTO,
-    },
-    headers: [
-      "\u2116",
-      "Наименование",
-      "Ед",
-      "Колл",
-      "Планируемый срок приобретения",
+      }),
     ],
-    content: ["title", "units", "quantity", "deadline"],
   });
 
+export const docxCreator = (requestData, selectedSigners = []) => {
+  const rows = mapRequestToDocxRows(requestData);
   const signerParagraphs = createSignerParagraphs(selectedSigners);
+  const purchasePurpose = normalizeText(requestData?.comment);
+
+  const table = new Table({
+    width: {
+      size: 10800,
+      type: WidthType.DXA,
+    },
+    columnWidths: [500, 3000, 700, 700, 1700, 1700, 2500],
+    rows: [
+      new TableRow({
+        children: [
+          createCell("№", { bold: false, size: 20 }),
+          createCell("Наименование", {
+            bold: false,
+            size: 20,
+          }),
+          createCell("Ед", { bold: false, size: 20 }),
+          createCell("Колл", { bold: false, size: 20 }),
+          createCell("Планируемый срок приобретения", {
+            bold: false,
+            size: 20,
+          }),
+          createCell("Фактический срок приобретения", {
+            bold: false,
+            size: 20,
+          }),
+          createCell("Комментарий", {
+            bold: false,
+            size: 20,
+          }),
+        ],
+      }),
+      ...rows.map((row) =>
+        new TableRow({
+          children: [
+            createCell(row.number),
+            createCell(row.title, {
+              alignment: AlignmentType.LEFT,
+            }),
+            createCell(row.units),
+            createCell(String(row.quantity ?? "")),
+            createCell(row.plannedDeadline),
+            createCell(row.actualDeadline),
+            createCell(row.comment, {
+              alignment: AlignmentType.LEFT,
+            }),
+          ],
+        })
+      ),
+    ],
+  });
 
   const doc = new Document({
     styles: {
@@ -153,15 +184,18 @@ export const docxCreator = (data, selectedSigners = []) => {
             },
             margin: {
               top: 432,
-              right: 864,
+              right: 600,
               bottom: 288,
-              left: 864,
+              left: 600,
             },
           },
         },
         children: [
           new Paragraph({
             alignment: AlignmentType.CENTER,
+            spacing: {
+              after: 120,
+            },
             children: [
               new ImageRun({
                 data: base64Str,
@@ -173,33 +207,29 @@ export const docxCreator = (data, selectedSigners = []) => {
             ],
           }),
 
-          new Paragraph("             __________        _______________ "),
-
           new Paragraph({
+            spacing: {
+              after: 0,
+            },
             children: [
+              new TextRun({ text: "          __________          _______________          " }),
               new TextRun({
-                text: "                        (дата)                      (стр. подразделение)",
-                size: 18,
-              }),
-              new TextRun({
-                text: "\t\t     В РАБОТУ ",
+                text: "В РАБОТУ",
                 bold: true,
                 italics: true,
               }),
-              new TextRun({
-                text: "_________________/___________/",
-              }),
+              new TextRun({ text: " __________________/___________/" }),
             ],
           }),
 
           new Paragraph({
-            indent: {
-              left: 7605,
+            spacing: {
+              after: 80,
             },
             children: [
               new TextRun({
+                text: "             (дата)                  (стр. подразделение)                              (кому)",
                 size: 18,
-                text: "(кому)",
               }),
             ],
           }),
@@ -208,7 +238,7 @@ export const docxCreator = (data, selectedSigners = []) => {
 
           new Paragraph({
             indent: {
-              left: 6205,
+              left: 7200,
             },
             children: [
               new TextRun({
@@ -221,18 +251,19 @@ export const docxCreator = (data, selectedSigners = []) => {
               }),
               new TextRun({
                 break: 1,
-                text: "Мустаеву М.Г. ",
+                text: "Мустаеву М.Г.",
               }),
             ],
           }),
 
           new Paragraph(""),
           new Paragraph(""),
-          new Paragraph(""),
 
           new Paragraph({
             alignment: AlignmentType.CENTER,
-            spacing: 100,
+            spacing: {
+              after: 200,
+            },
             children: [
               new TextRun({
                 text: "СЛУЖЕБНАЯ ЗАПИСКА",
@@ -241,23 +272,22 @@ export const docxCreator = (data, selectedSigners = []) => {
             ],
           }),
 
-          new Paragraph(""),
-          new Paragraph(""),
+          new Paragraph({
+            spacing: {
+              after: 180,
+            },
+            children: [
+              new TextRun({
+                text: "Цель покупки: ",
+                bold: true,
+              }),
+              new TextRun({
+                text: purchasePurpose || "—",
+              }),
+            ],
+          }),
+
           table,
-          new Paragraph(""),
-
-          new Paragraph({
-            text: ":                                                       ____________________________",
-          }),
-
-          new Paragraph(""),
-          new Paragraph(""),
-          new Paragraph(""),
-
-          new Paragraph({
-            alignment: AlignmentType.CENTER,
-            text: "_______________________ ",
-          }),
 
           new Paragraph(""),
           new Paragraph(""),
@@ -269,7 +299,11 @@ export const docxCreator = (data, selectedSigners = []) => {
   });
 
   Packer.toBlob(doc).then((blob) => {
-    saveAs(blob, "example.docx");
+    const fileName = requestData?.id
+      ? `zayavka-${requestData.id}.docx`
+      : "zayavka.docx";
+
+    saveAs(blob, fileName);
     console.log("Document created successfully");
   });
 };
