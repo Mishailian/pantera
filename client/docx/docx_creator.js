@@ -48,7 +48,7 @@ const DOCX_CONFIG = {
     afterSpacing: 180,
   },
   requestNumber: {
-    prefix: "№ ",
+    prefix: "",
     beforeSpacing: 180,
     afterSpacing: 120,
   },
@@ -298,6 +298,7 @@ export const docxCreator = (requestData, selectedSigners = []) => {
             ],
           }),
           createRequestTable(rows),
+          ...signerParagraphs,
           new Paragraph({
             alignment: AlignmentType.CENTER,
             spacing: {
@@ -311,7 +312,7 @@ export const docxCreator = (requestData, selectedSigners = []) => {
               }),
             ],
           }),
-          ...signerParagraphs,
+
         ],
       },
     ],
