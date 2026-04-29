@@ -1,41 +1,115 @@
 import { base64Str } from "../src/assets/imgInBase64";
 import {
+  AlignmentType,
+  BorderStyle,
   Document,
+  ImageRun,
   Packer,
   Paragraph,
+  TabStopPosition,
+  TabStopType,
   Table,
   TableCell,
   TableRow,
   TextRun,
-  ImageRun,
-  WidthType,
-  AlignmentType,
-  BorderStyle,
   VerticalAlign,
+  WidthType,
 } from "docx";
 import { saveAs } from "file-saver";
 
-const defaultFont = "Times New Roman";
-const defaultSize = 24;
-const BORDER_COLOR = "000000";
-const BORDER_SIZE = 8;
+/* =========================
+   ЕДИНОЕ МЕСТО ДЛЯ НАСТРОЕК
+   ========================= */
+const DOCX_CONFIG = {
+  font: {
+    family: "Times New Roman",
+    defaultSize: 24,
+    smallSize: 18,
+    headerSize: 20,
+    titleSize: 32,
+  },
 
-const createSignerParagraphs = (selectedSigners = []) => {
-  if (!selectedSigners.length) {
-    return [];
-  }
+  page: {
+    width: 11906,
+    height: 16838,
+    marginTop: 432,
+    marginRight: 600,
+    marginBottom: 288,
+    marginLeft: 600,
+  },
 
-  return selectedSigners.flatMap((signer) => [
-    new Paragraph(""),
-    new Paragraph({
-      alignment: AlignmentType.LEFT,
-      children: [
-        new TextRun({
-          text: `${signer} ________________________________`,
-        }),
-      ],
-    }),
-  ]);
+  header: {
+    logoWidth: 672,
+    logoHeight: 120,
+    afterLogoSpacing: 120,
+
+    topLineText:
+      "          __________          _______________          ",
+    workLabel: "В РАБОТУ",
+    workTail: " __________________/___________/",
+
+    topLineAfterSpacing: 0,
+    topLabelsAfterSpacing: 80,
+
+    labelsLine:
+      "             (дата)                  (стр. подразделение)                              (кому)",
+
+    receiverIndentLeft: 7200,
+  },
+
+  title: {
+    text: "СЛУЖЕБНАЯ ЗАПИСКА",
+    afterSpacing: 200,
+  },
+
+  purpose: {
+    label: "Цель покупки: ",
+    afterSpacing: 180,
+  },
+
+  requestNumber: {
+    prefix: "№ заявки: ",
+    beforeSpacing: 180,
+    afterSpacing: 120,
+  },
+
+  table: {
+    width: 10700,
+    indent: 0,
+    columnWidths: [500, 2900, 700, 700, 1550, 1550, 2800],
+    borderColor: "000000",
+    borderSize: 12,
+    cellMarginTop: 70,
+    cellMarginBottom: 70,
+    cellMarginLeft: 70,
+    cellMarginRight: 70,
+    lineSpacing: 276,
+    headerFontSize: 20,
+    bodyFontSize: 22,
+    headers: [
+      "№",
+      "Наименование",
+      "Ед",
+      "Колл",
+      "Планируемый срок приобретения",
+      "Фактический срок приобретения",
+      "Комментарий",
+    ],
+  },
+
+  signers: {
+    lineText: "_______________________________",
+    gapBeforeFirst: 120,
+    gapBetween: 80,
+  },
+};
+
+/* =========================
+   ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ
+   ========================= */
+const normalizeText = (value) => {
+  if (value === null || value === undefined) return "";
+  return String(value).trim();
 };
 
 const formatDeadline = (value) => {
@@ -52,16 +126,11 @@ const formatDeadline = (value) => {
   return String(value);
 };
 
-const normalizeText = (value) => {
-  if (value === null || value === undefined) return "";
-  return String(value).trim();
-};
-
 const mapRequestToDocxRows = (requestData) => {
   const items = Array.isArray(requestData?.items) ? requestData.items : [];
 
   return items.map((item, index) => ({
-    number: `${index + 1}`,
+    number: String(index + 1),
     title: normalizeText(item?.name),
     units: normalizeText(item?.unit),
     quantity: item?.quantity ?? "",
@@ -71,91 +140,209 @@ const mapRequestToDocxRows = (requestData) => {
   }));
 };
 
-const createCellBorders = () => ({
-  top: { style: BorderStyle.SINGLE, size: BORDER_SIZE, color: BORDER_COLOR },
-  bottom: { style: BorderStyle.SINGLE, size: BORDER_SIZE, color: BORDER_COLOR },
-  left: { style: BorderStyle.SINGLE, size: BORDER_SIZE, color: BORDER_COLOR },
-  right: { style: BorderStyle.SINGLE, size: BORDER_SIZE, color: BORDER_COLOR },
+const createBorders = () => ({
+  top: {
+    style: BorderStyle.SINGLE,
+    size: DOCX_CONFIG.table.borderSize,
+    color: DOCX_CONFIG.table.borderColor,
+  },
+  bottom: {
+    style: BorderStyle.SINGLE,
+    size: DOCX_CONFIG.table.borderSize,
+    color: DOCX_CONFIG.table.borderColor,
+  },
+  left: {
+    style: BorderStyle.SINGLE,
+    size: DOCX_CONFIG.table.borderSize,
+    color: DOCX_CONFIG.table.borderColor,
+  },
+  right: {
+    style: BorderStyle.SINGLE,
+    size: DOCX_CONFIG.table.borderSize,
+    color: DOCX_CONFIG.table.borderColor,
+  },
 });
 
 const createCell = (text, options = {}) =>
   new TableCell({
-    width: options.width,
+    width: options.width
+      ? { size: options.width, type: WidthType.DXA }
+      : undefined,
     verticalAlign: options.verticalAlign ?? VerticalAlign.CENTER,
     margins: {
-      top: 70,
-      bottom: 70,
-      left: 70,
-      right: 70,
+      top: DOCX_CONFIG.table.cellMarginTop,
+      bottom: DOCX_CONFIG.table.cellMarginBottom,
+      left: DOCX_CONFIG.table.cellMarginLeft,
+      right: DOCX_CONFIG.table.cellMarginRight,
     },
-    borders: createCellBorders(),
+    borders: createBorders(),
     children: [
       new Paragraph({
         alignment: options.alignment ?? AlignmentType.CENTER,
         spacing: {
           before: 0,
           after: 0,
-          line: 276,
+          line: DOCX_CONFIG.table.lineSpacing,
         },
         children: [
           new TextRun({
             text: text ?? "",
             bold: options.bold ?? false,
-            size: options.size ?? 22,
+            size: options.size ?? DOCX_CONFIG.table.bodyFontSize,
           }),
         ],
       }),
     ],
   });
 
-export const docxCreator = (requestData, selectedSigners = []) => {
-  const rows = mapRequestToDocxRows(requestData);
-  const signerParagraphs = createSignerParagraphs(selectedSigners);
-  const purchasePurpose = normalizeText(requestData?.comment);
+const createSignerParagraphs = (selectedSigners = []) => {
+  if (!selectedSigners.length) return [];
 
-  const table = new Table({
-    width: {
-      size: 10800,
-      type: WidthType.DXA,
-    },
-    columnWidths: [500, 3000, 700, 700, 1700, 1700, 2500],
-    rows: [
-      new TableRow({
+  return selectedSigners.flatMap((signer, index) => {
+    const current = [
+      new Paragraph({
+        spacing: {
+          before: index === 0 ? DOCX_CONFIG.signers.gapBeforeFirst : DOCX_CONFIG.signers.gapBetween,
+        },
+        alignment: AlignmentType.LEFT,
         children: [
-          createCell("№", { bold: false, size: 20 }),
-          createCell("Наименование", {
-            bold: false,
-            size: 20,
-          }),
-          createCell("Ед", { bold: false, size: 20 }),
-          createCell("Колл", { bold: false, size: 20 }),
-          createCell("Планируемый срок приобретения", {
-            bold: false,
-            size: 20,
-          }),
-          createCell("Фактический срок приобретения", {
-            bold: false,
-            size: 20,
-          }),
-          createCell("Комментарий", {
-            bold: false,
-            size: 20,
+          new TextRun({
+            text: `${signer} ${DOCX_CONFIG.signers.lineText}`,
           }),
         ],
+      }),
+    ];
+
+    return current;
+  });
+};
+
+const createTopHeaderParagraphs = () => [
+  new Paragraph({
+    alignment: AlignmentType.CENTER,
+    spacing: {
+      after: DOCX_CONFIG.header.afterLogoSpacing,
+    },
+    children: [
+      new ImageRun({
+        data: base64Str,
+        transformation: {
+          width: DOCX_CONFIG.header.logoWidth,
+          height: DOCX_CONFIG.header.logoHeight,
+        },
+      }),
+    ],
+  }),
+
+  new Paragraph({
+    spacing: {
+      after: DOCX_CONFIG.header.topLineAfterSpacing,
+    },
+    tabStops: [
+      {
+        type: TabStopType.CENTER,
+        position: 6500,
+      },
+    ],
+    children: [
+      new TextRun({
+        text: DOCX_CONFIG.header.topLineText,
+      }),
+      new TextRun({
+        text: DOCX_CONFIG.header.workLabel,
+        bold: true,
+        italics: true,
+      }),
+      new TextRun({
+        text: DOCX_CONFIG.header.workTail,
+      }),
+    ],
+  }),
+
+  new Paragraph({
+    spacing: {
+      after: DOCX_CONFIG.header.topLabelsAfterSpacing,
+    },
+    children: [
+      new TextRun({
+        text: DOCX_CONFIG.header.labelsLine,
+        size: DOCX_CONFIG.font.smallSize,
+      }),
+    ],
+  }),
+
+  new Paragraph(""),
+
+  new Paragraph({
+    indent: {
+      left: DOCX_CONFIG.header.receiverIndentLeft,
+    },
+    children: [
+      new TextRun({
+        break: 1,
+        text: "Генеральному директору",
+      }),
+      new TextRun({
+        break: 1,
+        text: "ООО «Уралшина»",
+      }),
+      new TextRun({
+        break: 1,
+        text: "Мустаеву М.Г.",
+      }),
+    ],
+  }),
+
+  new Paragraph(""),
+  new Paragraph(""),
+];
+
+const createRequestTable = (rows) =>
+  new Table({
+    width: {
+      size: DOCX_CONFIG.table.width,
+      type: WidthType.DXA,
+    },
+    indent: {
+      size: DOCX_CONFIG.table.indent,
+      type: WidthType.DXA,
+    },
+    columnWidths: DOCX_CONFIG.table.columnWidths,
+    rows: [
+      new TableRow({
+        children: DOCX_CONFIG.table.headers.map((header, index) =>
+          createCell(header, {
+            bold: false,
+            size: DOCX_CONFIG.table.headerFontSize,
+            width: DOCX_CONFIG.table.columnWidths[index],
+          })
+        ),
       }),
       ...rows.map((row) =>
         new TableRow({
           children: [
-            createCell(row.number),
+            createCell(row.number, {
+              width: DOCX_CONFIG.table.columnWidths[0],
+            }),
             createCell(row.title, {
               alignment: AlignmentType.LEFT,
+              width: DOCX_CONFIG.table.columnWidths[1],
             }),
-            createCell(row.units),
-            createCell(String(row.quantity ?? "")),
-            createCell(row.plannedDeadline),
-            createCell(row.actualDeadline),
+            createCell(row.units, {
+              width: DOCX_CONFIG.table.columnWidths[2],
+            }),
+            createCell(String(row.quantity ?? ""), {
+              width: DOCX_CONFIG.table.columnWidths[3],
+            }),
+            createCell(row.plannedDeadline, {
+              width: DOCX_CONFIG.table.columnWidths[4],
+            }),
+            createCell(row.actualDeadline, {
+              width: DOCX_CONFIG.table.columnWidths[5],
+            }),
             createCell(row.comment, {
               alignment: AlignmentType.LEFT,
+              width: DOCX_CONFIG.table.columnWidths[6],
             }),
           ],
         })
@@ -163,13 +350,22 @@ export const docxCreator = (requestData, selectedSigners = []) => {
     ],
   });
 
+/* =========================
+   ОСНОВНОЙ ГЕНЕРАТОР
+   ========================= */
+export const docxCreator = (requestData, selectedSigners = []) => {
+  const rows = mapRequestToDocxRows(requestData);
+  const signerParagraphs = createSignerParagraphs(selectedSigners);
+  const purchasePurpose = normalizeText(requestData?.comment) || "—";
+  const requestNumber = requestData?.id ?? "—";
+
   const doc = new Document({
     styles: {
       default: {
         document: {
           run: {
-            size: defaultSize,
-            font: defaultFont,
+            size: DOCX_CONFIG.font.defaultSize,
+            font: DOCX_CONFIG.font.family,
           },
         },
       },
@@ -179,118 +375,64 @@ export const docxCreator = (requestData, selectedSigners = []) => {
         properties: {
           page: {
             size: {
-              width: 11906,
-              height: 16838,
+              width: DOCX_CONFIG.page.width,
+              height: DOCX_CONFIG.page.height,
             },
             margin: {
-              top: 432,
-              right: 600,
-              bottom: 288,
-              left: 600,
+              top: DOCX_CONFIG.page.marginTop,
+              right: DOCX_CONFIG.page.marginRight,
+              bottom: DOCX_CONFIG.page.marginBottom,
+              left: DOCX_CONFIG.page.marginLeft,
             },
           },
         },
         children: [
-          new Paragraph({
-            alignment: AlignmentType.CENTER,
-            spacing: {
-              after: 120,
-            },
-            children: [
-              new ImageRun({
-                data: base64Str,
-                transformation: {
-                  width: 672,
-                  height: 120,
-                },
-              }),
-            ],
-          }),
-
-          new Paragraph({
-            spacing: {
-              after: 0,
-            },
-            children: [
-              new TextRun({ text: "          __________          _______________          " }),
-              new TextRun({
-                text: "В РАБОТУ",
-                bold: true,
-                italics: true,
-              }),
-              new TextRun({ text: " __________________/___________/" }),
-            ],
-          }),
-
-          new Paragraph({
-            spacing: {
-              after: 80,
-            },
-            children: [
-              new TextRun({
-                text: "             (дата)                  (стр. подразделение)                              (кому)",
-                size: 18,
-              }),
-            ],
-          }),
-
-          new Paragraph(""),
-
-          new Paragraph({
-            indent: {
-              left: 7200,
-            },
-            children: [
-              new TextRun({
-                break: 1,
-                text: "Генеральному директору",
-              }),
-              new TextRun({
-                break: 1,
-                text: "ООО «Уралшина»",
-              }),
-              new TextRun({
-                break: 1,
-                text: "Мустаеву М.Г.",
-              }),
-            ],
-          }),
-
-          new Paragraph(""),
-          new Paragraph(""),
+          ...createTopHeaderParagraphs(),
 
           new Paragraph({
             alignment: AlignmentType.CENTER,
             spacing: {
-              after: 200,
+              after: DOCX_CONFIG.title.afterSpacing,
             },
             children: [
               new TextRun({
-                text: "СЛУЖЕБНАЯ ЗАПИСКА",
+                text: DOCX_CONFIG.title.text,
                 bold: true,
+                size: DOCX_CONFIG.font.titleSize,
               }),
             ],
           }),
 
           new Paragraph({
             spacing: {
-              after: 180,
+              after: DOCX_CONFIG.purpose.afterSpacing,
             },
             children: [
               new TextRun({
-                text: "Цель покупки: ",
+                text: DOCX_CONFIG.purpose.label,
                 bold: true,
               }),
               new TextRun({
-                text: purchasePurpose || "—",
+                text: purchasePurpose,
               }),
             ],
           }),
 
-          table,
+          createRequestTable(rows),
 
-          new Paragraph(""),
-          new Paragraph(""),
+          new Paragraph({
+            alignment: AlignmentType.CENTER,
+            spacing: {
+              before: DOCX_CONFIG.requestNumber.beforeSpacing,
+              after: DOCX_CONFIG.requestNumber.afterSpacing,
+            },
+            children: [
+              new TextRun({
+                text: `${DOCX_CONFIG.requestNumber.prefix}${requestNumber}`,
+                bold: true,
+              }),
+            ],
+          }),
 
           ...signerParagraphs,
         ],
@@ -304,6 +446,5 @@ export const docxCreator = (requestData, selectedSigners = []) => {
       : "zayavka.docx";
 
     saveAs(blob, fileName);
-    console.log("Document created successfully");
   });
 };
