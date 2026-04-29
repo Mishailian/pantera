@@ -23,11 +23,16 @@ def _ensure_request_item_work_status(app):
             return
 
         columns = {col["name"] for col in inspector.get_columns("request_items")}
-        if "work_status" not in columns:
-            db.session.execute(text("ALTER TABLE request_items ADD COLUMN work_status VARCHAR(32) NOT NULL DEFAULT 'in_progress'"))
+
+        if "deadline" not in columns:
+            db.session.execute(text("""
+                ALTER TABLE request_items
+                ADD COLUMN IF NOT EXISTS deadline DATE
+            """))
             db.session.commit()
-    except Exception:
+    except Exception as e:
         db.session.rollback()
+        app.logger.error(f"Error updating request_items table: {e}")
 
 
 def create_app(config_class=Config):
