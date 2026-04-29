@@ -175,7 +175,7 @@ const createCell = (text, options = {}) =>
           before: 0,
           after: 0,
           line: DOCX_CONFIG.table.lineSpacing,
-          },
+        },
         children: [
           new TextRun({
             text: text ?? "",
@@ -329,10 +329,6 @@ const createRequestTable = (rows) =>
       size: DOCX_CONFIG.table.width,
       type: WidthType.DXA,
     },
-    indent: {
-      size: DOCX_CONFIG.table.indent,
-      type: WidthType.DXA,
-    },
     columnWidths: DOCX_CONFIG.table.columnWidths,
     rows: [
       new TableRow({
@@ -364,8 +360,7 @@ const createRequestTable = (rows) =>
               width: DOCX_CONFIG.table.columnWidths[4],
             }),
             createCell(row.actualDeadline, {
-              width:
-              DOCX_CONFIG.table.columnWidths[5],
+              width: DOCX_CONFIG.table.columnWidths[5],
             }),
             createCell(row.comment, {
               alignment: AlignmentType.LEFT,
