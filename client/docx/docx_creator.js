@@ -226,10 +226,10 @@ const createTopHeaderParagraphs = () => [
     ],
   }),
 
-  // Первая строка: длинное подчёркивание слева и "В РАБОТУ" справа
+  // 1 строка
   new Paragraph({
     spacing: {
-      after: DOCX_CONFIG.header.topLineAfterSpacing,
+      after: 0,
     },
     tabStops: [
       {
@@ -239,20 +239,20 @@ const createTopHeaderParagraphs = () => [
     ],
     children: [
       new TextRun({
-        text: "__________________________",
+        text: "_____________",
       }),
       new TextRun({
-        text: "\tВ РАБОТУ ________/______/",
+        text: "\tВ РАБОТУ _____________/___________/",
         bold: true,
         italics: true,
       }),
     ],
   }),
 
-  // Вторая строка: "(дата)" слева и "(кому)" справа под подчёркиванием
+  // 2 строка
   new Paragraph({
     spacing: {
-      after: DOCX_CONFIG.header.topLabelsAfterSpacing,
+      after: 40,
     },
     tabStops: [
       {
@@ -267,6 +267,31 @@ const createTopHeaderParagraphs = () => [
       }),
       new TextRun({
         text: "\t(кому)",
+        size: DOCX_CONFIG.font.smallSize,
+      }),
+    ],
+  }),
+
+  // 3 строка
+  new Paragraph({
+    spacing: {
+      after: 0,
+    },
+    children: [
+      new TextRun({
+        text: "_____________________",
+      }),
+    ],
+  }),
+
+  // 4 строка
+  new Paragraph({
+    spacing: {
+      after: DOCX_CONFIG.header.topLabelsAfterSpacing,
+    },
+    children: [
+      new TextRun({
+        text: "(стр. подразделение)",
         size: DOCX_CONFIG.font.smallSize,
       }),
     ],
