@@ -34,6 +34,25 @@ def _ensure_request_item_work_status(app):
         db.session.rollback()
         app.logger.error(f"Error updating request_items table: {e}")
 
+def _ensure_users_number_column(app):
+    try:
+        from sqlalchemy import inspect, text
+
+        inspector = inspect(db.engine)
+        if "users" not in inspector.get_table_names():
+            return
+
+        columns = {col["name"] for col in inspector.get_columns("users")}
+
+        if "number" not in columns:
+            db.session.execute(text("""
+                ALTER TABLE users
+                ADD COLUMN IF NOT EXISTS number VARCHAR(50)
+            """))
+            db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        app.logger.error(f"Error updating users table: {e}")
 
 def create_app(config_class=Config):
     app = Flask(__name__)
@@ -69,6 +88,7 @@ def create_app(config_class=Config):
         import models  # noqa
         db.create_all()
         _ensure_request_item_work_status(app)
+        _ensure_users_number_column(app)
         from models.user.role import seed_roles
         seed_roles()
 

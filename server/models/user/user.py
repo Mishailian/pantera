@@ -26,6 +26,8 @@ class User(db.Model):
         default=datetime.utcnow,
         onupdate=datetime.utcnow,
     )
+    number = db.Column(db.String(50), nullable=True)
+
 
     roles = db.relationship(
         "Role",

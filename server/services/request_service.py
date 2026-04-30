@@ -12,7 +12,7 @@ class RequestService:
     ITEMS_PER_PAGE = 14
 
     VALID_STATUSES = {"undeclared", "active", "archived"}
-    VALID_ITEM_STATUSES = {"in_progress", "done", "rejected"}
+    VALID_ITEM_STATUSES = {"in_progress", "done", "rejected", "on_payment"}
 
     @staticmethod
     def _calculate_page(page: int):
@@ -23,7 +23,7 @@ class RequestService:
 
     @staticmethod
     def _base_query():
-        return Request.query.order_by(Request.created_at.desc())
+        return Request.query.order_by(Request.id.desc())
 
     @staticmethod
     def _parse_deadline(value):
@@ -75,7 +75,7 @@ class RequestService:
         request_obj = Request(
             status="undeclared",
             comment=comment,
-            created_by_id=created_by_id
+            created_by_id=created_by_id,
         )
 
         for item in items:

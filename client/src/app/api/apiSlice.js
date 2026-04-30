@@ -332,10 +332,10 @@ export const apiSlice = createApi({
 
     // PATCH /users/me
     updateCurrentUser: builder.mutation({
-      query: ({ full_name, role_name }) => ({
+      query: ({ full_name, role_name, number }) => ({
         url: "users/me",
         method: "PATCH",
-        body: { full_name, role_name },
+        body: { full_name, role_name, number },
       }),
       invalidatesTags: ["USER", "AUTH"],
     }),

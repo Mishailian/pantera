@@ -15,7 +15,7 @@ class AuthService:
         return role
 
     @staticmethod
-    def create_user(username, password, full_name, role_name):
+    def create_user(username, password, full_name, role_name, number):
         if not username:
             raise ValueError("username is required")
         if not password:
@@ -24,6 +24,8 @@ class AuthService:
             raise ValueError("full_name is required")
         if not role_name:
             raise ValueError("role_name is required")
+        if not number:
+            raise ValueError("number is required")
 
         if User.query.filter_by(username=username).first():
             raise ValueError("User with this username already exists")
@@ -35,6 +37,7 @@ class AuthService:
         user = User(
             username=username,
             full_name=full_name,
+            number=number,
             token=token_hex(32),
         )
         user.set_password(password)

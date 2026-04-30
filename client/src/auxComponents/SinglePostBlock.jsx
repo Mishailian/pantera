@@ -17,6 +17,33 @@ const STATUS_META = {
   },
 };
 
+const ITEM_STATUS_META = {
+  in_progress: {
+    label: "В работе",
+    badge: "bg-amber-100 text-amber-800",
+    selectBadge:
+      "bg-amber-50 text-amber-800 border-amber-200 focus:ring-amber-500/20 focus:border-amber-500",
+  },
+  on_payment: {
+    label: "На оплате",
+    badge: "bg-blue-100 text-blue-800",
+    selectBadge:
+      "bg-blue-50 text-blue-800 border-blue-200 focus:ring-blue-500/20 focus:border-blue-500",
+  },
+  done: {
+    label: "Выполнено",
+    badge: "bg-emerald-100 text-emerald-800",
+    selectBadge:
+      "bg-emerald-50 text-emerald-800 border-emerald-200 focus:ring-emerald-500/20 focus:border-emerald-500",
+  },
+  rejected: {
+    label: "Отказ",
+    badge: "bg-rose-100 text-rose-800",
+    selectBadge:
+      "bg-rose-50 text-rose-800 border-rose-200 focus:ring-rose-500/20 focus:border-rose-500",
+  },
+};
+
 const InfoCard = ({ label, value, sub }) => (
   <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
     <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
@@ -25,7 +52,7 @@ const InfoCard = ({ label, value, sub }) => (
     <p className="mt-2 text-base font-semibold text-slate-900">
       {value || "—"}
     </p>
-    {sub ? <p className="mt-1 text-xs text-slate-500">{sub}</p> : null}
+    {sub ? <p className="mt-1 text-xs text-slate-500 whitespace-pre-line">{sub}</p> : null}
   </div>
 );
 
@@ -74,7 +101,7 @@ export const SinglePostBlock = ({ data, onApprove }) => {
     try {
       await updateRequestItem({
         itemId,
-        status: newStatus,
+        work_status: newStatus,
         is_done: newStatus === "done",
       }).unwrap();
     } catch (error) {
@@ -120,6 +147,12 @@ export const SinglePostBlock = ({ data, onApprove }) => {
                     {created_by_user?.role_label
                       ? ` • ${created_by_user.role_label}`
                       : ""}
+                  </p>
+
+                  <p className="mt-1 text-sm font-medium text-slate-600">
+                    {created_by_user?.number
+                      ? `Телефон: ${created_by_user.number}`
+                      : "Телефон: —"}
                   </p>
                 </>
               ) : (
@@ -175,8 +208,8 @@ export const SinglePostBlock = ({ data, onApprove }) => {
                           created_by_user?.role_label
                             ? ` • ${created_by_user.role_label}`
                             : ""
-                        }`
-                      : null
+                        }\nТелефон: ${created_by_user?.number || "—"}`
+                      : `Телефон: ${created_by_user?.number || "—"}`
                   }
                 />
 
@@ -290,9 +323,15 @@ export const SinglePostBlock = ({ data, onApprove }) => {
 
             {items && items.length > 0 ? (
               <div className="space-y-3">
-                {items.map((item, index) => {
+                {[...items].sort((a, b) => a.id - b.id).map((item, index) => {
                   const currentStatus =
-                    item.status || (item.is_done ? "done" : "in_progress");
+                    item.work_status ||
+                    item.status ||
+                    (item.is_done ? "done" : "in_progress");
+
+                  const itemMeta =
+                    ITEM_STATUS_META[currentStatus] || ITEM_STATUS_META.in_progress;
+
                   const plannedDate = getPlannedDate(item);
 
                   return (
@@ -301,25 +340,25 @@ export const SinglePostBlock = ({ data, onApprove }) => {
                       className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"
                     >
                       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1.2fr)_minmax(0,1.5fr)] xl:items-start">
-                        <div>
+                        <div className="min-w-0">
                           <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
                             Наименование
                           </p>
-                          <p className="mt-2 text-base font-semibold text-slate-900">
+                          <p className="mt-2 text-base font-semibold text-slate-900 break-words whitespace-normal">
                             {item.name}
                           </p>
                         </div>
 
-                        <div>
+                        <div className="min-w-0">
                           <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
                             Ед. изм.
                           </p>
-                          <p className="mt-2 text-sm font-semibold text-slate-800">
+                          <p className="mt-2 text-sm font-semibold text-slate-800 break-words whitespace-normal">
                             {item.unit}
                           </p>
                         </div>
 
-                        <div>
+                        <div className="min-w-0">
                           <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
                             Количество
                           </p>
@@ -328,7 +367,7 @@ export const SinglePostBlock = ({ data, onApprove }) => {
                           </p>
                         </div>
 
-                        <div>
+                        <div className="min-w-0">
                           <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
                             Планируемый срок
                           </p>
@@ -337,41 +376,31 @@ export const SinglePostBlock = ({ data, onApprove }) => {
                           </p>
                         </div>
 
-                        <div className="flex flex-col justify-start">
+                        <div className="flex flex-col justify-start min-w-0">
                           <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
                             Статус пункта
                           </p>
 
                           <div className="mt-2">
-                            {canManage &&
-                            (mode === "active" || mode === "undeclared") ? (
+                            {canManage && (mode === "active" || mode === "undeclared") ? (
                               <select
                                 disabled={isUpdating}
                                 value={currentStatus}
                                 onChange={(e) =>
                                   handleItemStatusChange(item.id, e.target.value)
                                 }
-                                className="h-8 w-full min-w-[130px] rounded-lg border border-slate-200 bg-white px-2.5 text-xs font-semibold text-slate-700 outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 disabled:opacity-50"
+                                className={`h-8 w-full min-w-[130px] rounded-lg border px-2.5 text-xs font-semibold outline-none transition disabled:opacity-50 ${itemMeta.selectBadge}`}
                               >
                                 <option value="in_progress">В работе</option>
+                                <option value="on_payment">На оплате</option>
                                 <option value="done">Выполнено</option>
                                 <option value="rejected">Отказ</option>
                               </select>
                             ) : (
                               <span
-                                className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${
-                                  currentStatus === "done"
-                                    ? "bg-emerald-100 text-emerald-800"
-                                    : currentStatus === "rejected"
-                                    ? "bg-rose-100 text-rose-800"
-                                    : "bg-amber-100 text-amber-800"
-                                }`}
+                                className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${itemMeta.badge}`}
                               >
-                                {currentStatus === "done"
-                                  ? "Выполнено"
-                                  : currentStatus === "rejected"
-                                  ? "Отказ"
-                                  : "В работе"}
+                                {itemMeta.label}
                               </span>
                             )}
                           </div>

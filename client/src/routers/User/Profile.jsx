@@ -18,11 +18,13 @@ export const Profile = () => {
   const [roleName, setRoleName] = useState("");
   const [errorText, setErrorText] = useState("");
   const [successText, setSuccessText] = useState("");
+  const [number, setNumber] = useState("");
 
   useEffect(() => {
     if (!user) return;
     setFullName(user.full_name || "");
     setRoleName(user.roles?.[0]?.name || "");
+    setNumber(user.number || "");
   }, [user]);
 
   const initials = useMemo(() => {
@@ -55,6 +57,7 @@ export const Profile = () => {
       const updatedUser = await updateUser({
         full_name: fullName,
         role_name: roleName,
+        number,
       }).unwrap();
 
       dispatch(
@@ -79,6 +82,7 @@ export const Profile = () => {
     setEditing(false);
     setFullName(user.full_name || "");
     setRoleName(user.roles?.[0]?.name || "");
+    setNumber(user.number || ""); // ← добавить эту строку
     setErrorText("");
     setSuccessText("");
   };
@@ -90,7 +94,7 @@ export const Profile = () => {
           Профиль
         </h2>
         <p className="mt-2 text-sm text-slate-500">
-          Здесь можно посмотреть свои данные и обновить имя или роль.
+          Здесь можно посмотреть свои данные и обновить имя, роль или номер телефона.
         </p>
       </div>
 
@@ -143,6 +147,7 @@ export const Profile = () => {
                   setEditing(true);
                   setFullName(user.full_name || "");
                   setRoleName(currentRoleName);
+                  setNumber(user.number || "");
                   setErrorText("");
                   setSuccessText("");
                 }}
@@ -207,7 +212,27 @@ export const Profile = () => {
                 />
               ) : (
                 <div className="text-base font-medium text-slate-900">
-                  {user.full_name}
+                  {user.full_name || "—"}
+                </div>
+              )}
+            </div>
+
+            {/* НОВОЕ ПОЛЕ - НОМЕР ТЕЛЕФОНА */}
+            <div className="rounded-2xl border border-stone-200 bg-stone-50 px-4 py-4">
+              <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">
+                Номер телефона
+              </div>
+              {editing ? (
+                <input
+                  type="tel"
+                  value={number}
+                  onChange={(e) => setNumber(e.target.value)}
+                  className="h-12 w-full rounded-2xl border border-stone-300 bg-white px-4 text-sm text-slate-900 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-500/15"
+                  placeholder="Введите номер телефона"
+                />
+              ) : (
+                <div className="text-base font-medium text-slate-900">
+                  {user.number || "—"}
                 </div>
               )}
             </div>

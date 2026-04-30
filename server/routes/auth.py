@@ -26,6 +26,7 @@ def login():
 
 
 @auth_bp.post("/register")
+@auth_bp.post("/register")
 def register():
     data = request.get_json() or {}
 
@@ -35,6 +36,7 @@ def register():
             password=data.get("password"),
             full_name=data.get("full_name"),
             role_name=data.get("role_name"),
+            number=data.get("number"),
         )
         return jsonify({
             "token": user.token,

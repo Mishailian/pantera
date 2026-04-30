@@ -68,6 +68,9 @@ def update_current_user():
 
     new_full_name = (data.get("full_name") or "").strip()
     new_role_name = (data.get("role_name") or "").strip()
+    new_number = data.get("number")
+    if isinstance(new_number, str):
+        new_number = new_number.strip()
 
     token = request.headers.get("Authorization", "").replace("Token ", "").strip()
     actor = AuthService.get_user_by_token(token)
@@ -75,11 +78,16 @@ def update_current_user():
     if not actor:
         return jsonify({"error": "Invalid token"}), 401
 
-    has_full_name_change = bool(new_full_name) and new_full_name != actor.full_name
-    current_role_name = actor.roles[0].name if actor.roles else None
-    has_role_change = bool(new_role_name) and new_role_name != current_role_name
+    current_full_name = (actor.full_name or "").strip()
+    current_role_name = actor.roles[0].name if actor.roles else ""
+    current_number = (actor.number or "").strip()
 
-    if not has_full_name_change and not has_role_change:
+
+    has_full_name_change = new_full_name != current_full_name
+    has_role_change = bool(new_role_name) and new_role_name != current_role_name
+    has_number_change = new_number != current_number
+
+    if not has_full_name_change and not has_role_change and not has_number_change:
         return jsonify({"error": "Нет изменений для сохранения"}), 400
 
     if has_full_name_change:
@@ -91,6 +99,9 @@ def update_current_user():
         )
         db.session.add(history)
         actor.full_name = new_full_name
+
+    if has_number_change:
+        actor.number = new_number or None
 
     if has_role_change:
         if new_role_name == "admin":

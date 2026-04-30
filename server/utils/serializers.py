@@ -37,6 +37,7 @@ def serialize_user(user):
         "id": user.id,
         "username": user.username,
         "full_name": user.full_name,
+        "number": getattr(user, "number", None),
         "is_active": user.is_active,
         "roles": [serialize_role(role) for role in user.roles],
         "created_at": user.created_at.isoformat() if user.created_at else None,
@@ -54,6 +55,7 @@ def serialize_user_min(user):
         "id": user.id,
         "username": user.username,
         "full_name": user.full_name,
+        "number": getattr(user, "number", None),
         "role": first_role.name if first_role else None,
         "role_label": first_role.description if first_role else None,
     }

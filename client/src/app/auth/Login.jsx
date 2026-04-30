@@ -36,6 +36,7 @@ export const Login = () => {
     username: "",
     password: "",
     full_name: "",
+    number: "", // <-- ДОБАВЛЕН НОМЕР ТЕЛЕФОНА
     role_name: "",
   });
 
@@ -58,7 +59,6 @@ export const Login = () => {
 
   useEffect(() => {
     if (authToken && users?.data) {
-      console.log(users);
       progressCheck(users, updateUsersTable);
     }
   }, [authToken, users?.data, users, updateUsersTable]);
@@ -148,6 +148,7 @@ export const Login = () => {
           username: "",
           password: "",
           full_name: "",
+          number: "", // <-- ОЧИЩАЕМ НОМЕР ПРИ УСПЕХЕ
           role_name: availableRegistrationRoles[0]?.name ?? "",
         });
 
@@ -318,6 +319,25 @@ export const Login = () => {
             />
           </label>
 
+          {/* НОВЫЙ ИНПУТ: НОМЕР ТЕЛЕФОНА */}
+          <label className="block">
+            <span className="mb-2 block text-sm font-medium text-slate-200">
+              Номер телефона <span className="text-red-400">*</span>
+            </span>
+            <input
+              className="h-12 w-full rounded-2xl border border-white/10 bg-slate-800 px-4 text-sm text-white outline-none transition placeholder:text-slate-500 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/15"
+              type="tel"
+              value={registerForm.number}
+              onChange={(e) =>
+                setRegisterForm({
+                  ...registerForm,
+                  number: e.target.value,
+                })
+              }
+              placeholder="+7 (999) 000-00-00"
+            />
+          </label>
+
           <label className="block">
             <span className="mb-2 block text-sm font-medium text-slate-200">
               Логин
@@ -389,7 +409,8 @@ export const Login = () => {
             disabled={
               isRegisterLoading ||
               isRolesLoading ||
-              !registerForm.role_name
+              !registerForm.role_name ||
+              !registerForm.number // <-- КНОПКА НЕАКТИВНА БЕЗ НОМЕРА
             }
             type="button"
           >
