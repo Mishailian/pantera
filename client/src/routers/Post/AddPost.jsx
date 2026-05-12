@@ -13,6 +13,22 @@ const AVAILABLE_SIGNERS = [
   "Начальник ОИТ - Голубцов Е. С.",
   "Главный механик - Ложкин И. М.",
   "Главный энергетик - Славных М. А.",
+  "Зам. начальника ЦПВС - Гуменный А. В.",
+  "Начальник цеха ЦПВС - Санников С. В.",
+  "Мастер насосной и теплосетей ЦПВС -  Маркевич Е. В.",
+  "Начальник производства ШП - Соколова Л. К.",
+  "Энергетик - Балашов Ю. А.",
+  "Инженер-электроник - Суханов А. П.",
+  "Зам. Главного энергетика - Пермяков Н. Ф.",
+  "Главный энергетик - Славных М. А.",
+  "Начальник РСГ - Жованик А. Ю.",
+  "Начальник службы безопасности - Пузырёв В. А.",
+  "Заместитель начальника службы безопасности - Ильиных М. Н.",
+  "Главный метролог - Корелина Е. В.",
+  "Начальник заводской лаборотории - Пономарева Н. Ю.",
+  "Главный механик - Ложкин И. М.",
+  "Заместитель главного механика - Поспелов С. А.",
+  "Начальник инструментального участка - Аленбаторов П. И.",
 ];
 
 const createEmptyRow = (id, prevRow = null, shouldRepeat = false) => ({
@@ -142,9 +158,9 @@ const SignersModal = ({
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 px-4">
-      <div className="w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl">
-        <div className="mb-4 flex items-start justify-between gap-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 px-4 py-6">
+      <div className="flex max-h-[85vh] w-full max-w-md flex-col overflow-hidden rounded-3xl bg-white shadow-2xl">
+        <div className="mb-4 flex items-start justify-between gap-4 border-b border-slate-100 px-6 pt-6 pb-4">
           <div>
             <h2 className="text-xl font-bold text-slate-900">
               Добавить фамилии
@@ -163,31 +179,33 @@ const SignersModal = ({
           </button>
         </div>
 
-        <div className="space-y-3">
-          {AVAILABLE_SIGNERS.map((signer) => {
-            const checked = selectedSigners.includes(signer);
+        <div className="flex-1 overflow-y-auto px-6 py-2">
+          <div className="space-y-3 pb-2">
+            {AVAILABLE_SIGNERS.map((signer) => {
+              const checked = selectedSigners.includes(signer);
 
-            return (
-              <label
-                key={signer}
-                className="flex cursor-pointer items-center justify-between rounded-2xl border border-slate-200 px-4 py-3 transition hover:bg-slate-50"
-              >
-                <span className="text-sm font-medium text-slate-800">
-                  {signer}
-                </span>
+              return (
+                <label
+                  key={signer}
+                  className="flex cursor-pointer items-start justify-between gap-3 rounded-2xl border border-slate-200 px-4 py-3 transition hover:bg-slate-50"
+                >
+                  <span className="text-sm font-medium leading-5 text-slate-800">
+                    {signer}
+                  </span>
 
-                <input
-                  type="checkbox"
-                  checked={checked}
-                  onChange={() => onToggleSigner(signer)}
-                  className="h-5 w-5 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
-                />
-              </label>
-            );
-          })}
+                  <input
+                    type="checkbox"
+                    checked={checked}
+                    onChange={() => onToggleSigner(signer)}
+                    className="h-5 w-5 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                  />
+                </label>
+              );
+            })}
+          </div>
         </div>
 
-        <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-between">
+        <div className="mt-2 flex flex-col gap-3 border-t border-slate-100 px-6 pt-4 pb-6 sm:flex-row sm:justify-between">
           <button
             type="button"
             onClick={onReset}
@@ -208,6 +226,7 @@ const SignersModal = ({
     </div>
   );
 };
+
 
 export const AddPost = () => {
   const authUserId = useSelector((state) => state.auth.username_id);
