@@ -79,12 +79,22 @@ def serialize_request_item(item):
         "deadline": item.deadline.isoformat() if getattr(item, "deadline", None) else None,
         "is_done": item.is_done,
         "work_status": getattr(item, "work_status", "in_progress"),
+        "assigned_to_id": getattr(item, "assigned_to_id", None),
+        "assigned_to_user": serialize_user_min(getattr(item, "assigned_to", None)),
         "created_at": item.created_at.isoformat() if item.created_at else None,
     }
 
 
 def serialize_request(request_obj):
     items = [serialize_request_item(item) for item in request_obj.items]
+
+    assigned_usernames = []
+    seen_usernames = set()
+    for item in request_obj.items:
+        u = getattr(item, "assigned_to", None)
+        if u and u.username not in seen_usernames:
+            seen_usernames.add(u.username)
+            assigned_usernames.append(u.username)
 
     return {
         "id": request_obj.id,
@@ -107,6 +117,7 @@ def serialize_request(request_obj):
         "items_count": len(items),
         "items_preview": items[:3],
         "items": items,
+        "assigned_usernames": assigned_usernames,
         "created_by_user": serialize_user_min(getattr(request_obj, "created_by", None)),
         "approved_by_user": serialize_user_min(getattr(request_obj, "approved_by", None)),
         "archived_by_user": serialize_user_min(getattr(request_obj, "archived_by", None)),

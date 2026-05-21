@@ -1,5 +1,5 @@
-import React from "react";
-import { useUpdateRequestItemMutation } from "../app/api/apiSlice";
+import React, { useMemo } from "react";
+import { useUpdateRequestItemMutation, useGetUsersQuery } from "../app/api/apiSlice";
 import { ExpandableText } from "./ExpandableText";
 
 const STATUS_META = {
@@ -91,7 +91,14 @@ export const SinglePostBlock = ({ data, onApprove }) => {
     items_count,
     mode = "active",
     canManage = false,
+    isAdmin = false,
   } = data || {};
+
+  const { data: users = [] } = useGetUsersQuery(undefined, { skip: !isAdmin });
+  const supplyUsers = useMemo(
+    () => users.filter((u) => u?.roles?.some((r) => r?.name === "supply_manager")),
+    [users]
+  );
 
   const statusKey = STATUS_META[status] ? status : "undeclared";
   const statusMeta = STATUS_META[statusKey];
@@ -107,6 +114,18 @@ export const SinglePostBlock = ({ data, onApprove }) => {
     } catch (error) {
       console.error("Failed to update item status:", error);
       alert("Не удалось обновить статус позиции.");
+    }
+  };
+
+  const handleItemAssignChange = async (itemId, userId) => {
+    try {
+      await updateRequestItem({
+        itemId,
+        assigned_to_id: userId ? Number(userId) : null,
+      }).unwrap();
+    } catch (error) {
+      console.error("Failed to assign item:", error);
+      alert("Не удалось назначить исполнителя.");
     }
   };
 
@@ -339,7 +358,7 @@ export const SinglePostBlock = ({ data, onApprove }) => {
                       key={item.id || index}
                       className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"
                     >
-                      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1.2fr)_minmax(0,1.5fr)] xl:items-start">
+                      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1.2fr)_minmax(0,1.5fr)_minmax(0,1.5fr)] xl:items-start">
                         <div className="min-w-0">
                           <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
                             Наименование
@@ -401,6 +420,33 @@ export const SinglePostBlock = ({ data, onApprove }) => {
                                 className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${itemMeta.badge}`}
                               >
                                 {itemMeta.label}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="flex flex-col justify-start min-w-0">
+                          <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+                            Исполнитель
+                          </p>
+                          <div className="mt-2">
+                            {canManage && isAdmin && (mode === "active" || mode === "undeclared") ? (
+                              <select
+                                disabled={isUpdating}
+                                value={item.assigned_to_id ? String(item.assigned_to_id) : ""}
+                                onChange={(e) => handleItemAssignChange(item.id, e.target.value)}
+                                className="h-8 w-full min-w-[130px] rounded-lg border border-slate-300 bg-white px-2 text-xs outline-none focus:border-slate-500 disabled:opacity-50"
+                              >
+                                <option value="">Не назначен</option>
+                                {supplyUsers.map((u) => (
+                                  <option key={u.id} value={u.id}>
+                                    {u.username}
+                                  </option>
+                                ))}
+                              </select>
+                            ) : (
+                              <span className="text-sm font-semibold text-slate-800">
+                                {item.assigned_to_user?.username || "—"}
                               </span>
                             )}
                           </div>

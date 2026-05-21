@@ -189,10 +189,16 @@ class RequestService:
             "deadline",
             "is_done",
             "work_status",
+            "assigned_to_id",
         }
 
         if "isdone" in kwargs and "is_done" not in kwargs:
             kwargs["is_done"] = kwargs.pop("isdone")
+
+        if "assigned_to_id" in kwargs and kwargs["assigned_to_id"] is not None:
+            user = db.session.get(User, kwargs["assigned_to_id"])
+            if not user:
+                raise ValueError("assigned user not found")
 
         if "deadline" in kwargs:
             kwargs["deadline"] = RequestService._parse_deadline(kwargs.get("deadline"))

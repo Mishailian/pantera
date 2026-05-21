@@ -54,6 +54,27 @@ def _ensure_users_number_column(app):
         db.session.rollback()
         app.logger.error(f"Error updating users table: {e}")
 
+
+def _ensure_request_item_assigned_to_column(app):
+    try:
+        from sqlalchemy import inspect, text
+
+        inspector = inspect(db.engine)
+        if "request_items" not in inspector.get_table_names():
+            return
+
+        columns = {col["name"] for col in inspector.get_columns("request_items")}
+
+        if "assigned_to_id" not in columns:
+            db.session.execute(text("""
+                ALTER TABLE request_items
+                ADD COLUMN IF NOT EXISTS assigned_to_id INTEGER REFERENCES users(id) ON DELETE SET NULL
+            """))
+            db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        app.logger.error(f"Error updating request_items table: {e}")
+
 def create_app(config_class=Config):
     app = Flask(__name__)
     app.config.from_object(config_class)
@@ -89,6 +110,7 @@ def create_app(config_class=Config):
         db.create_all()
         _ensure_request_item_work_status(app)
         _ensure_users_number_column(app)
+        _ensure_request_item_assigned_to_column(app)
         from models.user.role import seed_roles
         seed_roles()
 

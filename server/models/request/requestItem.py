@@ -23,9 +23,21 @@ class RequestItem(db.Model):
     is_done = db.Column(db.Boolean, default=False, nullable=False)
     work_status = db.Column(db.String(32), nullable=False, default="in_progress", index=True)
 
+    assigned_to_id = db.Column(
+        db.Integer,
+        db.ForeignKey("users.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
 
     request = db.relationship("Request", back_populates="items")
+
+    assigned_to = db.relationship(
+        "User",
+        foreign_keys=[assigned_to_id],
+        lazy="selectin",
+    )
 
     def __init__(self, **kwargs):
         super(RequestItem, self).__init__(**kwargs)
