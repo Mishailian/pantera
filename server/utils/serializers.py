@@ -35,9 +35,8 @@ def serialize_role(role):
 def serialize_user(user):
     return {
         "id": user.id,
-        "username": user.username,
         "full_name": user.full_name,
-        "number": getattr(user, "number", None),
+        "number": user.number,
         "is_active": user.is_active,
         "roles": [serialize_role(role) for role in user.roles],
         "created_at": user.created_at.isoformat() if user.created_at else None,
@@ -53,9 +52,8 @@ def serialize_user_min(user):
 
     return {
         "id": user.id,
-        "username": user.username,
         "full_name": user.full_name,
-        "number": getattr(user, "number", None),
+        "number": user.number,
         "role": first_role.name if first_role else None,
         "role_label": first_role.description if first_role else None,
     }
@@ -92,9 +90,9 @@ def serialize_request(request_obj):
     seen_usernames = set()
     for item in request_obj.items:
         u = getattr(item, "assigned_to", None)
-        if u and u.username not in seen_usernames:
-            seen_usernames.add(u.username)
-            assigned_usernames.append(u.username)
+        if u and u.number not in seen_usernames:
+            seen_usernames.add(u.number)
+            assigned_usernames.append(u.number)
 
     return {
         "id": request_obj.id,

@@ -30,8 +30,8 @@ export const UserRow = ({ user, isAdmin, onRoleChange, availableRoles = [] }) =>
     <div className="flex items-start justify-between rounded-2xl border border-white/10 bg-slate-800/80 px-5 py-4 gap-4">
       <div className="flex flex-col gap-1 min-w-0">
         <div className="flex items-center gap-2 flex-wrap">
-          <span className="font-semibold text-white">{user.username}</span>
-          <span className="text-slate-400 text-sm">{user.full_name}</span>
+          <span className="font-semibold text-white">{user.full_name}</span>
+          <span className="text-slate-400 text-sm">{user.number || "—"}</span>
         </div>
 
         <div className="mt-1">

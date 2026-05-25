@@ -28,7 +28,7 @@ export const Profile = () => {
   }, [user]);
 
   const initials = useMemo(() => {
-    const source = user?.full_name || user?.username || "";
+    const source = user?.full_name || "";
     return source
       .split(" ")
       .filter(Boolean)
@@ -65,7 +65,6 @@ export const Profile = () => {
           token: authState.token,
           isAuth: authState.isAuth,
           csrf_token: authState.csrf_token,
-          username: updatedUser?.username ?? authState.username,
           username_id: updatedUser?.id ?? authState.username_id,
           roles: updatedUser?.roles ?? authState.roles,
         })
@@ -121,7 +120,7 @@ export const Profile = () => {
               <div className="text-xl font-semibold text-slate-900">
                 {user.full_name}
               </div>
-              <div className="mt-1 text-sm text-slate-500">@{user.username}</div>
+              <div className="mt-1 text-sm text-slate-500">{user.number || "—"}</div>
             </div>
 
             <div className="mt-4 inline-flex items-center rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-xs font-medium text-blue-700">
@@ -159,15 +158,6 @@ export const Profile = () => {
           </div>
 
           <div className="grid grid-cols-1 gap-5">
-            <div className="rounded-2xl border border-stone-200 bg-stone-50 px-4 py-4">
-              <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">
-                Логин
-              </div>
-              <div className="text-base font-medium text-slate-900">
-                {user.username}
-              </div>
-            </div>
-
             <div className="rounded-2xl border border-stone-200 bg-stone-50 px-4 py-4">
               <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">
                 Роль

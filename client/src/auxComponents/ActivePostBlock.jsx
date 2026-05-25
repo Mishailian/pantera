@@ -20,14 +20,10 @@ const STATUS_LABELS = {
 
 const getUserDisplay = (user) => {
   if (!user) {
-    return {
-      username: "—",
-      fullName: "—",
-    };
+    return { phone: "", fullName: "Неизвестный" };
   }
-
   return {
-    username: user.username || "—",
+    phone: user.number || "—",
     fullName: user.full_name || user.fullname || "—",
   };
 };
@@ -68,10 +64,16 @@ export const ActivePostBlock = ({ data, canManage, onArchive, onDelete, onSign }
     const seen = new Set();
     const result = [];
     for (const item of items) {
-      const username = item?.assigned_to_user?.username;
-      if (username && !seen.has(username)) {
-        seen.add(username);
-        result.push(username);
+      const user = item?.assigned_to_user;
+      if (user) {
+        const key = user.id || user.number;
+        if (key && !seen.has(key)) {
+          seen.add(key);
+          result.push({
+            fullName: user.full_name || "—",
+            phone: user.number || "—",
+          });
+        }
       }
     }
     return result;
@@ -148,10 +150,10 @@ export const ActivePostBlock = ({ data, canManage, onArchive, onDelete, onSign }
             Создатель
           </div>
           <div className="break-all text-[13px] font-semibold leading-4 text-slate-900">
-            {author.username}
+            {author.fullName}
           </div>
           <div className="mt-1 whitespace-normal break-words text-[13px] leading-4 text-slate-500">
-            {author.fullName}
+            {author.phone}
           </div>
         </div>
 
@@ -168,13 +170,11 @@ export const ActivePostBlock = ({ data, canManage, onArchive, onDelete, onSign }
           </div>
 
           {itemAssignees.length > 0 ? (
-            <div className="space-y-0.5">
-              {itemAssignees.map((username) => (
-                <div
-                  key={username}
-                  className="break-all text-[13px] font-semibold leading-5 text-slate-900"
-                >
-                  @{username}
+            <div className="space-y-1">
+              {itemAssignees.map((a, i) => (
+                <div key={i}>
+                  <div className="break-words text-[13px] font-semibold leading-4 text-slate-900">{a.fullName}</div>
+                  <div className="text-[12px] leading-4 text-slate-500">{a.phone}</div>
                 </div>
               ))}
             </div>

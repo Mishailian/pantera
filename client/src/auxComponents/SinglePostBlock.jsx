@@ -156,22 +156,14 @@ export const SinglePostBlock = ({ data, onApprove }) => {
               {canManage ? (
                 <>
                   <h2 className="text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">
-                    {created_by_user?.full_name ||
-                      created_by_user?.username ||
-                      "Неизвестно"}
+                    {created_by_user?.full_name || "Неизвестно"}
                   </h2>
 
                   <p className="mt-2 text-sm text-slate-500">
-                    @{created_by_user?.username || "unknown"}
+                    {created_by_user?.number || "—"}
                     {created_by_user?.role_label
                       ? ` • ${created_by_user.role_label}`
                       : ""}
-                  </p>
-
-                  <p className="mt-1 text-sm font-medium text-slate-600">
-                    {created_by_user?.number
-                      ? `Телефон: ${created_by_user.number}`
-                      : "Телефон: —"}
                   </p>
                 </>
               ) : (
@@ -220,16 +212,8 @@ export const SinglePostBlock = ({ data, onApprove }) => {
               <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
                 <InfoCard
                   label="Создатель"
-                  value={created_by_user?.full_name || created_by_user?.username}
-                  sub={
-                    created_by_user?.username
-                      ? `@${created_by_user.username}${
-                          created_by_user?.role_label
-                            ? ` • ${created_by_user.role_label}`
-                            : ""
-                        }\nТелефон: ${created_by_user?.number || "—"}`
-                      : `Телефон: ${created_by_user?.number || "—"}`
-                  }
+                  value={created_by_user?.full_name || "Неизвестный"}
+                  sub={created_by_user ? `${created_by_user.number || "—"}${created_by_user.role_label ? ` • ${created_by_user.role_label}` : ""}` : ""}
                 />
 
                 <InfoCard
@@ -241,8 +225,8 @@ export const SinglePostBlock = ({ data, onApprove }) => {
                   label="Кто одобрил"
                   value={approved_by_user?.full_name || "—"}
                   sub={
-                    approved_by_user?.username
-                      ? `${approved_at_formatted || "—"} • @${approved_by_user.username}`
+                    approved_by_user
+                      ? `${approved_at_formatted || "—"} • ${approved_by_user.number || "—"}`
                       : approved_at_formatted || null
                   }
                 />
@@ -256,7 +240,7 @@ export const SinglePostBlock = ({ data, onApprove }) => {
                   }
                   sub={
                     mode === "archived" && archived_by_user
-                      ? `@${archived_by_user.username} • ${archived_by_user.full_name}`
+                      ? `${archived_by_user.number || "—"} • ${archived_by_user.full_name || "—"}`
                       : null
                   }
                 />
@@ -268,12 +252,8 @@ export const SinglePostBlock = ({ data, onApprove }) => {
                     label="Кто был закреплён"
                     value={archiveAssigned?.full_name || "Не был назначен"}
                     sub={
-                      archiveAssigned?.username
-                        ? `@${archiveAssigned.username}${
-                            archiveAssigned?.role_label
-                              ? ` • ${archiveAssigned.role_label}`
-                              : ""
-                          }`
+                      archiveAssigned
+                        ? `${archiveAssigned.number || "—"}${archiveAssigned?.role_label ? ` • ${archiveAssigned.role_label}` : ""}`
                         : "На момент архивирования ответственный не был назначен"
                     }
                   />
@@ -282,10 +262,8 @@ export const SinglePostBlock = ({ data, onApprove }) => {
                     label="Кто архивировал"
                     value={archived_by_user?.full_name || "—"}
                     sub={
-                      archived_by_user?.username
-                        ? `@${archived_by_user.username} • ${
-                            archived_at_formatted || "—"
-                          }`
+                      archived_by_user
+                        ? `${archived_by_user.number || "—"} • ${archived_at_formatted || "—"}`
                         : archived_at_formatted || null
                     }
                   />
@@ -440,13 +418,13 @@ export const SinglePostBlock = ({ data, onApprove }) => {
                                 <option value="">Не назначен</option>
                                 {supplyUsers.map((u) => (
                                   <option key={u.id} value={u.id}>
-                                    {u.username}
+                                    {u.full_name || u.number || "—"}
                                   </option>
                                 ))}
                               </select>
                             ) : (
                               <span className="text-sm font-semibold text-slate-800">
-                                {item.assigned_to_user?.username || "—"}
+                                {item.assigned_to_user?.full_name || item.assigned_to_user?.number || "—"}
                               </span>
                             )}
                           </div>

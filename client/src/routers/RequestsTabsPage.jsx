@@ -15,7 +15,7 @@ import {
 import { ActivePostBlock } from "../auxComponents/ActivePostBlock";
 
 const TAB_CONFIG = {
-  store: { key: "store", label: "Заявки", path: "/store", status: "active" },
+  store: { key: "store", label: "Созданные заявки", path: "/store", status: "active" },
   undeclared: { key: "undeclared", label: "Без подписи", path: "/undeclared", status: "undeclared" },
   archived: { key: "archived", label: "Архив", path: "/archived", status: "archived" },
 };
@@ -80,45 +80,26 @@ export const RequestsTabsPage = ({ tab = "store" }) => {
       const value = searchTerm.toLowerCase();
 
       result = result.filter((post) => {
-        const createdByUsername =
-          post?.created_by_user?.username?.toLowerCase() ||
-          post?.createdbyuser?.username?.toLowerCase() ||
-          "";
-
-        const createdByFullName =
-          post?.created_by_user?.full_name?.toLowerCase() ||
-          post?.created_by_user?.fullname?.toLowerCase() ||
-          post?.createdbyuser?.full_name?.toLowerCase() ||
-          post?.createdbyuser?.fullname?.toLowerCase() ||
-          "";
-
-        const assignedToUsername =
-          post?.assigned_to_user?.username?.toLowerCase() ||
-          post?.assignedtouser?.username?.toLowerCase() ||
-          "";
-
-        const assignedToFullName =
-          post?.assigned_to_user?.full_name?.toLowerCase() ||
-          post?.assigned_to_user?.fullname?.toLowerCase() ||
-          post?.assignedtouser?.full_name?.toLowerCase() ||
-          post?.assignedtouser?.fullname?.toLowerCase() ||
-          "";
-
+        const createdByPhone = (post?.created_by_user?.number || post?.createdbyuser?.number || "").toLowerCase();
+        const createdByFullName = (post?.created_by_user?.full_name || post?.created_by_user?.fullname || post?.createdbyuser?.full_name || "").toLowerCase();
         const requestId = String(post?.id || "").toLowerCase();
+
+        const itemAssignees = (post?.items || []).map((item) => item?.assigned_to_user).filter(Boolean);
+        const assignedPhones = itemAssignees.map((u) => (u.number || "").toLowerCase());
+        const assignedNames = itemAssignees.map((u) => (u.full_name || "").toLowerCase());
 
         switch (searchField) {
           case "created_by":
-            return createdByUsername.includes(value) || createdByFullName.includes(value);
+            return createdByPhone.includes(value) || createdByFullName.includes(value);
           case "assigned_to":
-            return assignedToUsername.includes(value) || assignedToFullName.includes(value);
+            return assignedPhones.some((p) => p.includes(value)) || assignedNames.some((n) => n.includes(value));
           case "request_id":
             return requestId.includes(value);
           default:
             return (
-              createdByUsername.includes(value) ||
+              createdByPhone.includes(value) ||
               createdByFullName.includes(value) ||
-              assignedToUsername.includes(value) ||
-              assignedToFullName.includes(value) ||
+              assignedPhones.some((p) => p.includes(value)) ||
               requestId.includes(value)
             );
         }
@@ -236,7 +217,7 @@ export const RequestsTabsPage = ({ tab = "store" }) => {
               className="h-14 rounded-2xl border border-slate-200 bg-white px-4 text-sm font-medium shadow-sm transition hover:border-slate-300 focus:border-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-300/40"
             >
               <option value="created_by">Создатель</option>
-              <option value="assigned_to">Назначенный пользователь</option>
+              <option value="assigned_to">Ответственный от снабжения</option>
               <option value="request_id">Номер заявки</option>
             </select>
 
@@ -270,9 +251,9 @@ export const RequestsTabsPage = ({ tab = "store" }) => {
               <div>Создатель</div>
               <div>Позиций</div>
               <div>
-                Назначенный
+                Ответственный
                 <br />
-                пользователь
+                от снабжения
               </div>
               <div>Действия</div>
             </div>

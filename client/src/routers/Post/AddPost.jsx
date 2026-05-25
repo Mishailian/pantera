@@ -474,7 +474,7 @@ export const AddPost = () => {
                 onClick={handleCreatePost}
                 className="inline-flex items-center justify-center rounded-2xl bg-indigo-600 px-6 py-3 text-sm font-semibold text-white shadow-md transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-60"
               >
-                {isLoading ? "Создание..." : "Добавить заявку"}
+                {isLoading ? "Создание..." : "Сформировать заявку"}
               </button>
             </div>
           </div>

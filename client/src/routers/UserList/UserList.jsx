@@ -15,7 +15,7 @@ export const UserList = () => {
   const { data: roles = [] } = useGetRegistrationRolesQuery();
   const [updateUserRoles] = useUpdateUserRolesMutation();
 
-  const [usernameFilter, setUsernameFilter] = useState("");
+  const [numberFilter, setNumberFilter] = useState("");
   const [fullNameFilter, setFullNameFilter] = useState("");
   const [roleFilter, setRoleFilter] = useState("");
 
@@ -42,17 +42,17 @@ export const UserList = () => {
 
   const filteredUsers = useMemo(() => {
     return users.filter((user) => {
-      const username = (user?.username || "").toLowerCase();
+      const number = (user?.number || "").toLowerCase();
       const fullName = (user?.full_name || "").toLowerCase();
       const roleName = user?.roles?.[0]?.name || "";
 
-      const usernameMatches = username.includes(usernameFilter.trim().toLowerCase());
+      const numberMatches = number.includes(numberFilter.trim().toLowerCase());
       const fullNameMatches = fullName.includes(fullNameFilter.trim().toLowerCase());
       const roleMatches = roleFilter ? roleName === roleFilter : true;
 
-      return usernameMatches && fullNameMatches && roleMatches;
+      return numberMatches && fullNameMatches && roleMatches;
     });
-  }, [users, usernameFilter, fullNameFilter, roleFilter]);
+  }, [users, numberFilter, fullNameFilter, roleFilter]);
 
   if (isLoading) {
     return <div className="mt-4 ml-24 text-gray-400">Загрузка...</div>;
@@ -67,13 +67,13 @@ export const UserList = () => {
       <div className="mb-5 grid grid-cols-1 gap-3 rounded-2xl border border-white/10 bg-slate-900/80 p-4 md:grid-cols-3">
         <label className="block">
           <span className="mb-2 block text-sm font-medium text-slate-200">
-            Фильтр по логину
+            Фильтр по номеру телефона
           </span>
           <input
             type="text"
-            value={usernameFilter}
-            onChange={(e) => setUsernameFilter(e.target.value)}
-            placeholder="Введите часть логина"
+            value={numberFilter}
+            onChange={(e) => setNumberFilter(e.target.value)}
+            placeholder="Введите часть номера"
             className="h-11 w-full rounded-xl border border-white/10 bg-slate-800 px-4 text-sm text-white outline-none transition placeholder:text-slate-500 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/15"
           />
         </label>

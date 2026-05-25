@@ -15,9 +15,7 @@ class AuthService:
         return role
 
     @staticmethod
-    def create_user(username, password, full_name, role_name, number):
-        if not username:
-            raise ValueError("username is required")
+    def create_user(password, full_name, role_name, number):
         if not password:
             raise ValueError("password is required")
         if not full_name:
@@ -27,15 +25,14 @@ class AuthService:
         if not number:
             raise ValueError("number is required")
 
-        if User.query.filter_by(username=username).first():
-            raise ValueError("User with this username already exists")
+        if User.query.filter_by(number=number).first():
+            raise ValueError("Пользователь с таким номером телефона уже существует")
 
         selected_role = AuthService._get_role_or_raise(role_name)
         if selected_role.name == "admin":
             raise ValueError("admin role is not available for self-registration")
 
         user = User(
-            username=username,
             full_name=full_name,
             number=number,
             token=token_hex(32),
@@ -48,11 +45,11 @@ class AuthService:
         return user
 
     @staticmethod
-    def authenticate_user(username, password):
-        if not username or not password:
+    def authenticate_user(number, password):
+        if not number or not password:
             return None
 
-        user = User.query.filter_by(username=username).first()
+        user = User.query.filter_by(number=number).first()
         if not user:
             return None
         if not user.check_password(password):
@@ -73,10 +70,6 @@ class AuthService:
     @staticmethod
     def get_user_by_id(user_id):
         return db.session.get(User, user_id)
-
-    @staticmethod
-    def get_user_by_username(username):
-        return User.query.filter_by(username=username).first()
 
     @staticmethod
     def assign_role(actor: User, target_user_id: int, role_name: str):

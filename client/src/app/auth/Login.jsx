@@ -28,15 +28,14 @@ export const Login = () => {
   const [successText, setSuccessText] = useState("");
 
   const [loginForm, setLoginForm] = useState({
-    username: "",
+    number: "",
     password: "",
   });
 
   const [registerForm, setRegisterForm] = useState({
-    username: "",
     password: "",
     full_name: "",
-    number: "", // <-- ДОБАВЛЕН НОМЕР ТЕЛЕФОНА
+    number: "",
     role_name: "",
   });
 
@@ -96,7 +95,6 @@ export const Login = () => {
         dispatch(
           setToken({
             isAuth: true,
-            username: user?.username ?? null,
             username_id: user?.id ?? null,
             roles: user?.roles ?? [],
             token: token ?? null,
@@ -105,7 +103,7 @@ export const Login = () => {
         );
 
         setLoginForm({
-          username: "",
+          number: "",
           password: "",
         });
 
@@ -136,7 +134,6 @@ export const Login = () => {
         dispatch(
           setToken({
             isAuth: true,
-            username: user?.username ?? null,
             username_id: user?.id ?? null,
             roles: user?.roles ?? [],
             token: token ?? null,
@@ -145,10 +142,9 @@ export const Login = () => {
         );
 
         setRegisterForm({
-          username: "",
           password: "",
           full_name: "",
-          number: "", // <-- ОЧИЩАЕМ НОМЕР ПРИ УСПЕХЕ
+          number: "",
           role_name: availableRegistrationRoles[0]?.name ?? "",
         });
 
@@ -262,16 +258,17 @@ export const Login = () => {
         <div className="space-y-4">
           <label className="block">
             <span className="mb-2 block text-sm font-medium text-slate-200">
-              Логин
+              Номер телефона
             </span>
             <input
               className="h-12 w-full rounded-2xl border border-white/10 bg-slate-800 px-4 text-sm text-white outline-none transition placeholder:text-slate-500 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/15"
-              type="text"
-              value={loginForm.username}
+              type="tel"
+              autoComplete="username"
+              value={loginForm.number}
               onChange={(e) =>
-                setLoginForm({ ...loginForm, username: e.target.value })
+                setLoginForm({ ...loginForm, number: e.target.value })
               }
-              placeholder="Введите логин"
+              placeholder="+7 (999) 000-00-00"
             />
           </label>
 
@@ -282,6 +279,7 @@ export const Login = () => {
             <input
               className="h-12 w-full rounded-2xl border border-white/10 bg-slate-800 px-4 text-sm text-white outline-none transition placeholder:text-slate-500 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/15"
               type="password"
+              autoComplete="current-password"
               value={loginForm.password}
               onChange={(e) =>
                 setLoginForm({ ...loginForm, password: e.target.value })
@@ -308,6 +306,7 @@ export const Login = () => {
             <input
               className="h-12 w-full rounded-2xl border border-white/10 bg-slate-800 px-4 text-sm text-white outline-none transition placeholder:text-slate-500 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/15"
               type="text"
+              autoComplete="name"
               value={registerForm.full_name}
               onChange={(e) =>
                 setRegisterForm({
@@ -327,6 +326,7 @@ export const Login = () => {
             <input
               className="h-12 w-full rounded-2xl border border-white/10 bg-slate-800 px-4 text-sm text-white outline-none transition placeholder:text-slate-500 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/15"
               type="tel"
+              autoComplete="username"
               value={registerForm.number}
               onChange={(e) =>
                 setRegisterForm({
@@ -335,24 +335,6 @@ export const Login = () => {
                 })
               }
               placeholder="+7 (999) 000-00-00"
-            />
-          </label>
-
-          <label className="block">
-            <span className="mb-2 block text-sm font-medium text-slate-200">
-              Логин
-            </span>
-            <input
-              className="h-12 w-full rounded-2xl border border-white/10 bg-slate-800 px-4 text-sm text-white outline-none transition placeholder:text-slate-500 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/15"
-              type="text"
-              value={registerForm.username}
-              onChange={(e) =>
-                setRegisterForm({
-                  ...registerForm,
-                  username: e.target.value,
-                })
-              }
-              placeholder="Придумайте логин"
             />
           </label>
 
@@ -392,6 +374,7 @@ export const Login = () => {
             <input
               className="h-12 w-full rounded-2xl border border-white/10 bg-slate-800 px-4 text-sm text-white outline-none transition placeholder:text-slate-500 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/15"
               type="password"
+              autoComplete="new-password"
               value={registerForm.password}
               onChange={(e) =>
                 setRegisterForm({

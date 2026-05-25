@@ -34,7 +34,13 @@ def _ensure_request_item_work_status(app):
         db.session.rollback()
         app.logger.error(f"Error updating request_items table: {e}")
 
-def _ensure_users_number_column(app):
+def _migrate_remove_username_clean_db(app):
+    """
+    Удаляет поле username, делает number уникальным.
+    Удаляет только пользователей без номера телефона.
+    Все остальные данные (заявки и т.д.) сохраняются.
+    Запускается один раз.
+    """
     try:
         from sqlalchemy import inspect, text
 
@@ -44,15 +50,73 @@ def _ensure_users_number_column(app):
 
         columns = {col["name"] for col in inspector.get_columns("users")}
 
-        if "number" not in columns:
-            db.session.execute(text("""
-                ALTER TABLE users
-                ADD COLUMN IF NOT EXISTS number VARCHAR(50)
-            """))
+        if "username" not in columns:
+            return  # уже мигрировано
+
+        # Находим пользователей без номера телефона
+        result = db.session.execute(
+            text("SELECT id FROM users WHERE number IS NULL OR TRIM(number) = ''")
+        )
+        no_phone_ids = [row[0] for row in result.fetchall()]
+
+        if no_phone_ids:
+            ids = ",".join(str(i) for i in no_phone_ids)
+
+            # Обнуляем все FK-ссылки на удаляемых пользователей в requests
+            for col in ("created_by_id", "approved_by_id", "archived_by_id",
+                        "assigned_to_id", "assigned_to_at_archive_id"):
+                db.session.execute(text(
+                    f"UPDATE requests SET {col} = NULL WHERE {col} IN ({ids})"
+                ))
+
+            # Обнуляем в request_items
+            db.session.execute(text(
+                f"UPDATE request_items SET assigned_to_id = NULL WHERE assigned_to_id IN ({ids})"
+            ))
+
+            # Обнуляем в request_status_history
+            db.session.execute(text(
+                f"UPDATE request_status_history SET changed_by_id = NULL WHERE changed_by_id IN ({ids})"
+            ))
+
+            # В user_profile_history: удаляем записи о самих удаляемых юзерах,
+            # в остальных записях обнуляем changed_by
+            db.session.execute(text(
+                f"DELETE FROM user_profile_history WHERE target_user_id IN ({ids})"
+            ))
+            db.session.execute(text(
+                f"UPDATE user_profile_history SET changed_by_user_id = NULL WHERE changed_by_user_id IN ({ids})"
+            ))
+
+            # Удаляем роли этих пользователей
+            db.session.execute(text(
+                f"DELETE FROM user_roles WHERE user_id IN ({ids})"
+            ))
+
+            # Удаляем самих пользователей
+            db.session.execute(text(
+                f"DELETE FROM users WHERE id IN ({ids})"
+            ))
+
             db.session.commit()
+
+        # Убираем колонку username
+        db.session.execute(text("ALTER TABLE users DROP COLUMN IF EXISTS username"))
+        db.session.commit()
+
+        # Делаем number NOT NULL и UNIQUE
+        db.session.execute(text("ALTER TABLE users ALTER COLUMN number SET NOT NULL"))
+        try:
+            db.session.execute(text(
+                "ALTER TABLE users ADD CONSTRAINT users_number_unique UNIQUE (number)"
+            ))
+        except Exception:
+            db.session.rollback()
+        db.session.commit()
+
     except Exception as e:
         db.session.rollback()
-        app.logger.error(f"Error updating users table: {e}")
+        app.logger.error(f"Error in _migrate_remove_username_clean_db: {e}")
 
 
 def _ensure_request_item_assigned_to_column(app):
@@ -108,8 +172,8 @@ def create_app(config_class=Config):
     with app.app_context():
         import models  # noqa
         db.create_all()
+        _migrate_remove_username_clean_db(app)
         _ensure_request_item_work_status(app)
-        _ensure_users_number_column(app)
         _ensure_request_item_assigned_to_column(app)
         from models.user.role import seed_roles
         seed_roles()

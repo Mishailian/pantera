@@ -12,7 +12,7 @@ def login():
     data = request.get_json() or {}
 
     user = AuthService.authenticate_user(
-        data.get("username"),
+        data.get("number"),
         data.get("password"),
     )
 
@@ -32,7 +32,6 @@ def register():
 
     try:
         user = AuthService.create_user(
-            username=data.get("username"),
             password=data.get("password"),
             full_name=data.get("full_name"),
             role_name=data.get("role_name"),

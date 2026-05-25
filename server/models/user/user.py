@@ -11,7 +11,7 @@ class User(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
 
-    username = db.Column(db.String(150), unique=True, nullable=False, index=True)
+    number = db.Column(db.String(50), unique=True, nullable=False, index=True)
     password_hash = db.Column(db.String(255), nullable=False)
 
     full_name = db.Column(db.String(150), nullable=False)
@@ -26,7 +26,6 @@ class User(db.Model):
         default=datetime.utcnow,
         onupdate=datetime.utcnow,
     )
-    number = db.Column(db.String(50), nullable=True)
 
 
     roles = db.relationship(
@@ -57,4 +56,4 @@ class User(db.Model):
             self.roles.remove(role)
 
     def __repr__(self):
-        return f"<User id={self.id} username={self.username}>"
+        return f"<User id={self.id} number={self.number}>"

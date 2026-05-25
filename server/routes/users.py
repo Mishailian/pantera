@@ -131,20 +131,20 @@ def get_profile_history():
     if not actor or not (actor.has_role("admin") or actor.has_role("supply_manager")):
         return jsonify({"error": "Access denied"}), 403
 
-    username = request.args.get("username", "").strip()
+    number = request.args.get("number", "").strip()
     full_name = request.args.get("full_name", "").strip()
     date_value = request.args.get("date", "").strip()
     sort = request.args.get("sort", "desc").strip().lower()
 
     query = db.session.query(
         UserProfileHistory,
-        User.username.label("target_username")
+        User.number.label("target_number")
     ).join(
         User, User.id == UserProfileHistory.target_user_id
     )
 
-    if username:
-        query = query.filter(User.username.ilike(f"%{username}%"))
+    if number:
+        query = query.filter(User.number.ilike(f"%{number}%"))
 
     if full_name:
         query = query.filter(
@@ -171,7 +171,7 @@ def get_profile_history():
     rows = query.all()
 
     result = []
-    for history, target_username in rows:
+    for history, target_number in rows:
         changed_by_user = (
             AuthService.get_user_by_id(history.changed_by_user_id)
             if history.changed_by_user_id
@@ -181,9 +181,9 @@ def get_profile_history():
         result.append({
             "id": history.id,
             "target_user_id": history.target_user_id,
-            "target_username": target_username,
+            "target_number": target_number,
             "changed_by_user_id": history.changed_by_user_id,
-            "changed_by_username": changed_by_user.username if changed_by_user else None,
+            "changed_by_number": changed_by_user.number if changed_by_user else None,
             "old_full_name": history.old_full_name,
             "new_full_name": history.new_full_name,
             "changed_at": history.changed_at.isoformat() if history.changed_at else None,

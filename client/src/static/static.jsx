@@ -2,7 +2,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { WidthType } from "docx";
 
 export var staticApi = () => {
-  var username = useSelector((state) => state.auth.username);
+  var username_id = useSelector((state) => state.auth.username_id);
   var is_superuser = useSelector((state) => state.auth.is_superuser);
 
   var obj = {
@@ -15,11 +15,11 @@ export var staticApi = () => {
       tagList: "/tagList/",
     },
     names: {
-      store: "Заявки",
+      store: "Созданные заявки",
       archived: "Архив",
       undeclared: "Без подписи",
       users: "Пользователи",
-      addPost: "Добавить",
+      addPost: "Сформировать заявку",
       tagList: "Роли",
     },
 
@@ -50,7 +50,7 @@ export var staticApi = () => {
         name: "test",
         about: null,
         data_dead_line: null,
-        author: username,
+        author: username_id,
       },
       addPosition: {
         //  это метаданные структур а не структуры

@@ -20,7 +20,7 @@ const STATUS_STYLES = {
 
 const NameHistoryTab = () => {
   const [filters, setFilters] = useState({
-    username: "",
+    number: "",
     full_name: "",
     date: "",
     sort: "desc",
@@ -38,7 +38,7 @@ const NameHistoryTab = () => {
 
   const resetFilters = () => {
     setFilters({
-      username: "",
+      number: "",
       full_name: "",
       date: "",
       sort: "desc",
@@ -56,9 +56,9 @@ const NameHistoryTab = () => {
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
           <input
             type="text"
-            value={filters.username}
-            onChange={(e) => handleChange("username", e.target.value)}
-            placeholder="Фильтр по логину"
+            value={filters.number}
+            onChange={(e) => handleChange("number", e.target.value)}
+            placeholder="Фильтр по номеру телефона"
             className="rounded-lg border p-3"
           />
 
@@ -102,7 +102,7 @@ const NameHistoryTab = () => {
           <thead>
             <tr className="bg-stone-100 text-left">
               <th className="px-4 py-3">Дата</th>
-              <th className="px-4 py-3">Логин</th>
+              <th className="px-4 py-3">Номер телефона</th>
               <th className="px-4 py-3">Кто изменил</th>
               <th className="px-4 py-3">Было</th>
               <th className="px-4 py-3">Стало</th>
@@ -113,8 +113,8 @@ const NameHistoryTab = () => {
               history.map((item) => (
                 <tr key={item.id} className="border-t border-stone-200">
                   <td className="px-4 py-3">{item.changed_at_formatted || "-"}</td>
-                  <td className="px-4 py-3">{item.target_username || "-"}</td>
-                  <td className="px-4 py-3">{item.changed_by_username || "-"}</td>
+                  <td className="px-4 py-3">{item.target_number || "-"}</td>
+                  <td className="px-4 py-3">{item.changed_by_number || "-"}</td>
                   <td className="px-4 py-3 text-stone-500">{item.old_full_name || "-"}</td>
                   <td className="px-4 py-3 font-medium">{item.new_full_name || "-"}</td>
                 </tr>

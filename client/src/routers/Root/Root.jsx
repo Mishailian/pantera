@@ -16,7 +16,6 @@ export const Root = () => {
 
   const token = useSelector((state) => state.auth.token);
   const isAuth = useSelector((state) => state.auth.isAuth);
-  const username = useSelector((state) => state.auth.username);
   const username_id = useSelector((state) => state.auth.username_id);
   const roles = useSelector((state) => state.auth.roles || []);
   const usersTable = useSelector((state) => state.users.usersTable);
@@ -48,7 +47,7 @@ export const Root = () => {
   const currentPageTitle = useMemo(() => {
     if (normalizedLocation === "profile") return "Профиль";
     if (normalizedLocation === "profile-history") return "История";
-    if (normalizedLocation === "store") return "Заявки";
+    if (normalizedLocation === "store") return "Созданные заявки";
     if (normalizedLocation === "undeclared") return "Без подписи";
     if (normalizedLocation === "archived") return "Архив";
 
@@ -94,7 +93,7 @@ export const Root = () => {
 
         return {
           key: `base-${routeKey}`,
-          label: path === "/store/" ? "Заявки" : s.names[routeKey],
+          label: path === "/store/" ? "Созданные заявки" : s.names[routeKey],
           path: path,
           isActive,
         };
@@ -123,14 +122,13 @@ export const Root = () => {
       dispatch(
         setToken({
           token,
-          username,
           username_id,
           roles,
           isAuth: true,
         })
       );
     }
-  }, [dispatch, persistedToken, token, username, username_id, roles]);
+  }, [dispatch, persistedToken, token, username_id, roles]);
 
   useEffect(() => {
     if (!token || !isAuth) {
