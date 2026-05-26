@@ -7,6 +7,8 @@ from .request.request import Request
 from .request.requestItem import RequestItem
 from .request.requestStatusHistory import RequestStatusHistory
 
+from .stats.user_stats import UserStats
+
 __all__ = [
     "User",
     "Role",
@@ -15,4 +17,5 @@ __all__ = [
     "Request",
     "RequestItem",
     "RequestStatusHistory",
+    "UserStats",
 ]

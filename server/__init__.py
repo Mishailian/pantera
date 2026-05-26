@@ -119,6 +119,19 @@ def _migrate_remove_username_clean_db(app):
         app.logger.error(f"Error in _migrate_remove_username_clean_db: {e}")
 
 
+def _ensure_user_stats_table(app):
+    """Создаёт таблицу user_stats если её ещё нет."""
+    try:
+        from sqlalchemy import inspect
+        inspector = inspect(db.engine)
+        if "user_stats" not in inspector.get_table_names():
+            from models.stats.user_stats import UserStats
+            UserStats.__table__.create(db.engine)
+    except Exception as e:
+        db.session.rollback()
+        app.logger.error(f"Error creating user_stats table: {e}")
+
+
 def _ensure_request_item_assigned_to_column(app):
     try:
         from sqlalchemy import inspect, text
@@ -175,6 +188,7 @@ def create_app(config_class=Config):
         _migrate_remove_username_clean_db(app)
         _ensure_request_item_work_status(app)
         _ensure_request_item_assigned_to_column(app)
+        _ensure_user_stats_table(app)
         from models.user.role import seed_roles
         seed_roles()
 

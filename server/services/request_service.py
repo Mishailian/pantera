@@ -6,6 +6,7 @@ from models.request.requestItem import RequestItem
 from models.request.requestStatusHistory import RequestStatusHistory
 from models.user.user import User
 from models.user.role import Role
+from utils.stats import increment_stat
 
 
 class RequestService:
@@ -110,6 +111,10 @@ class RequestService:
         )
         db.session.add(history_record)
         db.session.commit()
+
+        increment_stat(created_by_id, "requests_created")
+        db.session.commit()
+
         return request_obj
 
     @staticmethod
@@ -169,6 +174,16 @@ class RequestService:
         )
         db.session.add(history_record)
         db.session.commit()
+
+        if new_status == "active":
+            increment_stat(request_obj.created_by_id, "requests_approved")
+            increment_stat(changed_by_id, "requests_signed_by_me")
+            db.session.commit()
+        elif new_status == "archived":
+            increment_stat(request_obj.created_by_id, "requests_archived")
+            increment_stat(changed_by_id, "requests_archived_by_me")
+            db.session.commit()
+
         return request_obj
 
     @staticmethod
@@ -176,6 +191,7 @@ class RequestService:
         item = db.session.get(RequestItem, item_id)
         if not item:
             return None
+        old_assigned_to_id = item.assigned_to_id
 
         request_obj = item.request
         if request_obj and request_obj.status == "archived":
@@ -217,6 +233,12 @@ class RequestService:
                 setattr(item, key, value)
 
         db.session.commit()
+
+        new_assigned_to_id = item.assigned_to_id
+        if new_assigned_to_id and new_assigned_to_id != old_assigned_to_id:
+            increment_stat(new_assigned_to_id, "requests_assigned_to_me")
+            db.session.commit()
+
         return item
 
     @staticmethod
@@ -254,6 +276,8 @@ class RequestService:
         if not request_obj:
             return False
 
+        creator_id = request_obj.created_by_id
+
         history_records = RequestStatusHistory.query.filter_by(request_id=request_id).all()
         for history_record in history_records:
             db.session.delete(history_record)
@@ -263,4 +287,8 @@ class RequestService:
 
         db.session.delete(request_obj)
         db.session.commit()
+
+        increment_stat(creator_id, "requests_deleted")
+        db.session.commit()
+
         return True

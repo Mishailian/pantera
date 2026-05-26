@@ -8,6 +8,7 @@ from extensions import db
 from models.user.user_profile_history import UserProfileHistory
 from models.user.user import User
 from utils.serializers import format_datetime_ekb
+from utils.stats import increment_stat
 
 users_bp = Blueprint("users", __name__, url_prefix="/api/v1/users")
 
@@ -99,9 +100,11 @@ def update_current_user():
         )
         db.session.add(history)
         actor.full_name = new_full_name
+        increment_stat(actor.id, "name_changes")
 
     if has_number_change:
         actor.number = new_number or None
+        increment_stat(actor.id, "phone_changes")
 
     if has_role_change:
         if new_role_name == "admin":

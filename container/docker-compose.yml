@@ -7,7 +7,7 @@ services:
       POSTGRES_USER: pantera_user
       POSTGRES_PASSWORD: pantera_pass
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - ${DB_DATA_PATH:-postgres_data}:/var/lib/postgresql/data
     ports:
       - "5432:5432"
     networks:
@@ -59,6 +59,7 @@ services:
 
 volumes:
   postgres_data:
+    # Используется только если DB_DATA_PATH не задан в .env
 
 networks:
   app-network:
