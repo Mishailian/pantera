@@ -44,6 +44,8 @@ export const Root = () => {
     return roleNames.includes("admin") || roleNames.includes("supply_manager");
   }, [roleNames]);
 
+  const isAdmin = useMemo(() => roleNames.includes("admin"), [roleNames]);
+
   const currentPageTitle = useMemo(() => {
     if (normalizedLocation === "profile") return "Профиль";
     if (normalizedLocation === "profile-history") return "История";
@@ -62,7 +64,8 @@ export const Root = () => {
     const hiddenPaths = ["/profile", "/profile-history", "/auth"];
     const hiddenSidebarPaths = ["/undeclared/", "/archived/"];
     const hiddenForWorkers = ["/users/"];
-    const supplyOnlyPaths = ["/store/", "/undeclared/", "/archived/", "/tagList/"];
+    const supplyOnlyPaths = ["/store/", "/undeclared/", "/archived/"];
+    const adminOnlyPaths = ["/tagList/"];
     const supplyTabsPaths = ["/store/", "/undeclared/", "/archived/"];
 
     const baseRoutes = Object.keys(s.paths)
@@ -72,6 +75,10 @@ export const Root = () => {
         if (!path) return false;
         if (hiddenPaths.includes(path)) return false;
         if (hiddenSidebarPaths.includes(path)) return false;
+
+        if (adminOnlyPaths.includes(path)) {
+          return isAdmin;
+        }
 
         if (hiddenForWorkers.includes(path) || path.startsWith("/users")) {
           return canSeeSupplySections;
@@ -93,7 +100,7 @@ export const Root = () => {
 
         return {
           key: `base-${routeKey}`,
-          label: path === "/store/" ? "Созданные заявки" : s.names[routeKey],
+          label: s.names[routeKey],
           path: path,
           isActive,
         };

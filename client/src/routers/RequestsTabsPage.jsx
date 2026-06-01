@@ -15,9 +15,9 @@ import {
 import { ActivePostBlock } from "../auxComponents/ActivePostBlock";
 
 const TAB_CONFIG = {
-  store: { key: "store", label: "Созданные заявки", path: "/store", status: "active" },
+  store: { key: "store", label: "Подписанные заявки", path: "/store", status: "active" },
   undeclared: { key: "undeclared", label: "Без подписи", path: "/undeclared", status: "undeclared" },
-  archived: { key: "archived", label: "Архив", path: "/archived", status: "archived" },
+  archived: { key: "archived", label: "Завершённые", path: "/archived", status: "archived" },
 };
 
 export const RequestsTabsPage = ({ tab = "store" }) => {
