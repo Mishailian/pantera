@@ -92,9 +92,12 @@ export const SinglePostBlock = ({ data, onApprove }) => {
     mode = "active",
     canManage = false,
     isAdmin = false,
+    isSupplyManager = false,
   } = data || {};
 
-  const { data: users = [] } = useGetUsersQuery(undefined, { skip: !isAdmin });
+  const canAssign = isAdmin || isSupplyManager;
+
+  const { data: users = [] } = useGetUsersQuery(undefined, { skip: !canAssign });
   const supplyUsers = useMemo(
     () => users.filter((u) => u?.roles?.some((r) => r?.name === "supply_manager")),
     [users]
@@ -408,7 +411,7 @@ export const SinglePostBlock = ({ data, onApprove }) => {
                             Исполнитель
                           </p>
                           <div className="mt-2">
-                            {canManage && isAdmin && (mode === "active" || mode === "undeclared") ? (
+                            {canManage && canAssign && (mode === "active" || mode === "undeclared") ? (
                               <select
                                 disabled={isUpdating}
                                 value={item.assigned_to_id ? String(item.assigned_to_id) : ""}

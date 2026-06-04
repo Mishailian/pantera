@@ -26,6 +26,10 @@ export const UniversalSinglePost = () => {
     (typeof role === "string" ? role : role?.name) === "admin"
   );
 
+  const isSupplyManager = currentUserRoles.some((role) =>
+    (typeof role === "string" ? role : role?.name) === "supply_manager"
+  );
+
   // Универсальный запрос данных заявки
   const postObject = useGetPostQuery({ postId });
   const [declarePost] = useDeclaredPostMutation();
@@ -54,6 +58,7 @@ export const UniversalSinglePost = () => {
         isAdmin,
         // Если мы НЕ в истории личных заявок, значит мы смотрим заявку с полными правами
         canManage: mode !== "my-requests",
+        isSupplyManager,
       },
     },
     (data) => {
