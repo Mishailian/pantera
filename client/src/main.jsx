@@ -23,8 +23,10 @@ import { RequestsTabsPage } from "./routers/RequestsTabsPage";
 import { UniversalSinglePost } from "./routers/Post/UniversalSinglePost";
 
 
+const REQUESTS_ROLES = ["admin", "supply_manager", "director_approval"];
+
 const RequestsTabRoute = ({ tab }) => (
-  <RequireRoles allowedRoles={["admin", "supply_manager"]}>
+  <RequireRoles allowedRoles={REQUESTS_ROLES}>
     <RequestsTabsPage tab={tab} />
   </RequireRoles>
 );
@@ -51,6 +53,10 @@ const router = createBrowserRouter([
         path: "archived",
         element: <RequestsTabRoute tab="archived" />,
       },
+      {
+        path: "approval",
+        element: <RequestsTabRoute tab="approval" />,
+      },
 
       // --- Детальный просмотр заявки (Универсальный) ---
       {
@@ -60,7 +66,7 @@ const router = createBrowserRouter([
       {
         path: "store/:postId",
         element: (
-          <RequireRoles allowedRoles={["admin", "supply_manager"]}>
+          <RequireRoles allowedRoles={REQUESTS_ROLES}>
             <UniversalSinglePost />
           </RequireRoles>
         ),
@@ -68,7 +74,7 @@ const router = createBrowserRouter([
       {
         path: "undeclared/:postId",
         element: (
-          <RequireRoles allowedRoles={["admin", "supply_manager"]}>
+          <RequireRoles allowedRoles={REQUESTS_ROLES}>
             <UniversalSinglePost />
           </RequireRoles>
         ),
@@ -76,7 +82,15 @@ const router = createBrowserRouter([
       {
         path: "archived/:postId",
         element: (
-          <RequireRoles allowedRoles={["admin", "supply_manager"]}>
+          <RequireRoles allowedRoles={REQUESTS_ROLES}>
+            <UniversalSinglePost />
+          </RequireRoles>
+        ),
+      },
+      {
+        path: "approval/:postId",
+        element: (
+          <RequireRoles allowedRoles={REQUESTS_ROLES}>
             <UniversalSinglePost />
           </RequireRoles>
         ),

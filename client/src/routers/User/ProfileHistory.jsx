@@ -8,12 +8,14 @@ import {
 
 const STATUS_LABELS = {
   undeclared: "На рассмотрении",
+  pending_director: "На согласовании",
   active: "В работе",
   archived: "В архиве",
 };
 
 const STATUS_STYLES = {
   undeclared: "bg-amber-100 text-amber-800",
+  pending_director: "bg-sky-100 text-sky-800",
   active: "bg-emerald-100 text-emerald-800",
   archived: "bg-slate-200 text-slate-800",
 };

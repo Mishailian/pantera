@@ -5,8 +5,10 @@ import {
   useGetActiveRequestsQuery,
   useGetUndeclaredRequestsQuery,
   useGetArchivedRequestsQuery,
+  useGetPendingDirectorRequestsQuery,
   useGetPostsCountQuery,
   useGetUndeclaredPostsCountQuery,
+  useGetPendingDirectorCountQuery,
   useGetArhiveQuery,
   useDeleteRequestMutation,
   useDeclaredPostMutation,
@@ -15,8 +17,9 @@ import {
 import { ActivePostBlock } from "../auxComponents/ActivePostBlock";
 
 const TAB_CONFIG = {
-  store: { key: "store", label: "Подписанные заявки", path: "/store", status: "active" },
   undeclared: { key: "undeclared", label: "Без подписи", path: "/undeclared", status: "undeclared" },
+  approval: { key: "approval", label: "Согласование", path: "/approval", status: "pending_director" },
+  store: { key: "store", label: "Подписанные заявки", path: "/store", status: "active" },
   archived: { key: "archived", label: "Завершённые", path: "/archived", status: "archived" },
 };
 
@@ -27,9 +30,15 @@ export const RequestsTabsPage = ({ tab = "store" }) => {
   const currentUserRoles = useSelector((state) => state.auth.roles || []);
   const currentUserId = useSelector((state) => state.auth.username_id);
 
-  const canManage = currentUserRoles.some((role) =>
+  const canManageStandard = currentUserRoles.some((role) =>
     ["admin", "supply_manager"].includes(role?.name)
   );
+  const canApprove = currentUserRoles.some((role) =>
+    ["admin", "director_approval"].includes(role?.name)
+  );
+  // На вкладке "Согласование" действия доступны только тому, кто может согласовывать
+  // (снабжение там видит список, но только читает)
+  const canManage = activeTab.key === "approval" ? canApprove : canManageStandard;
 
   const [searchTerm, setSearchTerm] = useState("");
   const [searchField, setSearchField] = useState("created_by");
@@ -41,6 +50,9 @@ export const RequestsTabsPage = ({ tab = "store" }) => {
   const undeclaredQuery = useGetUndeclaredRequestsQuery(undefined, {
     skip: activeTab.status !== "undeclared",
   });
+  const pendingDirectorQuery = useGetPendingDirectorRequestsQuery(undefined, {
+    skip: activeTab.status !== "pending_director",
+  });
   const archivedQuery = useGetArchivedRequestsQuery(undefined, {
     skip: activeTab.status !== "archived",
   });
@@ -51,23 +63,28 @@ export const RequestsTabsPage = ({ tab = "store" }) => {
   const countUndeclaredQuery = useGetUndeclaredPostsCountQuery(undefined, {
     skip: activeTab.status !== "undeclared",
   });
+  const countPendingDirectorQuery = useGetPendingDirectorCountQuery(undefined, {
+    skip: activeTab.status !== "pending_director",
+  });
   const countArchivedQuery = useGetArhiveQuery(undefined, {
     skip: activeTab.status !== "archived",
   });
 
-  const { data: posts = [], isLoading, isError } =
-    activeTab.status === "active"
-      ? activeQuery
-      : activeTab.status === "undeclared"
-      ? undeclaredQuery
-      : archivedQuery;
+  const queryByStatus = {
+    active: activeQuery,
+    undeclared: undeclaredQuery,
+    pending_director: pendingDirectorQuery,
+    archived: archivedQuery,
+  };
+  const countByStatus = {
+    active: countActiveQuery,
+    undeclared: countUndeclaredQuery,
+    pending_director: countPendingDirectorQuery,
+    archived: countArchivedQuery,
+  };
 
-  const { data: countData } =
-    activeTab.status === "active"
-      ? countActiveQuery
-      : activeTab.status === "undeclared"
-      ? countUndeclaredQuery
-      : countArchivedQuery;
+  const { data: posts = [], isLoading, isError } = queryByStatus[activeTab.status];
+  const { data: countData } = countByStatus[activeTab.status];
 
   const [archiveRequest] = useChangeRequestStatusMutation();
   const [deleteRequest] = useDeleteRequestMutation();
@@ -148,11 +165,36 @@ export const RequestsTabsPage = ({ tab = "store" }) => {
       await declarePost({
         postId: requestId,
         changed_by_id: currentUserId,
-        comment: "Заявка переведена в активные из списка",
+        comment: "Заявка отправлена на согласование",
       }).unwrap();
     } catch (error) {
       console.error(error);
-      alert("Не удалось подписать заявку.");
+      alert("Не удалось отправить заявку на согласование.");
+    }
+  };
+
+  const handleApprove = async (requestId) => {
+    try {
+      await archiveRequest({
+        requestId,
+        status: "active",
+        changed_by_id: currentUserId,
+        comment: "Заявка согласована",
+      }).unwrap();
+    } catch (error) {
+      console.error(error);
+      alert("Не удалось согласовать заявку.");
+    }
+  };
+
+  const handleReject = async (requestId) => {
+    if (!confirm("Отклонить и полностью удалить заявку?")) return;
+
+    try {
+      await deleteRequest(requestId).unwrap();
+    } catch (error) {
+      console.error(error);
+      alert("Не удалось отклонить заявку.");
     }
   };
 
@@ -244,7 +286,7 @@ export const RequestsTabsPage = ({ tab = "store" }) => {
       <div className="rounded-3xl border border-slate-200 bg-white p-4 sm:p-6 shadow-sm">
         {filteredPosts.length > 0 ? (
           <div className="flex flex-col gap-3">
-            <div className="hidden grid-cols-[40px_90px_90px_150px_90px_210px_170px] gap-3 px-4 text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-400 xl:grid">
+            <div className="hidden grid-cols-[40px_90px_150px_160px_80px_190px_170px] gap-3 px-4 text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-400 xl:grid">
               <div>№</div>
               <div>Дата создания</div>
               <div>Статус</div>
@@ -266,6 +308,8 @@ export const RequestsTabsPage = ({ tab = "store" }) => {
                 onArchive={handleArchive}
                 onDelete={handleDelete}
                 onSign={handleSign}
+                onApprove={handleApprove}
+                onReject={handleReject}
               />
             ))}
           </div>

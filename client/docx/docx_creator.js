@@ -49,7 +49,7 @@ export const docxCreator = (requestData, selectedSigners = []) => {
   const purchasePurpose = normalizeText(requestData?.comment) || "—";
   const requestNumber = requestData?.id ?? "—";
   const creationDate = normalizeText(requestData?.created_at_formatted).split(" ")[0];
-  const departmentLabel = normalizeText(requestData?.created_by_user?.role_label);
+  const departmentLabel = normalizeText(requestData?.department_label) || normalizeText(requestData?.created_by_user?.role_label);
   const doc = new Document({
     styles: { default: { document: { run: { size: DOCX_CONFIG.font.defaultSize, font: DOCX_CONFIG.font.family } } } },
     sections: [{

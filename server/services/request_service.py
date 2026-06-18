@@ -12,7 +12,7 @@ from utils.stats import increment_stat
 class RequestService:
     ITEMS_PER_PAGE = 14
 
-    VALID_STATUSES = {"undeclared", "active", "archived"}
+    VALID_STATUSES = {"undeclared", "pending_director", "active", "archived"}
     VALID_ITEM_STATUSES = {"in_progress", "done", "rejected", "on_payment"}
 
     @staticmethod
@@ -43,7 +43,11 @@ class RequestService:
     def get_requests(page=0, status=None):
         query = RequestService._base_query()
         if status:
-            query = query.filter(Request.status == status)
+            statuses = [s.strip() for s in status.split(",") if s.strip()]
+            if len(statuses) > 1:
+                query = query.filter(Request.status.in_(statuses))
+            elif statuses:
+                query = query.filter(Request.status == statuses[0])
         start, end = RequestService._calculate_page(page)
         return query.slice(start, end).all()
 
@@ -64,19 +68,35 @@ class RequestService:
         return RequestService.get_requests(page=page, status="archived")
 
     @staticmethod
-    def create_request(items, comment=None, created_by_id=None):
+    def create_request(items, comment=None, created_by_id=None, on_behalf_role_id=None):
         if not items or not isinstance(items, list):
             raise ValueError("items must be a non-empty list")
 
+        creator = None
         if created_by_id is not None:
-            user = db.session.get(User, created_by_id)
-            if not user:
+            creator = db.session.get(User, created_by_id)
+            if not creator:
                 raise ValueError("created_by user not found")
+
+        on_behalf_role = None
+        if creator and creator.has_role("admin"):
+            if not on_behalf_role_id:
+                raise ValueError(
+                    "Администратор должен выбрать отдел, от имени которого формируется заявка"
+                )
+            on_behalf_role = db.session.get(Role, on_behalf_role_id)
+            if not on_behalf_role:
+                raise ValueError("Указанный отдел не найден")
+        elif on_behalf_role_id:
+            on_behalf_role = db.session.get(Role, on_behalf_role_id)
+            if not on_behalf_role:
+                raise ValueError("Указанный отдел не найден")
 
         request_obj = Request(
             status="undeclared",
             comment=comment,
             created_by_id=created_by_id,
+            on_behalf_role_id=on_behalf_role.id if on_behalf_role else None,
         )
 
         for item in items:

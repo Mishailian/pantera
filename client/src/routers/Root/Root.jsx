@@ -44,6 +44,15 @@ export const Root = () => {
     return roleNames.includes("admin") || roleNames.includes("supply_manager");
   }, [roleNames]);
 
+  const isDirectorApproval = useMemo(
+    () => roleNames.includes("director_approval"),
+    [roleNames]
+  );
+
+  const canSeeRequestsSections = useMemo(() => {
+    return canSeeSupplySections || isDirectorApproval;
+  }, [canSeeSupplySections, isDirectorApproval]);
+
   const isAdmin = useMemo(() => roleNames.includes("admin"), [roleNames]);
 
   const currentPageTitle = useMemo(() => {
@@ -52,6 +61,7 @@ export const Root = () => {
     if (normalizedLocation === "store") return "Созданные заявки";
     if (normalizedLocation === "undeclared") return "Без подписи";
     if (normalizedLocation === "archived") return "Архив";
+    if (normalizedLocation === "approval") return "Согласование";
 
     if (normalizedLocation.includes("users")) {
       return usersTable[normalizedLocation.split("users")[1]] ?? "users";
@@ -62,11 +72,11 @@ export const Root = () => {
 
   const routes = useMemo(() => {
     const hiddenPaths = ["/profile", "/profile-history", "/auth"];
-    const hiddenSidebarPaths = ["/undeclared/", "/archived/"];
+    const hiddenSidebarPaths = ["/undeclared/", "/archived/", "/approval/"];
     const hiddenForWorkers = ["/users/"];
-    const supplyOnlyPaths = ["/store/", "/undeclared/", "/archived/"];
+    const requestsOnlyPaths = ["/store/", "/undeclared/", "/archived/", "/approval/"];
     const adminOnlyPaths = ["/tagList/"];
-    const supplyTabsPaths = ["/store/", "/undeclared/", "/archived/"];
+    const supplyTabsPaths = ["/store/", "/undeclared/", "/archived/", "/approval/"];
 
     const baseRoutes = Object.keys(s.paths)
       .filter((routeKey) => {
@@ -84,8 +94,8 @@ export const Root = () => {
           return canSeeSupplySections;
         }
 
-        if (supplyOnlyPaths.includes(path)) {
-          return canSeeSupplySections;
+        if (requestsOnlyPaths.includes(path)) {
+          return canSeeRequestsSections;
         }
 
         return true;
@@ -122,7 +132,7 @@ export const Root = () => {
     ];
 
     return [...extraRoutes, ...baseRoutes];
-  }, [pathname, s.names, s.paths, canSeeSupplySections]);
+  }, [pathname, s.names, s.paths, canSeeSupplySections, canSeeRequestsSections, isAdmin]);
 
   useEffect(() => {
     if (!persistedToken) {

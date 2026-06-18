@@ -12,6 +12,10 @@ const STATUS_LABELS = {
     label: "Без подписи",
     badge: "bg-amber-50 text-amber-700 ring-amber-200",
   },
+  pending_director: {
+    label: "На согласовании",
+    badge: "bg-sky-50 text-sky-700 ring-sky-200",
+  },
   archived: {
     label: "В архиве",
     badge: "bg-slate-100 text-slate-700 ring-slate-200",
@@ -51,11 +55,12 @@ const formatDateParts = (value) => {
   };
 };
 
-export const ActivePostBlock = ({ data, canManage, onArchive, onDelete, onSign }) => {
+export const ActivePostBlock = ({ data, canManage, onArchive, onDelete, onSign, onApprove, onReject }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const isUndeclaredPage = location.pathname.includes('/undeclared');
   const isArchivedPage = location.pathname.includes('/archived');
+  const isApprovalPage = location.pathname.includes('/approval');
   const currentUserRoles = useSelector((state) => state.auth.roles || []);
   const isAdmin = currentUserRoles.some((role) => role?.name === "admin");
 
@@ -102,7 +107,7 @@ export const ActivePostBlock = ({ data, canManage, onArchive, onDelete, onSign }
 
     // Проверяем, есть ли нужные права
     const hasPrivileges = roleNames.some((roleName) =>
-      ["admin", "supply_manager"].includes(roleName)
+      ["admin", "supply_manager", "director_approval"].includes(roleName)
     );
 
     // Если прав НЕТ — идём по пути для обычного сотрудника
@@ -113,12 +118,13 @@ export const ActivePostBlock = ({ data, canManage, onArchive, onDelete, onSign }
     // Если права ЕСТЬ — идём по админским путям
     if (status === "archived") return navigate(`/archived/${requestId}`);
     if (status === "undeclared") return navigate(`/undeclared/${requestId}`);
+    if (status === "pending_director") return navigate(`/approval/${requestId}`);
     navigate(`/store/${requestId}`);
   };
 
   return (
     <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
-      <div className="grid grid-cols-1 gap-3 text-sm xl:grid-cols-[40px_90px_90px_160px_80px_190px_170px] xl:items-center xl:gap-3">
+      <div className="grid grid-cols-1 gap-3 text-sm xl:grid-cols-[40px_90px_150px_160px_80px_190px_170px] xl:items-center xl:gap-3">
         <div>
           <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-400 xl:hidden">
             №
@@ -136,11 +142,11 @@ export const ActivePostBlock = ({ data, canManage, onArchive, onDelete, onSign }
           </div>
         </div>
 
-        <div className="w-[110px]">
+        <div className="w-[140px]">
           <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-400 xl:hidden">
             Статус
           </div>
-          <span className={`inline-flex max-w-full items-center rounded-full px-2.5 py-1 text-[12px] font-semibold ring-1 ${statusMeta.badge}`}>
+          <span className={`inline-flex w-full max-w-full items-center justify-center text-center rounded-full px-2.5 py-1 text-[12px] font-semibold ring-1 ${statusMeta.badge}`}>
             {statusMeta.label}
           </span>
         </div>
@@ -196,18 +202,40 @@ export const ActivePostBlock = ({ data, canManage, onArchive, onDelete, onSign }
               Открыть
             </button>
 
-            {/* ЛОГИКА АРХИВА / ПОДПИСИ */}
+            {/* ЛОГИКА СОГЛАСОВАНИЯ */}
+            {canManage && isApprovalPage ? (
+              <>
+                <button
+                  type="button"
+                  onClick={() => onApprove?.(requestId)}
+                  className="inline-flex h-8 items-center justify-center rounded-xl bg-emerald-100 px-3 text-[13px] font-semibold text-emerald-700 transition hover:bg-emerald-200"
+                  title="Согласовать заявку"
+                >
+                  Одобрить
+                </button>
+                <button
+                  type="button"
+                  onClick={() => onReject?.(requestId)}
+                  className="inline-flex h-8 items-center justify-center rounded-xl bg-rose-100 px-3 text-[13px] font-semibold text-rose-700 transition hover:bg-rose-200"
+                  title="Отклонить заявку"
+                >
+                  Отклонить
+                </button>
+              </>
+            ) : null}
+
+            {/* ЛОГИКА АРХИВА / ОТПРАВКИ НА СОГЛАСОВАНИЕ */}
             {canManage && isUndeclaredPage ? (
-              // Если мы на странице "Без подписи" — показываем кнопку "Подписать"
+              // Если мы на странице "Без подписи" — показываем кнопку отправки на согласование директору
               <button
                 type="button"
                 onClick={() => onSign?.(requestId)}
                 className="inline-flex h-8 items-center justify-center rounded-xl bg-emerald-100 px-3 text-[13px] font-semibold text-emerald-700 transition hover:bg-emerald-200"
-                title="Подписать заявку"
+                title="Отправить на согласование"
               >
-                Подписать
+                Одобрить
               </button>
-            ) : canManage && status !== "archived" && !isUndeclaredPage ? (
+            ) : canManage && status !== "archived" && !isUndeclaredPage && !isApprovalPage ? (
               // Если мы на обычных страницах — показываем кнопку "В архив"
               <button
                 type="button"
@@ -222,8 +250,8 @@ export const ActivePostBlock = ({ data, canManage, onArchive, onDelete, onSign }
             ) : null}
 
             {/* ЛОГИКА УДАЛЕНИЯ */}
-            {canManage && !isArchivedPage ? (
-              // Если мы НЕ в архиве — показываем корзину
+            {canManage && !isArchivedPage && !isApprovalPage ? (
+              // Если мы НЕ в архиве и НЕ на согласовании — показываем корзину
               <button
                 type="button"
                 onClick={() => onDelete?.(requestId)}

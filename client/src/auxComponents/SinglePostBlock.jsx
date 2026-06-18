@@ -15,6 +15,10 @@ const STATUS_META = {
     label: "На рассмотрении",
     badge: "bg-amber-100 text-amber-800 ring-amber-200",
   },
+  pending_director: {
+    label: "На согласовании",
+    badge: "bg-sky-100 text-sky-800 ring-sky-200",
+  },
 };
 
 const ITEM_STATUS_META = {
@@ -69,7 +73,7 @@ const getPlannedDate = (item) => {
   );
 };
 
-export const SinglePostBlock = ({ data, onApprove }) => {
+export const SinglePostBlock = ({ data, onApprove, onReject }) => {
   const [updateRequestItem, { isLoading: isUpdating }] =
     useUpdateRequestItemMutation();
 
@@ -82,6 +86,7 @@ export const SinglePostBlock = ({ data, onApprove }) => {
     archived_by_user,
     assigned_to_user,
     assigned_to_at_archive_user,
+    department_label,
     created_at_formatted,
     updated_at_formatted,
     approved_at_formatted,
@@ -91,6 +96,7 @@ export const SinglePostBlock = ({ data, onApprove }) => {
     items_count,
     mode = "active",
     canManage = false,
+    canSeeFullDetails = canManage,
     isAdmin = false,
     isSupplyManager = false,
   } = data || {};
@@ -156,7 +162,7 @@ export const SinglePostBlock = ({ data, onApprove }) => {
                 ) : null}
               </div>
 
-              {canManage ? (
+              {canSeeFullDetails ? (
                 <>
                   <h2 className="text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">
                     {created_by_user?.full_name || "Неизвестно"}
@@ -164,8 +170,8 @@ export const SinglePostBlock = ({ data, onApprove }) => {
 
                   <p className="mt-2 text-sm text-slate-500">
                     {created_by_user?.number || "—"}
-                    {created_by_user?.role_label
-                      ? ` • ${created_by_user.role_label}`
+                    {department_label || created_by_user?.role_label
+                      ? ` • ${department_label || created_by_user.role_label}`
                       : ""}
                   </p>
                 </>
@@ -186,7 +192,7 @@ export const SinglePostBlock = ({ data, onApprove }) => {
                 </p>
               </div>
 
-              {canManage ? (
+              {canSeeFullDetails ? (
                 <div className="rounded-2xl bg-slate-50 px-4 py-4">
                   <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
                     Обновлено
@@ -210,13 +216,21 @@ export const SinglePostBlock = ({ data, onApprove }) => {
         </div>
 
         <div className="px-5 py-5 sm:px-8 sm:py-8">
-          {canManage ? (
+          {canSeeFullDetails ? (
             <>
               <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
                 <InfoCard
                   label="Создатель"
                   value={created_by_user?.full_name || "Неизвестный"}
-                  sub={created_by_user ? `${created_by_user.number || "—"}${created_by_user.role_label ? ` • ${created_by_user.role_label}` : ""}` : ""}
+                  sub={
+                    created_by_user
+                      ? `${created_by_user.number || "—"}${
+                          department_label || created_by_user.role_label
+                            ? ` • ${department_label || created_by_user.role_label}`
+                            : ""
+                        }`
+                      : ""
+                  }
                 />
 
                 <InfoCard
@@ -306,8 +320,31 @@ export const SinglePostBlock = ({ data, onApprove }) => {
                 onClick={onApprove}
                 className="inline-flex h-12 items-center justify-center rounded-xl bg-emerald-600 px-6 font-semibold text-white shadow-sm transition hover:bg-emerald-500"
               >
-                Подписать заявку
+                Одобрить
               </button>
+            </div>
+          ) : null}
+
+          {canManage && mode === "approval" ? (
+            <div className="mt-6 flex flex-wrap justify-end gap-3">
+              {onReject ? (
+                <button
+                  type="button"
+                  onClick={onReject}
+                  className="inline-flex h-12 items-center justify-center rounded-xl bg-rose-50 px-6 font-semibold text-rose-700 ring-1 ring-rose-200 shadow-sm transition hover:bg-rose-100"
+                >
+                  Отклонить
+                </button>
+              ) : null}
+              {onApprove ? (
+                <button
+                  type="button"
+                  onClick={onApprove}
+                  className="inline-flex h-12 items-center justify-center rounded-xl bg-emerald-600 px-6 font-semibold text-white shadow-sm transition hover:bg-emerald-500"
+                >
+                  Одобрить заявку
+                </button>
+              ) : null}
             </div>
           ) : null}
 

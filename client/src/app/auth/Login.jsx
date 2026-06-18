@@ -49,7 +49,7 @@ export const Login = () => {
     });
 
   const availableRegistrationRoles = registrationRoles.filter(
-    (role) => role?.name !== "admin"
+    (role) => role?.name !== "admin" && !role?.is_extra
   );
 
   const users = useGetUsersQuery(undefined, {

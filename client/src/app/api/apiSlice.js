@@ -105,6 +105,20 @@ export const apiSlice = createApi({
       }),
     }),
 
+    updateUserExtraRole: builder.mutation({
+      invalidatesTags: ["USERS"],
+      query: ({ userId, role, enabled }) => ({
+        url: `/users/${userId}/extra-roles`,
+        method: "PATCH",
+        body: { role, enabled },
+      }),
+    }),
+
+    getAdminExists: builder.query({
+      providesTags: ["USERS"],
+      query: () => ({ url: "/users/admin-exists", method: "GET" }),
+    }),
+
     getTags: builder.query({
       providesTags: ["TAGS"],
       query: () => ({
@@ -260,6 +274,19 @@ export const apiSlice = createApi({
       },
     }),
 
+    getPendingDirectorRequests: builder.query({
+      providesTags: ["REQUESTS"],
+      query: ({ page } = {}) => {
+        const queryString = buildQueryParams({ status: "pending_director", page });
+        return { url: `/requests/?${queryString}`, method: "GET" };
+      },
+    }),
+
+    getPendingDirectorCount: builder.query({
+      providesTags: ["REQUESTS"],
+      query: () => ({ url: "/requests/?count=1&status=pending_director", method: "GET" }),
+    }),
+
     getPostsCount: builder.query({
       providesTags: ["REQUESTS"],
       query: () => ({ url: "/requests/?count=1&status=active", method: "GET" }),
@@ -357,7 +384,7 @@ export const apiSlice = createApi({
       query: ({ postId, changed_by_id, comment }) => ({
         url: `/requests/${postId}/status`,
         method: "PATCH",
-        body: { status: "active", changed_by_id, comment },
+        body: { status: "pending_director", changed_by_id, comment },
       }),
     }),
 
@@ -420,6 +447,8 @@ export const {
   useGetUsersDBQuery,
   useGetUserQuery,
   useUpdateUserRolesMutation,
+  useUpdateUserExtraRoleMutation,
+  useGetAdminExistsQuery,
   useGetCurrentUserQuery,
   useUpdateCurrentUserMutation,
   useGetProfileHistoryQuery,
@@ -446,6 +475,8 @@ export const {
   useGetUndeclaredRequestsQuery,
   useGetActiveRequestsQuery,
   useGetArchivedRequestsQuery,
+  useGetPendingDirectorRequestsQuery,
+  useGetPendingDirectorCountQuery,
 
   useGetPostsCountQuery,
   useGetUndeclaredPostsCountQuery,
