@@ -34,6 +34,7 @@ class Role(db.Model):
 INITIAL_ROLES = [
     {"name": "admin",          "description": "Полный доступ, управление пользователями"},
     {"name": "supply_manager", "description": "Отдел снабжения"},
+    {"name": "directorate",    "description": "Дирекция"},
     {"name": "main_accounting_department",        "description": "главная бухгалтерия"},
     {"name": "legal_department",        "description": "Юридический отдел"},
     {"name": "planning_and_economic_department",        "description": "Планово-экономический отдел"},

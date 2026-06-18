@@ -165,7 +165,7 @@ export const Root = () => {
       <aside className="flex w-[260px] shrink-0 flex-col border-r border-stone-300 bg-white px-6 py-8 shadow-sm">
         <div>
           <div className="mb-12">
-            <div className="text-2xl tracking-tight">УралШина</div>
+            <div className="text-2xl tracking-tight">Уралшина</div>
           </div>
 
           <nav className="flex flex-col gap-2">
