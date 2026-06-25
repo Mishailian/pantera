@@ -27,15 +27,6 @@ class Role(db.Model):
 
 
 # ──────────────────────────────────────────────
-# Доп. роли — выдаются ПОВЕРХ основной (отдельской) роли и не заменяют её.
-# Управляются отдельным эндпоинтом (PATCH /users/<id>/extra-roles), а не
-# обычной сменой роли через профиль/список пользователей.
-# ──────────────────────────────────────────────
-
-EXTRA_ROLE_NAMES = {"director_approval"}
-
-
-# ──────────────────────────────────────────────
 # Seed: вызывается из create_app после db.create_all()
 # Безопасно запускать повторно — дубликаты не создаются
 # ──────────────────────────────────────────────
@@ -44,7 +35,6 @@ INITIAL_ROLES = [
     {"name": "admin",          "description": "Полный доступ, управление пользователями"},
     {"name": "supply_manager", "description": "Отдел снабжения"},
     {"name": "directorate",    "description": "Дирекция"},
-    {"name": "director_approval", "description": "Согласование заявок (от лица Генерального директора)"},
     {"name": "main_accounting_department",        "description": "главная бухгалтерия"},
     {"name": "legal_department",        "description": "Юридический отдел"},
     {"name": "planning_and_economic_department",        "description": "Планово-экономический отдел"},

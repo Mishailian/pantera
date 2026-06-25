@@ -1,8 +1,6 @@
 from datetime import date
 from zoneinfo import ZoneInfo
 
-from models.user.role import EXTRA_ROLE_NAMES
-
 
 def serialize_many(objects, serializer):
     return [serializer(obj) for obj in objects]
@@ -31,32 +29,16 @@ def serialize_role(role):
         "id": role.id,
         "name": role.name,
         "description": role.description,
-        "is_extra": role.name in EXTRA_ROLE_NAMES,
     }
 
 
-def _split_roles(user):
-    """Основная (отдельская) роль — первая не-доп. роль. Доп. роли — отдельно."""
-    primary = None
-    extra = []
-    for role in user.roles:
-        if role.name in EXTRA_ROLE_NAMES:
-            extra.append(role)
-        elif primary is None:
-            primary = role
-    return primary, extra
-
-
 def serialize_user(user):
-    primary_role, extra_roles = _split_roles(user)
     return {
         "id": user.id,
         "full_name": user.full_name,
         "number": user.number,
         "is_active": user.is_active,
         "roles": [serialize_role(role) for role in user.roles],
-        "extra_roles": [serialize_role(role) for role in extra_roles],
-        "is_director_approval": any(r.name == "director_approval" for r in extra_roles),
         "created_at": user.created_at.isoformat() if user.created_at else None,
         "updated_at": user.updated_at.isoformat() if user.updated_at else None,
     }
@@ -66,15 +48,14 @@ def serialize_user_min(user):
     if not user:
         return None
 
-    primary_role, extra_roles = _split_roles(user)
+    first_role = user.roles[0] if user.roles else None
 
     return {
         "id": user.id,
         "full_name": user.full_name,
         "number": user.number,
-        "role": primary_role.name if primary_role else None,
-        "role_label": primary_role.description if primary_role else None,
-        "is_director_approval": any(r.name == "director_approval" for r in extra_roles),
+        "role": first_role.name if first_role else None,
+        "role_label": first_role.description if first_role else None,
     }
 
 
@@ -113,15 +94,6 @@ def serialize_request(request_obj):
             seen_usernames.add(u.number)
             assigned_usernames.append(u.number)
 
-    on_behalf_role = getattr(request_obj, "on_behalf_role", None)
-    creator = getattr(request_obj, "created_by", None)
-    creator_primary_role, _ = _split_roles(creator) if creator else (None, [])
-    department_label = (
-        on_behalf_role.description if on_behalf_role
-        else creator_primary_role.description if creator_primary_role
-        else None
-    )
-
     return {
         "id": request_obj.id,
         "status": request_obj.status,
@@ -150,7 +122,4 @@ def serialize_request(request_obj):
         "assigned_to_user": serialize_user_min(getattr(request_obj, "assigned_to", None)),
         "assigned_to_at_archive_id": getattr(request_obj, "assigned_to_at_archive_id", None),
         "assigned_to_at_archive_user": serialize_user_min(getattr(request_obj, "assigned_to_at_archive", None)),
-        "on_behalf_role_id": getattr(request_obj, "on_behalf_role_id", None),
-        "on_behalf_role": serialize_role(on_behalf_role) if on_behalf_role else None,
-        "department_label": department_label,
     }

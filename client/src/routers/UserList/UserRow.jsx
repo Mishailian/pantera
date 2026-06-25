@@ -1,23 +1,11 @@
 import { useEffect, useState } from "react";
 
-const EXTRA_ROLE = { name: "director_approval", label: "Согласование (Гендир)" };
-
-export const UserRow = ({
-  user,
-  isAdmin,
-  onRoleChange,
-  onExtraRoleChange,
-  availableRoles = [],
-}) => {
-  const currentRoleName =
-    user.roles?.find((r) => !r.is_extra)?.name || user.roles?.[0]?.name || "";
-
-  const hasExtraRole = !!user.roles?.some((r) => r.name === EXTRA_ROLE.name);
+export const UserRow = ({ user, isAdmin, onRoleChange, availableRoles = [] }) => {
+  const currentRoleName = user.roles?.[0]?.name || "";
 
   const [editing, setEditing] = useState(false);
   const [selectedRole, setSelectedRole] = useState(currentRoleName);
   const [saving, setSaving] = useState(false);
-  const [savingExtra, setSavingExtra] = useState(false);
 
   useEffect(() => {
     setSelectedRole(currentRoleName);
@@ -38,12 +26,6 @@ export const UserRow = ({
     setEditing(false);
   };
 
-  const handleToggleExtraRole = async () => {
-    setSavingExtra(true);
-    await onExtraRoleChange?.(user.id, EXTRA_ROLE.name, !hasExtraRole);
-    setSavingExtra(false);
-  };
-
   return (
     <div className="flex items-start justify-between rounded-2xl border border-white/10 bg-slate-800/80 px-5 py-4 gap-4">
       <div className="flex flex-col gap-1 min-w-0">
@@ -52,37 +34,15 @@ export const UserRow = ({
           <span className="text-slate-400 text-sm">{user.number || "—"}</span>
         </div>
 
-        <div className="mt-1 flex flex-wrap gap-2">
+        <div className="mt-1">
           <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-blue-500/20 text-blue-300 border border-blue-500/30">
             {currentRoleLabel}
           </span>
-
-          {hasExtraRole ? (
-            <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-sky-500/20 text-sky-300 border border-sky-500/30">
-              {EXTRA_ROLE.label}
-            </span>
-          ) : null}
         </div>
       </div>
 
       {isAdmin && (
         <div className="flex flex-col items-end gap-2 shrink-0">
-          <button
-            onClick={handleToggleExtraRole}
-            disabled={savingExtra}
-            className={`px-3 py-1.5 rounded-xl text-sm transition disabled:opacity-50 disabled:cursor-not-allowed ${
-              hasExtraRole
-                ? "bg-sky-600 hover:bg-sky-500 text-white"
-                : "bg-slate-700 hover:bg-slate-600 text-slate-200"
-            }`}
-          >
-            {savingExtra
-              ? "Сохранение..."
-              : hasExtraRole
-              ? "Забрать согласование"
-              : "Выдать согласование"}
-          </button>
-
           {!editing ? (
             <button
               onClick={() => setEditing(true)}

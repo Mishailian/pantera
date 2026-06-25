@@ -3,7 +3,6 @@ import { useSelector } from "react-redux";
 import {
   useGetUsersQuery,
   useUpdateUserRolesMutation,
-  useUpdateUserExtraRoleMutation,
   useGetRegistrationRolesQuery,
 } from "../../app/api/apiSlice";
 import { UserRow } from "./UserRow";
@@ -15,23 +14,18 @@ export const UserList = () => {
   const { data: users = [], isLoading, isError } = useGetUsersQuery();
   const { data: roles = [] } = useGetRegistrationRolesQuery();
   const [updateUserRoles] = useUpdateUserRolesMutation();
-  const [updateUserExtraRole] = useUpdateUserExtraRoleMutation();
 
   const [numberFilter, setNumberFilter] = useState("");
   const [fullNameFilter, setFullNameFilter] = useState("");
   const [roleFilter, setRoleFilter] = useState("");
 
-  // Основные (отдельские) роли — доп. роли (например director_approval) сюда не входят,
-  // они выдаются отдельным переключателем
   const roleOptions = useMemo(() => {
     const base = [{ value: "", label: "Все роли" }];
 
-    const mappedRoles = roles
-      .filter((role) => !role.is_extra)
-      .map((role) => ({
-        value: role.name,
-        label: role.description || role.name,
-      }));
+    const mappedRoles = roles.map((role) => ({
+      value: role.name,
+      label: role.description || role.name,
+    }));
 
     return isAdmin
       ? [...base, { value: "admin", label: "Администратор" }, ...mappedRoles]
@@ -46,20 +40,11 @@ export const UserList = () => {
     }
   };
 
-  const handleExtraRoleChange = async (userId, role, enabled) => {
-    try {
-      await updateUserExtraRole({ userId, role, enabled }).unwrap();
-    } catch (error) {
-      console.error("Failed to update extra role:", error);
-    }
-  };
-
   const filteredUsers = useMemo(() => {
     return users.filter((user) => {
       const number = (user?.number || "").toLowerCase();
       const fullName = (user?.full_name || "").toLowerCase();
-      const roleName =
-        user?.roles?.find((r) => !r.is_extra)?.name || user?.roles?.[0]?.name || "";
+      const roleName = user?.roles?.[0]?.name || "";
 
       const numberMatches = number.includes(numberFilter.trim().toLowerCase());
       const fullNameMatches = fullName.includes(fullNameFilter.trim().toLowerCase());
@@ -136,7 +121,6 @@ export const UserList = () => {
               user={user}
               isAdmin={isAdmin}
               onRoleChange={handleRoleChange}
-              onExtraRoleChange={handleExtraRoleChange}
               availableRoles={roleOptions.filter((role) => role.value !== "")}
             />
           ))

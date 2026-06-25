@@ -4,14 +4,12 @@ import {
   useGetCurrentUserQuery,
   useUpdateCurrentUserMutation,
   useGetRegistrationRolesQuery,
-  useGetAdminExistsQuery,
 } from "../../app/api/apiSlice";
 import { useEffect, useMemo, useState } from "react";
 
 export const Profile = () => {
   const { data: user, isLoading } = useGetCurrentUserQuery();
   const { data: roles = [], isLoading: rolesLoading } = useGetRegistrationRolesQuery();
-  const { data: adminExistsData } = useGetAdminExistsQuery();
   const [updateUser, { isLoading: isSaving }] = useUpdateCurrentUserMutation();
   const dispatch = useDispatch();
   const authState = useSelector((state) => state.auth);
@@ -22,13 +20,10 @@ export const Profile = () => {
   const [successText, setSuccessText] = useState("");
   const [number, setNumber] = useState("");
 
-  const getPrimaryRoleName = (u) =>
-    u?.roles?.find((r) => !r.is_extra)?.name || u?.roles?.[0]?.name || "";
-
   useEffect(() => {
     if (!user) return;
     setFullName(user.full_name || "");
-    setRoleName(getPrimaryRoleName(user));
+    setRoleName(user.roles?.[0]?.name || "");
     setNumber(user.number || "");
   }, [user]);
 
@@ -50,19 +45,9 @@ export const Profile = () => {
     );
   }
 
-  const currentRoleName = getPrimaryRoleName(user);
-  const currentPrimaryRole = user.roles?.find((r) => !r.is_extra);
+  const currentRoleName = user.roles?.[0]?.name || "";
   const currentRoleLabel =
-    currentPrimaryRole?.description || currentRoleName || "Роль не назначена";
-  const isCurrentlyAdmin = currentRoleName === "admin";
-
-  const availableRoleOptions = roles.filter((role) => {
-    if (role.is_extra) return false;
-    if (role.name === "admin") {
-      return isCurrentlyAdmin || !adminExistsData?.exists;
-    }
-    return true;
-  });
+    user.roles?.[0]?.description || currentRoleName || "Роль не назначена";
 
   const handleSave = async () => {
     setErrorText("");
@@ -95,7 +80,7 @@ export const Profile = () => {
   const handleCancel = () => {
     setEditing(false);
     setFullName(user.full_name || "");
-    setRoleName(getPrimaryRoleName(user));
+    setRoleName(user.roles?.[0]?.name || "");
     setNumber(user.number || ""); // ← добавить эту строку
     setErrorText("");
     setSuccessText("");
@@ -141,12 +126,6 @@ export const Profile = () => {
             <div className="mt-4 inline-flex items-center rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-xs font-medium text-blue-700">
               {currentRoleLabel}
             </div>
-
-            {user.is_director_approval ? (
-              <div className="mt-2 inline-flex items-center rounded-full border border-sky-200 bg-sky-50 px-3 py-1 text-xs font-medium text-sky-700">
-                Согласование (Гендир)
-              </div>
-            ) : null}
           </div>
         </div>
 
@@ -187,16 +166,16 @@ export const Profile = () => {
                 <select
                   value={roleName}
                   onChange={(e) => setRoleName(e.target.value)}
-                  disabled={rolesLoading || !availableRoleOptions.length}
+                  disabled={rolesLoading || !roles.length}
                   className="h-12 w-full rounded-2xl border border-stone-300 bg-white px-4 text-sm text-slate-900 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-500/15"
                 >
-                  {!availableRoleOptions.length ? (
+                  {!roles.length ? (
                     <option value="">
                       {rolesLoading ? "Загрузка ролей..." : "Нет доступных ролей"}
                     </option>
                   ) : null}
 
-                  {availableRoleOptions.map((role) => (
+                  {roles.map((role) => (
                     <option key={role.id} value={role.name}>
                       {role.description || role.name}
                     </option>

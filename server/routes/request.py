@@ -40,14 +40,12 @@ def create_request():
     items = data.get("items", [])
     comment = data.get("comment")
     created_by_id = data.get("created_by_id")
-    on_behalf_role_id = data.get("on_behalf_role_id")
 
     try:
         request_obj = RequestService.create_request(
             items=items,
             comment=comment,
             created_by_id=created_by_id,
-            on_behalf_role_id=on_behalf_role_id,
         )
         return jsonify(serialize_request(request_obj)), 201
     except ValueError as e:

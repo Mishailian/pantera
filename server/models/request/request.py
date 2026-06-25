@@ -23,7 +23,6 @@ class Request(db.Model):
     archived_by_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=True)
     assigned_to_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=True)
     assigned_to_at_archive_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=True)
-    on_behalf_role_id = db.Column(db.Integer, db.ForeignKey("roles.id"), nullable=True)
 
     approved_at = db.Column(db.DateTime, nullable=True)
     closed_at = db.Column(db.DateTime, nullable=True)
@@ -56,12 +55,6 @@ class Request(db.Model):
     assigned_to_at_archive = db.relationship(
         "User",
         foreign_keys=[assigned_to_at_archive_id],
-        lazy="selectin",
-    )
-
-    on_behalf_role = db.relationship(
-        "Role",
-        foreign_keys=[on_behalf_role_id],
         lazy="selectin",
     )
 

@@ -1,7 +1,7 @@
 from models.request.request import Request
 from utils.serializers import serialize_many, serialize_user, serialize_request
 from flask import Blueprint, request, jsonify
-from models.user.role import Role, EXTRA_ROLE_NAMES
+from models.user.role import Role
 from services.auth_service import AuthService
 from utils.serializers import serialize_many, serialize_user
 from extensions import db
@@ -52,43 +52,7 @@ def update_user_role(user_id):
         return jsonify({"error": str(e)}), 403
     except ValueError as e:
         return jsonify({"error": str(e)}), 400
-
-
-# PATCH /api/v1/users/<id>/extra-roles — выдать/забрать доп. роль (только admin)
-@users_bp.patch("/<int:user_id>/extra-roles")
-def update_user_extra_role(user_id):
-    data = request.get_json() or {}
-    role_name = data.get("role")
-    enabled = bool(data.get("enabled"))
-
-    if not role_name:
-        return jsonify({"error": "role is required"}), 400
-
-    auth_header = request.headers.get("Authorization")
-    if not auth_header or not auth_header.startswith("Token "):
-        return jsonify({"error": "Authorization required"}), 401
-
-    token = auth_header.replace("Token ", "").strip()
-    actor = AuthService.get_user_by_token(token)
-
-    if not actor:
-        return jsonify({"error": "Invalid token"}), 401
-
-    try:
-        updated_user = AuthService.set_extra_role(actor, user_id, role_name, enabled)
-        return jsonify(serialize_user(updated_user)), 200
-    except PermissionError as e:
-        return jsonify({"error": str(e)}), 403
-    except ValueError as e:
-        return jsonify({"error": str(e)}), 400
-
-
-# GET /api/v1/users/admin-exists — есть ли в системе хоть один admin
-@users_bp.get("/admin-exists")
-def admin_exists():
-    return jsonify({"exists": AuthService.admin_exists()}), 200
-
-
+    
 # GET /api/v1/users/me — текущий профиль
 @users_bp.get("/me")
 def get_current_user():
@@ -115,12 +79,8 @@ def update_current_user():
     if not actor:
         return jsonify({"error": "Invalid token"}), 401
 
-    current_primary_role = next(
-        (r for r in actor.roles if r.name not in EXTRA_ROLE_NAMES), None
-    )
-
     current_full_name = (actor.full_name or "").strip()
-    current_role_name = current_primary_role.name if current_primary_role else ""
+    current_role_name = actor.roles[0].name if actor.roles else ""
     current_number = (actor.number or "").strip()
 
 
@@ -147,19 +107,14 @@ def update_current_user():
         increment_stat(actor.id, "phone_changes")
 
     if has_role_change:
-        if new_role_name == "admin" and AuthService.admin_exists(exclude_user_id=actor.id):
-            return jsonify({"error": "Роль администратора уже назначена"}), 400
+        if new_role_name == "admin":
+            return jsonify({"error": "Нельзя назначить себе роль admin"}), 400
 
         role = Role.query.filter_by(name=new_role_name).first()
         if not role:
             return jsonify({"error": f"Role '{new_role_name}' not found"}), 400
 
-        if role.name in EXTRA_ROLE_NAMES:
-            return jsonify({"error": "Эту роль может выдать только администратор"}), 400
-
-        # Основная роль заменяется, доп. роли (например director_approval) сохраняются
-        extra_roles = [r for r in actor.roles if r.name in EXTRA_ROLE_NAMES]
-        actor.roles = extra_roles + [role]
+        actor.roles = [role]
 
     db.session.commit()
 

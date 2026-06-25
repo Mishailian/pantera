@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useSelector } from "react-redux";
-import { useAddPostMutation, useGetRolesQuery } from "../../app/api/apiSlice";
+import { useAddPostMutation } from "../../app/api/apiSlice";
 import { docxCreator } from "../../../docx/docx_creator";
 
 const UNIT_OPTIONS = ["мм", "см", "м", "кг", "шт", "комп", "упак", "компл"];
@@ -40,7 +40,7 @@ const createEmptyRow = (id, prevRow = null, shouldRepeat = false) => ({
   about: shouldRepeat && prevRow ? prevRow.about ?? "" : "",
 });
 
-const mapRowsToRequestPayload = (rows, currentUserId, onBehalfRoleId) => {
+const mapRowsToRequestPayload = (rows, currentUserId) => {
   const items = rows
     .filter((row) => {
       const hasTitle = row?.title && String(row.title).trim() !== "";
@@ -59,7 +59,6 @@ const mapRowsToRequestPayload = (rows, currentUserId, onBehalfRoleId) => {
   return {
     comment: "",
     created_by_id: currentUserId ?? null,
-    on_behalf_role_id: onBehalfRoleId ? Number(onBehalfRoleId) : null,
     items,
   };
 };
@@ -231,23 +230,8 @@ const SignersModal = ({
 
 export const AddPost = () => {
   const authUserId = useSelector((state) => state.auth.username_id);
-  const currentUserRoles = useSelector((state) => state.auth.roles || []);
-  const isAdmin = currentUserRoles.some(
-    (role) => (typeof role === "string" ? role : role?.name) === "admin"
-  );
-
   const [addPost, { isLoading }] = useAddPostMutation();
-  const { data: allRoles = [], isLoading: isRolesLoading } = useGetRolesQuery(undefined, {
-    skip: !isAdmin,
-  });
-
-  const departmentOptions = useMemo(
-    () => allRoles.filter((role) => role.name !== "admin" && !role.is_extra),
-    [allRoles]
-  );
-
   const [purpose, setPurpose] = useState("");
-  const [onBehalfRoleId, setOnBehalfRoleId] = useState("");
 
   const [repeatNext, setRepeatNext] = useState(false);
   const [rows, setRows] = useState([createEmptyRow(1)]);
@@ -286,12 +270,7 @@ export const AddPost = () => {
   };
 
   const handleCreatePost = async () => {
-    if (isAdmin && !onBehalfRoleId) {
-      alert("Выберите отдел, от имени которого формируется заявка.");
-      return;
-    }
-
-    const payload = mapRowsToRequestPayload(rows, authUserId, onBehalfRoleId);
+    const payload = mapRowsToRequestPayload(rows, authUserId);
     payload.comment = purpose;
 
     if (!payload.items.length) {
@@ -316,7 +295,6 @@ export const AddPost = () => {
       setRows([createEmptyRow(1)]);
       setSelectedSigners([]);
       setPurpose("");
-      setOnBehalfRoleId("");
       alert("Заявка успешно создана.");
     } catch (error) {
       console.error(error);
@@ -331,31 +309,6 @@ export const AddPost = () => {
           <h1 className="mb-8 text-4xl font-bold tracking-tight text-slate-900 md:text-5xl">
             Служебная записка
           </h1>
-
-          {isAdmin ? (
-            <div className="mb-8 rounded-3xl border border-amber-200 bg-amber-50/60 p-6">
-              <label className="block">
-                <span className="mb-3 block text-sm font-bold uppercase tracking-[0.1em] text-amber-900">
-                  Отдел, от имени которого формируется заявка *
-                </span>
-                <select
-                  value={onBehalfRoleId}
-                  onChange={(e) => setOnBehalfRoleId(e.target.value)}
-                  disabled={isRolesLoading || !departmentOptions.length}
-                  className="h-12 w-full rounded-2xl border border-amber-300 bg-white px-4 text-sm text-slate-800 shadow-sm outline-none transition focus:border-amber-500 focus:ring-4 focus:ring-amber-500/10"
-                >
-                  <option value="">
-                    {isRolesLoading ? "Загрузка отделов..." : "Выберите отдел"}
-                  </option>
-                  {departmentOptions.map((role) => (
-                    <option key={role.id} value={role.id}>
-                      {role.description || role.name}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            </div>
-          ) : null}
 
           <div className="mb-8 rounded-3xl border border-slate-200 bg-indigo-50/50 p-6">
             <label className="block">
@@ -517,7 +470,7 @@ export const AddPost = () => {
               <button
                 type="button"
                 data-testid="AddPostSubmite"
-                disabled={isLoading || (isAdmin && !onBehalfRoleId)}
+                disabled={isLoading}
                 onClick={handleCreatePost}
                 className="inline-flex items-center justify-center rounded-2xl bg-indigo-600 px-6 py-3 text-sm font-semibold text-white shadow-md transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-60"
               >
