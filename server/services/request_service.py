@@ -14,6 +14,7 @@ class RequestService:
 
     VALID_STATUSES = {"undeclared", "active", "archived"}
     VALID_ITEM_STATUSES = {"in_progress", "done", "rejected", "on_payment"}
+    BUSINESS_ITEM_FIELDS = {"name", "unit", "quantity", "description", "deadline"}
 
     @staticmethod
     def _calculate_page(page: int):
@@ -123,6 +124,9 @@ class RequestService:
         if not request_obj:
             return None
 
+        if "comment" in kwargs and request_obj.status != "undeclared":
+            raise ValueError("Редактировать заявку можно только пока она без подписи")
+
         allowed_fields = {"comment", "assigned_to_id"}
         for key, value in kwargs.items():
             if key in allowed_fields:
@@ -131,6 +135,9 @@ class RequestService:
                     if not user:
                         raise ValueError("assigned user not found")
                 setattr(request_obj, key, value)
+
+        if "comment" in kwargs:
+            request_obj.is_edited = True
 
         db.session.commit()
         return request_obj
@@ -197,6 +204,10 @@ class RequestService:
         if request_obj and request_obj.status == "archived":
             raise ValueError("Archived request items cannot be changed")
 
+        touches_business_fields = bool(RequestService.BUSINESS_ITEM_FIELDS & set(kwargs.keys()))
+        if touches_business_fields and request_obj and request_obj.status != "undeclared":
+            raise ValueError("Редактировать содержимое заявки можно только пока она без подписи")
+
         allowed_fields = {
             "name",
             "unit",
@@ -231,6 +242,9 @@ class RequestService:
         for key, value in kwargs.items():
             if key in allowed_fields:
                 setattr(item, key, value)
+
+        if touches_business_fields and request_obj:
+            request_obj.is_edited = True
 
         db.session.commit()
 

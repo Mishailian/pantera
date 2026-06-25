@@ -10,6 +10,7 @@ from routes.tags import tags_bp
 from routes.users import users_bp
 from routes.request import requests_bp
 from routes.roles import roles_bp
+from routes.templates import templates_bp
 from errors.handlers import register_error_handlers
 from utils.logger import setup_logger
 
@@ -132,6 +133,40 @@ def _ensure_user_stats_table(app):
         app.logger.error(f"Error creating user_stats table: {e}")
 
 
+def _ensure_request_templates_table(app):
+    """Создаёт таблицу request_templates если её ещё нет."""
+    try:
+        from sqlalchemy import inspect
+        inspector = inspect(db.engine)
+        if "request_templates" not in inspector.get_table_names():
+            from models.request.requestTemplate import RequestTemplate
+            RequestTemplate.__table__.create(db.engine)
+    except Exception as e:
+        db.session.rollback()
+        app.logger.error(f"Error creating request_templates table: {e}")
+
+
+def _ensure_request_is_edited_column(app):
+    try:
+        from sqlalchemy import inspect, text
+
+        inspector = inspect(db.engine)
+        if "requests" not in inspector.get_table_names():
+            return
+
+        columns = {col["name"] for col in inspector.get_columns("requests")}
+
+        if "is_edited" not in columns:
+            db.session.execute(text("""
+                ALTER TABLE requests
+                ADD COLUMN IF NOT EXISTS is_edited BOOLEAN NOT NULL DEFAULT FALSE
+            """))
+            db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        app.logger.error(f"Error updating requests table: {e}")
+
+
 def _ensure_request_item_assigned_to_column(app):
     try:
         from sqlalchemy import inspect, text
@@ -174,6 +209,7 @@ def create_app(config_class=Config):
     app.register_blueprint(tags_bp, url_prefix="/api/v1/tags")
     app.register_blueprint(requests_bp, url_prefix="/api/v1/requests")
     app.register_blueprint(roles_bp, url_prefix="/api/v1/roles")
+    app.register_blueprint(templates_bp, url_prefix="/api/v1/templates")
 
     register_error_handlers(app)
 
@@ -188,7 +224,9 @@ def create_app(config_class=Config):
         _migrate_remove_username_clean_db(app)
         _ensure_request_item_work_status(app)
         _ensure_request_item_assigned_to_column(app)
+        _ensure_request_is_edited_column(app)
         _ensure_user_stats_table(app)
+        _ensure_request_templates_table(app)
         from models.user.role import seed_roles
         seed_roles()
 

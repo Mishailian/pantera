@@ -83,6 +83,20 @@ def serialize_request_item(item):
     }
 
 
+def serialize_request_template(template):
+    items = template.items or []
+    return {
+        "id": template.id,
+        "user_id": template.user_id,
+        "comment": template.comment,
+        "items": items,
+        "items_count": len(items),
+        "signers": template.signers or [],
+        "created_at": template.created_at.isoformat() if template.created_at else None,
+        "created_at_formatted": format_datetime_ekb(template.created_at),
+    }
+
+
 def serialize_request(request_obj):
     items = [serialize_request_item(item) for item in request_obj.items]
 
@@ -98,6 +112,7 @@ def serialize_request(request_obj):
         "id": request_obj.id,
         "status": request_obj.status,
         "comment": request_obj.comment,
+        "is_edited": bool(getattr(request_obj, "is_edited", False)),
         "created_by_id": request_obj.created_by_id,
         "approved_by_id": request_obj.approved_by_id,
         "archived_by_id": getattr(request_obj, "archived_by_id", None),

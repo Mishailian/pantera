@@ -6,6 +6,7 @@ from .tag.tag_post import Tag_post
 from .request.request import Request
 from .request.requestItem import RequestItem
 from .request.requestStatusHistory import RequestStatusHistory
+from .request.requestTemplate import RequestTemplate
 
 from .stats.user_stats import UserStats
 
@@ -17,5 +18,6 @@ __all__ = [
     "Request",
     "RequestItem",
     "RequestStatusHistory",
+    "RequestTemplate",
     "UserStats",
 ]

@@ -34,6 +34,12 @@ export const UniversalSinglePost = () => {
   const postObject = useGetPostQuery({ postId });
   const [declarePost] = useDeclaredPostMutation();
 
+  // Владелец заявки может редактировать её содержимое, пока она без подписи
+  const canEditOwn =
+    mode === "my-requests" &&
+    postObject?.data?.status === "undeclared" &&
+    postObject?.data?.created_by_id === currentUserId;
+
   const handleApprove = async () => {
     try {
       await declarePost({
@@ -59,6 +65,7 @@ export const UniversalSinglePost = () => {
         // Если мы НЕ в истории личных заявок, значит мы смотрим заявку с полными правами
         canManage: mode !== "my-requests",
         isSupplyManager,
+        canEditOwn,
       },
     },
     (data) => {

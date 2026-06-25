@@ -29,7 +29,7 @@ export const apiSlice = createApi({
   refetchOnFocus: true,
   refetchOnReconnect: true,
   keepUnusedDataFor: 5,
-  tagTypes: ["REQUESTS", "REQUEST", "USERS", "USER", "TAGS", "AUTH", "ROLES", "PROFILE_HISTORY"],
+  tagTypes: ["REQUESTS", "REQUEST", "USERS", "USER", "TAGS", "AUTH", "ROLES", "PROFILE_HISTORY", "TEMPLATES"],
   endpoints: (builder) => ({
     login: builder.mutation({
       invalidatesTags: ["AUTH"],
@@ -409,6 +409,31 @@ export const apiSlice = createApi({
         body: initialState,
       }),
     }),
+
+    getTemplates: builder.query({
+      providesTags: ["TEMPLATES"],
+      query: () => ({
+        url: "/templates/",
+        method: "GET",
+      }),
+    }),
+
+    addTemplate: builder.mutation({
+      invalidatesTags: ["TEMPLATES"],
+      query: (payload) => ({
+        url: "/templates/",
+        method: "POST",
+        body: payload,
+      }),
+    }),
+
+    deleteTemplate: builder.mutation({
+      invalidatesTags: ["TEMPLATES"],
+      query: (templateId) => ({
+        url: `/templates/${templateId}`,
+        method: "DELETE",
+      }),
+    }),
   }),
 });
 
@@ -465,4 +490,8 @@ export const {
   useDeleteUndeclaredPostMutation,
   useGetMyRequestsQuery,
   useAddPostMutation,
+
+  useGetTemplatesQuery,
+  useAddTemplateMutation,
+  useDeleteTemplateMutation,
 } = apiSlice;

@@ -1,5 +1,9 @@
-import React, { useMemo } from "react";
-import { useUpdateRequestItemMutation, useGetUsersQuery } from "../app/api/apiSlice";
+import React, { useMemo, useState } from "react";
+import {
+  useUpdateRequestItemMutation,
+  useUpdateRequestMutation,
+  useGetUsersQuery,
+} from "../app/api/apiSlice";
 import { ExpandableText } from "./ExpandableText";
 
 const STATUS_META = {
@@ -72,11 +76,14 @@ const getPlannedDate = (item) => {
 export const SinglePostBlock = ({ data, onApprove }) => {
   const [updateRequestItem, { isLoading: isUpdating }] =
     useUpdateRequestItemMutation();
+  const [updateRequest] = useUpdateRequestMutation();
 
   const {
     id,
+    postId,
     status,
     comment,
+    is_edited,
     created_by_user,
     approved_by_user,
     archived_by_user,
@@ -91,6 +98,7 @@ export const SinglePostBlock = ({ data, onApprove }) => {
     items_count,
     mode = "active",
     canManage = false,
+    canEditOwn = false,
     isAdmin = false,
     isSupplyManager = false,
   } = data || {};
@@ -102,6 +110,79 @@ export const SinglePostBlock = ({ data, onApprove }) => {
     () => users.filter((u) => u?.roles?.some((r) => r?.name === "supply_manager")),
     [users]
   );
+
+  const [isEditing, setIsEditing] = useState(false);
+  const [isSavingEdits, setIsSavingEdits] = useState(false);
+  const [editComment, setEditComment] = useState("");
+  const [editItems, setEditItems] = useState([]);
+
+  const startEditing = () => {
+    setEditComment(comment || "");
+    setEditItems(
+      [...(items || [])]
+        .sort((a, b) => a.id - b.id)
+        .map((item) => ({
+          id: item.id,
+          name: item.name || "",
+          unit: item.unit || "",
+          quantity: item.quantity ?? 0,
+          deadline: item.deadline || "",
+          description: item.description || "",
+        }))
+    );
+    setIsEditing(true);
+  };
+
+  const cancelEditing = () => {
+    setIsEditing(false);
+  };
+
+  const updateEditItem = (itemId, field, value) => {
+    setEditItems((prev) =>
+      prev.map((it) => (it.id === itemId ? { ...it, [field]: value } : it))
+    );
+  };
+
+  const handleSaveEdits = async () => {
+    const hasInvalid = editItems.some(
+      (it) =>
+        !String(it.name).trim() ||
+        !String(it.unit).trim() ||
+        Number(it.quantity) <= 0
+    );
+
+    if (hasInvalid) {
+      alert(
+        "У каждого пункта должно быть заполнено наименование, единица измерения и количество больше нуля."
+      );
+      return;
+    }
+
+    setIsSavingEdits(true);
+    try {
+      await updateRequest({ requestId: postId ?? id, comment: editComment }).unwrap();
+
+      await Promise.all(
+        editItems.map((it) =>
+          updateRequestItem({
+            itemId: it.id,
+            name: String(it.name).trim(),
+            unit: String(it.unit).trim(),
+            quantity: Number(it.quantity),
+            description: it.description ? String(it.description).trim() : "",
+            deadline: it.deadline || null,
+          }).unwrap()
+        )
+      );
+
+      setIsEditing(false);
+    } catch (error) {
+      console.error("Failed to save request edits:", error);
+      alert(error?.data?.error || "Не удалось сохранить изменения.");
+    } finally {
+      setIsSavingEdits(false);
+    }
+  };
 
   const statusKey = STATUS_META[status] ? status : "undeclared";
   const statusMeta = STATUS_META[statusKey];
@@ -148,6 +229,12 @@ export const SinglePostBlock = ({ data, onApprove }) => {
                 >
                   {statusMeta.label}
                 </div>
+
+                {is_edited ? (
+                  <div className="inline-flex items-center rounded-full bg-orange-50 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-orange-700 ring-1 ring-orange-200">
+                    Отредактирована
+                  </div>
+                ) : null}
 
                 {mode === "archived" ? (
                   <div className="inline-flex items-center rounded-full bg-slate-900 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-white">
@@ -284,7 +371,21 @@ export const SinglePostBlock = ({ data, onApprove }) => {
             </div>
           )}
 
-          {comment && comment.trim() ? (
+          {isEditing && canEditOwn ? (
+            <div className="mt-4 rounded-2xl border border-indigo-100 bg-indigo-50/50 p-5">
+              <p className="text-xs font-bold uppercase tracking-wide text-indigo-800">
+                Цель покупки
+              </p>
+
+              <textarea
+                value={editComment}
+                onChange={(e) => setEditComment(e.target.value)}
+                rows={3}
+                placeholder="Опишите цель покупки"
+                className="mt-3 w-full resize-none rounded-xl border border-indigo-200 bg-white px-4 py-3 text-sm text-slate-800 outline-none transition focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10"
+              />
+            </div>
+          ) : comment && comment.trim() ? (
             <div className="mt-4 rounded-2xl border border-indigo-100 bg-indigo-50/50 p-5">
               <p className="text-xs font-bold uppercase tracking-wide text-indigo-800">
                 Цель покупки
@@ -296,6 +397,39 @@ export const SinglePostBlock = ({ data, onApprove }) => {
                 className="mt-3 w-full"
                 textClassName="w-full whitespace-pre-wrap break-words text-sm leading-7 text-slate-800"
               />
+            </div>
+          ) : null}
+
+          {canEditOwn ? (
+            <div className="mt-4 flex justify-end gap-3">
+              {isEditing ? (
+                <>
+                  <button
+                    type="button"
+                    onClick={cancelEditing}
+                    disabled={isSavingEdits}
+                    className="inline-flex h-11 items-center justify-center rounded-xl border border-slate-200 bg-white px-5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    Отмена
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleSaveEdits}
+                    disabled={isSavingEdits}
+                    className="inline-flex h-11 items-center justify-center rounded-xl bg-indigo-600 px-5 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    {isSavingEdits ? "Сохранение..." : "Сохранить изменения"}
+                  </button>
+                </>
+              ) : (
+                <button
+                  type="button"
+                  onClick={startEditing}
+                  className="inline-flex h-11 items-center justify-center rounded-xl bg-blue-600 px-6 text-sm font-bold text-white shadow-md transition hover:bg-blue-700"
+                >
+                  Редактировать
+                </button>
+              )}
             </div>
           ) : null}
 
@@ -334,6 +468,11 @@ export const SinglePostBlock = ({ data, onApprove }) => {
 
                   const plannedDate = getPlannedDate(item);
 
+                  const editItem =
+                    isEditing && canEditOwn
+                      ? editItems.find((it) => it.id === item.id)
+                      : null;
+
                   return (
                     <div
                       key={item.id || index}
@@ -344,36 +483,74 @@ export const SinglePostBlock = ({ data, onApprove }) => {
                           <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
                             Наименование
                           </p>
-                          <p className="mt-2 text-base font-semibold text-slate-900 break-words whitespace-normal">
-                            {item.name}
-                          </p>
+                          {editItem ? (
+                            <input
+                              type="text"
+                              value={editItem.name}
+                              onChange={(e) => updateEditItem(item.id, "name", e.target.value)}
+                              className="mt-2 h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-indigo-500"
+                            />
+                          ) : (
+                            <p className="mt-2 text-base font-semibold text-slate-900 break-words whitespace-normal">
+                              {item.name}
+                            </p>
+                          )}
                         </div>
 
                         <div className="min-w-0">
                           <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
                             Ед. изм.
                           </p>
-                          <p className="mt-2 text-sm font-semibold text-slate-800 break-words whitespace-normal">
-                            {item.unit}
-                          </p>
+                          {editItem ? (
+                            <input
+                              type="text"
+                              value={editItem.unit}
+                              onChange={(e) => updateEditItem(item.id, "unit", e.target.value)}
+                              className="mt-2 h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-indigo-500"
+                            />
+                          ) : (
+                            <p className="mt-2 text-sm font-semibold text-slate-800 break-words whitespace-normal">
+                              {item.unit}
+                            </p>
+                          )}
                         </div>
 
                         <div className="min-w-0">
                           <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
                             Количество
                           </p>
-                          <p className="mt-2 text-sm font-semibold text-slate-800">
-                            {item.quantity}
-                          </p>
+                          {editItem ? (
+                            <input
+                              type="number"
+                              min="0"
+                              step="1"
+                              value={editItem.quantity}
+                              onChange={(e) => updateEditItem(item.id, "quantity", e.target.value)}
+                              className="mt-2 h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-indigo-500"
+                            />
+                          ) : (
+                            <p className="mt-2 text-sm font-semibold text-slate-800">
+                              {item.quantity}
+                            </p>
+                          )}
                         </div>
 
                         <div className="min-w-0">
                           <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
                             Планируемый срок
                           </p>
-                          <p className="mt-2 text-sm font-semibold text-slate-800">
-                            {plannedDate}
-                          </p>
+                          {editItem ? (
+                            <input
+                              type="date"
+                              value={editItem.deadline || ""}
+                              onChange={(e) => updateEditItem(item.id, "deadline", e.target.value)}
+                              className="mt-2 h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-indigo-500"
+                            />
+                          ) : (
+                            <p className="mt-2 text-sm font-semibold text-slate-800">
+                              {plannedDate}
+                            </p>
+                          )}
                         </div>
 
                         <div className="flex flex-col justify-start min-w-0">
@@ -434,7 +611,20 @@ export const SinglePostBlock = ({ data, onApprove }) => {
                         </div>
                       </div>
 
-                      {item.description && item.description.trim() ? (
+                      {editItem ? (
+                        <div className="mt-4 rounded-xl border border-slate-100 bg-slate-50 px-4 py-4">
+                          <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+                            Комментарий
+                          </p>
+                          <textarea
+                            value={editItem.description}
+                            onChange={(e) => updateEditItem(item.id, "description", e.target.value)}
+                            rows={2}
+                            placeholder="Дополнительная информация"
+                            className="mt-2 w-full resize-none rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 outline-none transition focus:border-indigo-500"
+                          />
+                        </div>
+                      ) : item.description && item.description.trim() ? (
                         <div className="mt-4 rounded-xl border border-slate-100 bg-slate-50 px-4 py-4">
                           <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
                             Комментарий

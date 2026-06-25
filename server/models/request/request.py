@@ -9,6 +9,7 @@ class Request(db.Model):
 
     status = db.Column(db.String(32), nullable=False, default="undeclared", index=True)
     comment = db.Column(db.Text, nullable=True)
+    is_edited = db.Column(db.Boolean, nullable=False, default=False)
 
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     updated_at = db.Column(

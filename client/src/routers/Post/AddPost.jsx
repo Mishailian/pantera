@@ -1,6 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useSelector } from "react-redux";
-import { useAddPostMutation } from "../../app/api/apiSlice";
+import {
+  useAddPostMutation,
+  useGetTemplatesQuery,
+  useAddTemplateMutation,
+  useDeleteTemplateMutation,
+} from "../../app/api/apiSlice";
 import { docxCreator } from "../../../docx/docx_creator";
 
 const UNIT_OPTIONS = ["мм", "см", "м", "кг", "шт", "комп", "упак", "компл"];
@@ -40,8 +45,8 @@ const createEmptyRow = (id, prevRow = null, shouldRepeat = false) => ({
   about: shouldRepeat && prevRow ? prevRow.about ?? "" : "",
 });
 
-const mapRowsToRequestPayload = (rows, currentUserId) => {
-  const items = rows
+const mapRowsToItems = (rows) =>
+  rows
     .filter((row) => {
       const hasTitle = row?.title && String(row.title).trim() !== "";
       const hasUnit = row?.units && String(row.units).trim() !== "";
@@ -56,12 +61,21 @@ const mapRowsToRequestPayload = (rows, currentUserId) => {
       deadline: row?.deadline ? String(row.deadline).trim() : null,
     }));
 
-  return {
-    comment: "",
-    created_by_id: currentUserId ?? null,
-    items,
-  };
-};
+const mapRowsToRequestPayload = (rows, currentUserId) => ({
+  comment: "",
+  created_by_id: currentUserId ?? null,
+  items: mapRowsToItems(rows),
+});
+
+const mapTemplateItemsToRows = (items) =>
+  (Array.isArray(items) ? items : []).map((item, index) => ({
+    id: index + 1,
+    title: item?.name ?? "",
+    units: item?.unit ?? "",
+    quantity: item?.quantity ?? 0,
+    deadline: item?.deadline ?? "",
+    about: item?.description ?? "",
+  }));
 
 const UnitField = ({ value, onChange }) => {
   const [open, setOpen] = useState(false);
@@ -227,6 +241,89 @@ const SignersModal = ({
   );
 };
 
+const TemplatesModal = ({ open, onClose, templates, isLoading, onSelect, onDelete }) => {
+  if (!open) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 px-4 py-6">
+      <div className="flex max-h-[85vh] w-full max-w-lg flex-col overflow-hidden rounded-3xl bg-white shadow-2xl">
+        <div className="mb-4 flex items-start justify-between gap-4 border-b border-slate-100 px-6 pt-6 pb-4">
+          <div>
+            <h2 className="text-xl font-bold text-slate-900">Мои шаблоны</h2>
+            <p className="mt-1 text-sm text-slate-500">
+              Выберите шаблон, чтобы заполнить заявку — после этого всё можно отредактировать.
+            </p>
+          </div>
+
+          <button
+            type="button"
+            onClick={onClose}
+            className="flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 text-slate-500 transition hover:bg-slate-50"
+          >
+            ✕
+          </button>
+        </div>
+
+        <div className="flex-1 overflow-y-auto px-6 py-2">
+          {isLoading ? (
+            <div className="py-8 text-center text-sm text-slate-400">Загрузка шаблонов...</div>
+          ) : templates.length ? (
+            <div className="space-y-3 pb-2">
+              {templates.map((tpl) => (
+                <div
+                  key={tpl.id}
+                  className="flex items-start justify-between gap-3 rounded-2xl border border-slate-200 px-4 py-3"
+                >
+                  <div className="min-w-0">
+                    <div className="truncate text-sm font-semibold text-slate-800">
+                      {tpl.comment?.trim() ? tpl.comment.trim() : "Без цели покупки"}
+                    </div>
+                    <div className="mt-1 text-xs text-slate-500">
+                      {tpl.items_count} позиций · {tpl.created_at_formatted || ""}
+                    </div>
+                  </div>
+
+                  <div className="flex shrink-0 items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => onSelect(tpl)}
+                      className="inline-flex items-center justify-center rounded-xl bg-indigo-600 px-4 py-2 text-xs font-semibold text-white transition hover:bg-indigo-700"
+                    >
+                      Выбрать
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => onDelete(tpl.id)}
+                      title="Удалить шаблон"
+                      className="flex h-8 w-8 items-center justify-center rounded-xl border border-rose-100 bg-rose-50 text-rose-600 transition hover:bg-rose-100"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="py-8 text-center text-sm text-slate-400">
+              Пока нет сохранённых шаблонов.
+            </div>
+          )}
+        </div>
+
+        <div className="mt-2 flex justify-end border-t border-slate-100 px-6 pt-4 pb-6">
+          <button
+            type="button"
+            onClick={onClose}
+            className="inline-flex items-center justify-center rounded-2xl border border-slate-200 px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+          >
+            Назад
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 
 export const AddPost = () => {
   const authUserId = useSelector((state) => state.auth.username_id);
@@ -237,6 +334,15 @@ export const AddPost = () => {
   const [rows, setRows] = useState([createEmptyRow(1)]);
   const [signersOpen, setSignersOpen] = useState(false);
   const [selectedSigners, setSelectedSigners] = useState([]);
+
+  const [templatesOpen, setTemplatesOpen] = useState(false);
+  const [isSavingTemplate, setIsSavingTemplate] = useState(false);
+  const { data: templates = [], isLoading: isTemplatesLoading } = useGetTemplatesQuery(
+    undefined,
+    { skip: !templatesOpen }
+  );
+  const [addTemplate] = useAddTemplateMutation();
+  const [deleteTemplate] = useDeleteTemplateMutation();
 
   const updateRow = (id, field, value) => {
     setRows((prev) =>
@@ -299,6 +405,51 @@ export const AddPost = () => {
     } catch (error) {
       console.error(error);
       alert(error?.data?.error || "Не удалось создать заявку.");
+    }
+  };
+
+  const handleSaveTemplate = async () => {
+    const items = mapRowsToItems(rows);
+
+    if (!items.length && !purpose.trim() && !selectedSigners.length) {
+      alert("Нечего сохранять — заполните хотя бы одно поле заявки.");
+      return;
+    }
+
+    setIsSavingTemplate(true);
+    try {
+      await addTemplate({
+        comment: purpose,
+        items,
+        signers: selectedSigners,
+      }).unwrap();
+      alert("Шаблон сохранён.");
+    } catch (error) {
+      console.error(error);
+      alert(error?.data?.error || "Не удалось сохранить шаблон.");
+    } finally {
+      setIsSavingTemplate(false);
+    }
+  };
+
+  const handleSelectTemplate = (template) => {
+    setRows(
+      mapTemplateItemsToRows(template.items).length
+        ? mapTemplateItemsToRows(template.items)
+        : [createEmptyRow(1)]
+    );
+    setPurpose(template.comment || "");
+    setSelectedSigners(template.signers || []);
+    setTemplatesOpen(false);
+  };
+
+  const handleDeleteTemplate = async (templateId) => {
+    if (!confirm("Удалить этот шаблон?")) return;
+    try {
+      await deleteTemplate(templateId).unwrap();
+    } catch (error) {
+      console.error(error);
+      alert("Не удалось удалить шаблон.");
     }
   };
 
@@ -461,6 +612,23 @@ export const AddPost = () => {
             <div className="flex flex-col gap-3 sm:flex-row">
               <button
                 type="button"
+                onClick={() => setTemplatesOpen(true)}
+                className="inline-flex items-center justify-center rounded-2xl border border-slate-300 bg-white px-6 py-3 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-100"
+              >
+                Шаблоны
+              </button>
+
+              <button
+                type="button"
+                disabled={isSavingTemplate}
+                onClick={handleSaveTemplate}
+                className="inline-flex items-center justify-center rounded-2xl border border-slate-300 bg-white px-6 py-3 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {isSavingTemplate ? "Сохранение..." : "Сохранить шаблон"}
+              </button>
+
+              <button
+                type="button"
                 onClick={addRow}
                 className="inline-flex items-center justify-center rounded-2xl bg-emerald-500 px-6 py-3 text-sm font-semibold text-white shadow-md transition hover:bg-emerald-600"
               >
@@ -487,6 +655,15 @@ export const AddPost = () => {
         selectedSigners={selectedSigners}
         onToggleSigner={toggleSigner}
         onReset={() => setSelectedSigners([])}
+      />
+
+      <TemplatesModal
+        open={templatesOpen}
+        onClose={() => setTemplatesOpen(false)}
+        templates={templates}
+        isLoading={isTemplatesLoading}
+        onSelect={handleSelectTemplate}
+        onDelete={handleDeleteTemplate}
       />
     </>
   );
