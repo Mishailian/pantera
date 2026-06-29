@@ -478,166 +478,203 @@ export const SinglePostBlock = ({ data, onApprove }) => {
                       key={item.id || index}
                       className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"
                     >
-                      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1.2fr)_minmax(0,1.5fr)_minmax(0,1.5fr)] xl:items-start">
-                        <div className="min-w-0">
-                          <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
-                            Наименование
-                          </p>
-                          {editItem ? (
-                            <input
-                              type="text"
-                              value={editItem.name}
-                              onChange={(e) => updateEditItem(item.id, "name", e.target.value)}
-                              className="mt-2 h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-indigo-500"
-                            />
-                          ) : (
-                            <p className="mt-2 text-base font-semibold text-slate-900 break-words whitespace-normal">
-                              {item.name}
-                            </p>
-                          )}
-                        </div>
-
-                        <div className="min-w-0">
-                          <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
-                            Ед. изм.
-                          </p>
-                          {editItem ? (
-                            <input
-                              type="text"
-                              value={editItem.unit}
-                              onChange={(e) => updateEditItem(item.id, "unit", e.target.value)}
-                              className="mt-2 h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-indigo-500"
-                            />
-                          ) : (
-                            <p className="mt-2 text-sm font-semibold text-slate-800 break-words whitespace-normal">
-                              {item.unit}
-                            </p>
-                          )}
-                        </div>
-
-                        <div className="min-w-0">
-                          <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
-                            Количество
-                          </p>
-                          {editItem ? (
-                            <input
-                              type="number"
-                              min="0"
-                              step="1"
-                              value={editItem.quantity}
-                              onChange={(e) => updateEditItem(item.id, "quantity", e.target.value)}
-                              className="mt-2 h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-indigo-500"
-                            />
-                          ) : (
-                            <p className="mt-2 text-sm font-semibold text-slate-800">
-                              {item.quantity}
-                            </p>
-                          )}
-                        </div>
-
-                        <div className="min-w-0">
-                          <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
-                            Планируемый срок
-                          </p>
-                          {editItem ? (
-                            <input
-                              type="date"
-                              value={editItem.deadline || ""}
-                              onChange={(e) => updateEditItem(item.id, "deadline", e.target.value)}
-                              className="mt-2 h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-indigo-500"
-                            />
-                          ) : (
-                            <p className="mt-2 text-sm font-semibold text-slate-800">
-                              {plannedDate}
-                            </p>
-                          )}
-                        </div>
-
-                        <div className="flex flex-col justify-start min-w-0">
-                          <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
-                            Статус пункта
-                          </p>
-
-                          <div className="mt-2">
-                            {canManage && (mode === "active" || mode === "undeclared") ? (
-                              <select
-                                disabled={isUpdating}
-                                value={currentStatus}
-                                onChange={(e) =>
-                                  handleItemStatusChange(item.id, e.target.value)
-                                }
-                                className={`h-8 w-full min-w-[130px] rounded-lg border px-2.5 text-xs font-semibold outline-none transition disabled:opacity-50 ${itemMeta.selectBadge}`}
-                              >
-                                <option value="in_progress">В работе</option>
-                                <option value="on_payment">На оплате</option>
-                                <option value="done">Выполнено</option>
-                                <option value="rejected">Отказ</option>
-                              </select>
-                            ) : (
-                              <span
-                                className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${itemMeta.badge}`}
-                              >
-                                {itemMeta.label}
-                              </span>
-                            )}
-                          </div>
-                        </div>
-
-                        <div className="flex flex-col justify-start min-w-0">
-                          <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
-                            Исполнитель
-                          </p>
-                          <div className="mt-2">
-                            {canManage && canAssign && (mode === "active" || mode === "undeclared") ? (
-                              <select
-                                disabled={isUpdating}
-                                value={item.assigned_to_id ? String(item.assigned_to_id) : ""}
-                                onChange={(e) => handleItemAssignChange(item.id, e.target.value)}
-                                className="h-8 w-full min-w-[130px] rounded-lg border border-slate-300 bg-white px-2 text-xs outline-none focus:border-slate-500 disabled:opacity-50"
-                              >
-                                <option value="">Не назначен</option>
-                                {supplyUsers.map((u) => (
-                                  <option key={u.id} value={u.id}>
-                                    {u.full_name || u.number || "—"}
-                                  </option>
-                                ))}
-                              </select>
-                            ) : (
-                              <span className="text-sm font-semibold text-slate-800">
-                                {item.assigned_to_user?.full_name || item.assigned_to_user?.number || "—"}
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-
                       {editItem ? (
-                        <div className="mt-4 rounded-xl border border-slate-100 bg-slate-50 px-4 py-4">
-                          <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
-                            Комментарий
-                          </p>
-                          <textarea
-                            value={editItem.description}
-                            onChange={(e) => updateEditItem(item.id, "description", e.target.value)}
-                            rows={2}
-                            placeholder="Дополнительная информация"
-                            className="mt-2 w-full resize-none rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 outline-none transition focus:border-indigo-500"
-                          />
-                        </div>
-                      ) : item.description && item.description.trim() ? (
-                        <div className="mt-4 rounded-xl border border-slate-100 bg-slate-50 px-4 py-4">
-                          <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
-                            Комментарий
-                          </p>
+                        <>
+                          <div className="mb-3 text-xs font-semibold uppercase tracking-wide text-slate-400">
+                            Позиция {index + 1}
+                          </div>
 
-                          <ExpandableText
-                            text={item.description}
-                            limit={20}
-                            className="mt-2 w-full"
-                            textClassName="w-full whitespace-pre-wrap break-words text-sm leading-6 text-slate-700"
-                          />
-                        </div>
-                      ) : null}
+                          <div className="grid grid-cols-1 gap-4 lg:grid-cols-[2.2fr_1.1fr_0.8fr_1.1fr_1.8fr] lg:items-start">
+                            <label className="block">
+                              <span className="mb-2 block text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">
+                                Наименование
+                              </span>
+                              <textarea
+                                value={editItem.name}
+                                onChange={(e) => updateEditItem(item.id, "name", e.target.value)}
+                                placeholder="Наименование"
+                                rows={2}
+                                className="w-full resize-none rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-800 shadow-sm outline-none transition focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10"
+                                style={{ fontFamily: "'Times New Roman', Times, serif", fontSize: "12pt", lineHeight: "1.4" }}
+                              />
+                            </label>
+
+                            <label className="block">
+                              <span className="mb-2 block text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">
+                                Ед. изм.
+                              </span>
+                              <input
+                                type="text"
+                                value={editItem.unit}
+                                onChange={(e) => updateEditItem(item.id, "unit", e.target.value)}
+                                className="h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm text-slate-800 shadow-sm outline-none transition focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10"
+                              />
+                            </label>
+
+                            <label className="block">
+                              <span className="mb-2 block text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">
+                                Количество
+                              </span>
+                              <input
+                                type="number"
+                                min="0"
+                                step="1"
+                                value={editItem.quantity}
+                                onChange={(e) => updateEditItem(item.id, "quantity", e.target.value)}
+                                className="h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm text-slate-800 shadow-sm outline-none transition focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10"
+                              />
+                            </label>
+
+                            <label className="block">
+                              <span className="mb-2 block text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">
+                                Планируемый срок
+                              </span>
+                              <input
+                                type="date"
+                                value={editItem.deadline || ""}
+                                onChange={(e) => updateEditItem(item.id, "deadline", e.target.value)}
+                                className="h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm text-slate-800 shadow-sm outline-none transition focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10"
+                              />
+                            </label>
+
+                            <label className="block">
+                              <span className="mb-2 block text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">
+                                Комментарий
+                              </span>
+                              <textarea
+                                value={editItem.description}
+                                onChange={(e) => updateEditItem(item.id, "description", e.target.value)}
+                                placeholder="Дополнительная информация"
+                                rows={2}
+                                className="w-full resize-none rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-800 shadow-sm outline-none transition focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10"
+                                style={{ fontFamily: "'Times New Roman', Times, serif", fontSize: "12pt", lineHeight: "1.4" }}
+                              />
+                            </label>
+                          </div>
+
+                          <div className="mt-4 flex flex-wrap items-center gap-3">
+                            <span
+                              className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${itemMeta.badge}`}
+                            >
+                              {itemMeta.label}
+                            </span>
+                            {(item.assigned_to_user?.full_name || item.assigned_to_user?.number) && (
+                              <span className="text-xs text-slate-500">
+                                Исполнитель: {item.assigned_to_user.full_name || item.assigned_to_user.number}
+                              </span>
+                            )}
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1.2fr)_minmax(0,1.5fr)_minmax(0,1.5fr)] xl:items-start">
+                            <div className="min-w-0">
+                              <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+                                Наименование
+                              </p>
+                              <p
+                                className="mt-2 font-semibold text-slate-900 break-words whitespace-pre-wrap"
+                                style={{ fontFamily: "'Times New Roman', Times, serif", fontSize: "12pt", lineHeight: "1.4" }}
+                              >
+                                {item.name}
+                              </p>
+                            </div>
+
+                            <div className="min-w-0">
+                              <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+                                Ед. изм.
+                              </p>
+                              <p className="mt-2 text-sm font-semibold text-slate-800 break-words whitespace-normal">
+                                {item.unit}
+                              </p>
+                            </div>
+
+                            <div className="min-w-0">
+                              <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+                                Количество
+                              </p>
+                              <p className="mt-2 text-sm font-semibold text-slate-800">
+                                {item.quantity}
+                              </p>
+                            </div>
+
+                            <div className="min-w-0">
+                              <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+                                Планируемый срок
+                              </p>
+                              <p className="mt-2 text-sm font-semibold text-slate-800">
+                                {plannedDate}
+                              </p>
+                            </div>
+
+                            <div className="flex flex-col justify-start min-w-0">
+                              <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+                                Статус пункта
+                              </p>
+                              <div className="mt-2">
+                                {canManage && (mode === "active" || mode === "undeclared") ? (
+                                  <select
+                                    disabled={isUpdating}
+                                    value={currentStatus}
+                                    onChange={(e) => handleItemStatusChange(item.id, e.target.value)}
+                                    className={`h-8 w-full min-w-[130px] rounded-lg border px-2.5 text-xs font-semibold outline-none transition disabled:opacity-50 ${itemMeta.selectBadge}`}
+                                  >
+                                    <option value="in_progress">В работе</option>
+                                    <option value="on_payment">На оплате</option>
+                                    <option value="done">Выполнено</option>
+                                    <option value="rejected">Отказ</option>
+                                  </select>
+                                ) : (
+                                  <span className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${itemMeta.badge}`}>
+                                    {itemMeta.label}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+
+                            <div className="flex flex-col justify-start min-w-0">
+                              <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+                                Исполнитель
+                              </p>
+                              <div className="mt-2">
+                                {canManage && canAssign && (mode === "active" || mode === "undeclared") ? (
+                                  <select
+                                    disabled={isUpdating}
+                                    value={item.assigned_to_id ? String(item.assigned_to_id) : ""}
+                                    onChange={(e) => handleItemAssignChange(item.id, e.target.value)}
+                                    className="h-8 w-full min-w-[130px] rounded-lg border border-slate-300 bg-white px-2 text-xs outline-none focus:border-slate-500 disabled:opacity-50"
+                                  >
+                                    <option value="">Не назначен</option>
+                                    {supplyUsers.map((u) => (
+                                      <option key={u.id} value={u.id}>
+                                        {u.full_name || u.number || "—"}
+                                      </option>
+                                    ))}
+                                  </select>
+                                ) : (
+                                  <span className="text-sm font-semibold text-slate-800">
+                                    {item.assigned_to_user?.full_name || item.assigned_to_user?.number || "—"}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+
+                          {item.description && item.description.trim() ? (
+                            <div className="mt-4 rounded-xl border border-slate-100 bg-slate-50 px-4 py-4">
+                              <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+                                Комментарий
+                              </p>
+                              <p
+                                className="mt-2 w-full break-words whitespace-pre-wrap text-slate-700"
+                                style={{ fontFamily: "'Times New Roman', Times, serif", fontSize: "12pt", lineHeight: "1.4" }}
+                              >
+                                {item.description}
+                              </p>
+                            </div>
+                          ) : null}
+                        </>
+                      )}
                     </div>
                   );
                 })}

@@ -501,12 +501,13 @@ export const AddPost = () => {
                   <span className="mb-2 block text-xs font-semibold uppercase tracking-[0.08em] text-slate-500 lg:hidden">
                     Наименование
                   </span>
-                  <input
-                    type="text"
+                  <textarea
                     value={row.title}
                     onChange={(e) => updateRow(row.id, "title", e.target.value)}
                     placeholder="Наименование"
-                    className="h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm text-slate-800 shadow-sm outline-none transition focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10"
+                    rows={2}
+                    className="w-full resize-none rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-800 shadow-sm outline-none transition focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10"
+                    style={{ fontFamily: "'Times New Roman', Times, serif", fontSize: "12pt", lineHeight: "1.4" }}
                   />
                 </label>
 
@@ -550,12 +551,13 @@ export const AddPost = () => {
                   <span className="mb-2 block text-xs font-semibold uppercase tracking-[0.08em] text-slate-500 lg:hidden">
                     Дополнительная информация
                   </span>
-                  <input
-                    type="text"
+                  <textarea
                     value={row.about}
                     onChange={(e) => updateRow(row.id, "about", e.target.value)}
                     placeholder="Комментарий"
-                    className="h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm text-slate-800 shadow-sm outline-none transition focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10"
+                    rows={2}
+                    className="w-full resize-none rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-800 shadow-sm outline-none transition focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10"
+                    style={{ fontFamily: "'Times New Roman', Times, serif", fontSize: "12pt", lineHeight: "1.4" }}
                   />
                 </label>
 
