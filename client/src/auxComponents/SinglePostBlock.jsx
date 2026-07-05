@@ -5,6 +5,31 @@ import {
   useGetUsersQuery,
 } from "../app/api/apiSlice";
 import { ExpandableText } from "./ExpandableText";
+import { docxCreator } from "../../docx/docx_creator";
+
+const AVAILABLE_SIGNERS = [
+  "Начальник МЭС - Суслов В. А.",
+  "Начальник МЦ - Гуда Т. А.",
+  "Главный бухгалтер - Чеченева А. А.",
+  "Начальник HR - Новосёлова Е. О.",
+  "Начальник ОИТ - Голубцов Е. С.",
+  "Главный механик - Ложкин И. М.",
+  "Главный энергетик - Славных М. А.",
+  "Зам. начальника ЦПВС - Гуменный А. В.",
+  "Начальник цеха ЦПВС - Санников С. В.",
+  "Мастер насосной и теплосетей ЦПВС -  Маркевич Е. В.",
+  "Начальник производства ШП - Соколова Л. К.",
+  "Энергетик - Балашов Ю. А.",
+  "Инженер-электроник - Суханов А. П.",
+  "Зам. Главного энергетика - Пермяков Н. Ф.",
+  "Начальник РСГ - Жованик А. Ю.",
+  "Начальник службы безопасности - Пузырёв В. А.",
+  "Заместитель начальника службы безопасности - Ильиных М. Н.",
+  "Главный метролог - Корелина Е. В.",
+  "Начальник заводской лаборотории - Пономарева Н. Ю.",
+  "Заместитель главного механика - Поспелов С. А.",
+  "Начальник инструментального участка - Аленбаторов П. И.",
+];
 
 const STATUS_META = {
   archived: {
@@ -115,6 +140,21 @@ export const SinglePostBlock = ({ data, onApprove }) => {
   const [isSavingEdits, setIsSavingEdits] = useState(false);
   const [editComment, setEditComment] = useState("");
   const [editItems, setEditItems] = useState([]);
+
+  const [showDocxModal, setShowDocxModal] = useState(false);
+  const [docxSigners, setDocxSigners] = useState([]);
+
+  const toggleDocxSigner = (signer) => {
+    setDocxSigners((prev) =>
+      prev.includes(signer) ? prev.filter((s) => s !== signer) : [...prev, signer]
+    );
+  };
+
+  const handleCreateDocx = () => {
+    docxCreator(data, docxSigners);
+    setShowDocxModal(false);
+    setDocxSigners([]);
+  };
 
   const startEditing = () => {
     setEditComment(comment || "");
@@ -296,6 +336,53 @@ export const SinglePostBlock = ({ data, onApprove }) => {
           </div>
         </div>
 
+        {showDocxModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => setShowDocxModal(false)}>
+            <div className="w-full max-w-lg rounded-2xl bg-white shadow-2xl" onClick={(e) => e.stopPropagation()}>
+              <div className="border-b border-slate-100 px-6 py-5">
+                <h3 className="text-lg font-bold text-slate-900">Создать файл — Заявка #{id}</h3>
+                <p className="mt-1 text-sm text-slate-500">Выберите подписантов для документа</p>
+              </div>
+              <div className="max-h-[50vh] overflow-y-auto px-6 py-4">
+                <div className="flex flex-col gap-2">
+                  {AVAILABLE_SIGNERS.map((signer) => (
+                    <label key={signer} className="flex cursor-pointer items-center gap-3 rounded-xl border border-slate-200 px-4 py-3 transition hover:bg-slate-50">
+                      <input
+                        type="checkbox"
+                        checked={docxSigners.includes(signer)}
+                        onChange={() => toggleDocxSigner(signer)}
+                        className="h-4 w-4 rounded border-slate-300 text-blue-600"
+                      />
+                      <span className="text-sm text-slate-700">{signer}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+              <div className="flex items-center justify-between border-t border-slate-100 px-6 py-4">
+                <span className="text-sm text-slate-500">
+                  Выбрано: {docxSigners.length}
+                </span>
+                <div className="flex gap-3">
+                  <button
+                    type="button"
+                    onClick={() => { setShowDocxModal(false); setDocxSigners([]); }}
+                    className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+                  >
+                    Назад
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleCreateDocx}
+                    className="rounded-xl bg-blue-600 px-5 py-2 text-sm font-bold text-white shadow-sm transition hover:bg-blue-700"
+                  >
+                    Создать файл
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         <div className="px-5 py-5 sm:px-8 sm:py-8">
           {canManage ? (
             <>
@@ -433,8 +520,16 @@ export const SinglePostBlock = ({ data, onApprove }) => {
             </div>
           ) : null}
 
-          {canManage && mode === "undeclared" && onApprove ? (
-            <div className="mt-6 flex justify-end">
+          <div className="mt-4 flex flex-wrap items-center justify-end gap-3">
+            <button
+              type="button"
+              onClick={() => setShowDocxModal(true)}
+              className="inline-flex h-11 items-center justify-center rounded-xl border border-slate-200 bg-white px-5 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50"
+            >
+              Создать файл
+            </button>
+
+            {canManage && mode === "undeclared" && onApprove ? (
               <button
                 type="button"
                 onClick={onApprove}
@@ -442,8 +537,8 @@ export const SinglePostBlock = ({ data, onApprove }) => {
               >
                 Подписать заявку
               </button>
-            </div>
-          ) : null}
+            ) : null}
+          </div>
 
           <div className="mt-8">
             <div className="mb-4 flex items-end justify-between gap-4">

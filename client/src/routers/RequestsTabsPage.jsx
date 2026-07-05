@@ -1,13 +1,10 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
 import {
   useGetActiveRequestsQuery,
   useGetUndeclaredRequestsQuery,
   useGetArchivedRequestsQuery,
-  useGetPostsCountQuery,
-  useGetUndeclaredPostsCountQuery,
-  useGetArhiveQuery,
   useDeleteRequestMutation,
   useDeclaredPostMutation,
   useChangeRequestStatusMutation,
@@ -18,6 +15,48 @@ const TAB_CONFIG = {
   store: { key: "store", label: "Подписанные заявки", path: "/store", status: "active" },
   undeclared: { key: "undeclared", label: "Без подписи", path: "/undeclared", status: "undeclared" },
   archived: { key: "archived", label: "Завершённые", path: "/archived", status: "archived" },
+};
+
+const Pagination = ({ page, totalPages, onPageChange }) => {
+  if (totalPages <= 1) return null;
+
+  const pageNums = [];
+  for (let i = 0; i < totalPages; i++) {
+    if (i === 0 || i === totalPages - 1 || Math.abs(i - page) <= 2) {
+      pageNums.push(i);
+    }
+  }
+
+  const items = [];
+  let prev = -1;
+  for (const p of pageNums) {
+    if (prev !== -1 && p - prev > 1) items.push("ellipsis-" + p);
+    items.push(p);
+    prev = p;
+  }
+
+  return (
+    <div className="flex items-center justify-center gap-2 pt-6 pb-2">
+      {items.map((item) =>
+        typeof item === "string" ? (
+          <span key={item} className="px-1 text-slate-400 select-none">…</span>
+        ) : (
+          <button
+            key={item}
+            onClick={() => item !== page && onPageChange(item)}
+            disabled={item === page}
+            className={`h-10 min-w-[40px] rounded-xl px-3 text-sm font-semibold transition ${
+              item === page
+                ? "bg-slate-200 text-slate-500 cursor-default"
+                : "bg-blue-600 text-white hover:bg-blue-700 active:scale-95"
+            }`}
+          >
+            {item + 1}
+          </button>
+        )
+      )}
+    </div>
+  );
 };
 
 export const RequestsTabsPage = ({ tab = "store" }) => {
@@ -31,43 +70,44 @@ export const RequestsTabsPage = ({ tab = "store" }) => {
     ["admin", "supply_manager"].includes(role?.name)
   );
 
+  const [page, setPage] = useState(0);
   const [searchTerm, setSearchTerm] = useState("");
   const [searchField, setSearchField] = useState("created_by");
   const [sortOrder, setSortOrder] = useState("newest");
 
-  const activeQuery = useGetActiveRequestsQuery(undefined, {
-    skip: activeTab.status !== "active",
-  });
-  const undeclaredQuery = useGetUndeclaredRequestsQuery(undefined, {
-    skip: activeTab.status !== "undeclared",
-  });
-  const archivedQuery = useGetArchivedRequestsQuery(undefined, {
-    skip: activeTab.status !== "archived",
-  });
+  // Сбрасываем страницу при смене вкладки
+  useEffect(() => {
+    setPage(0);
+    setSearchTerm("");
+  }, [tab]);
 
-  const countActiveQuery = useGetPostsCountQuery(undefined, {
-    skip: activeTab.status !== "active",
-  });
-  const countUndeclaredQuery = useGetUndeclaredPostsCountQuery(undefined, {
-    skip: activeTab.status !== "undeclared",
-  });
-  const countArchivedQuery = useGetArhiveQuery(undefined, {
-    skip: activeTab.status !== "archived",
-  });
+  const serverSort = sortOrder === "oldest" ? "asc" : "desc";
 
-  const { data: posts = [], isLoading, isError } =
+  const activeQuery = useGetActiveRequestsQuery(
+    { page, sort: serverSort },
+    { skip: activeTab.status !== "active" }
+  );
+  const undeclaredQuery = useGetUndeclaredRequestsQuery(
+    { page, sort: serverSort },
+    { skip: activeTab.status !== "undeclared" }
+  );
+  const archivedQuery = useGetArchivedRequestsQuery(
+    { page, sort: serverSort },
+    { skip: activeTab.status !== "archived" }
+  );
+
+  const currentQuery =
     activeTab.status === "active"
       ? activeQuery
       : activeTab.status === "undeclared"
       ? undeclaredQuery
       : archivedQuery;
 
-  const { data: countData } =
-    activeTab.status === "active"
-      ? countActiveQuery
-      : activeTab.status === "undeclared"
-      ? countUndeclaredQuery
-      : countArchivedQuery;
+  const { data, isLoading, isError } = currentQuery;
+  const posts = data?.items ?? [];
+  const total = data?.total ?? 0;
+  const perPage = data?.per_page ?? 15;
+  const totalPages = Math.ceil(total / perPage);
 
   const [archiveRequest] = useChangeRequestStatusMutation();
   const [deleteRequest] = useDeleteRequestMutation();
@@ -106,15 +146,6 @@ export const RequestsTabsPage = ({ tab = "store" }) => {
       });
     }
 
-    result.sort((a, b) => {
-      const aId = Number(a?.id) || 0;
-      const bId = Number(b?.id) || 0;
-  
-      // Если sortOrder === "oldest", то сначала идут заявки с меньшим ID (старые)
-      // Если "newest", то сначала идут заявки с большим ID (новые)
-      return sortOrder === "oldest" ? aId - bId : bId - aId;
-    });
-
     return result;
   }, [posts, searchTerm, searchField, sortOrder]);
 
@@ -133,16 +164,16 @@ export const RequestsTabsPage = ({ tab = "store" }) => {
   };
 
   const handleDelete = async (requestId) => {
-    if (!confirm("Удалить заявку?")) return;
-
+    const reason = window.prompt("Причина удаления (необязательно, Enter — без причины):");
+    if (reason === null) return;
     try {
-      await deleteRequest(requestId).unwrap();
+      await deleteRequest({ requestId, deletedById: currentUserId, reason: reason.trim() || null }).unwrap();
     } catch (error) {
       console.error(error);
       alert("Не удалось удалить заявку.");
     }
   };
-  
+
   const handleSign = async (requestId) => {
     try {
       await declarePost({
@@ -155,11 +186,6 @@ export const RequestsTabsPage = ({ tab = "store" }) => {
       alert("Не удалось подписать заявку.");
     }
   };
-
-  const countValue =
-    countData?.count ??
-    (Array.isArray(countData) ? countData.length : null) ??
-    posts.length;
 
   if (isLoading) {
     return (
@@ -181,8 +207,8 @@ export const RequestsTabsPage = ({ tab = "store" }) => {
     <div className="space-y-6">
       {/* ГЛАВНАЯ КАРТОЧКА С ВКЛАДКАМИ И ФИЛЬТРАМИ */}
       <div className="flex flex-col rounded-3xl border border-slate-200 bg-white shadow-sm overflow-hidden">
-        
-        {/* МАССИВНЫЕ ВКЛАДКИ НА ВСЮ ШИРИНУ */}
+
+        {/* ВКЛАДКИ */}
         <div className="flex flex-col sm:flex-row w-full border-b border-slate-200 bg-slate-100">
           {Object.values(TAB_CONFIG).map((tabItem) => (
             <button
@@ -190,8 +216,8 @@ export const RequestsTabsPage = ({ tab = "store" }) => {
               onClick={() => navigate(tabItem.path)}
               className={`relative flex-1 px-4 py-5 sm:py-6 text-base sm:text-lg font-extrabold uppercase tracking-widest outline-none transition-colors border-b sm:border-b-0 sm:border-r border-slate-200 last:border-0 ${
                 tabItem.key === activeTab.key
-                  ? "bg-white text-slate-900 shadow-[inset_0_3px_0_0_#0f172a]" // Активная: белый фон, черная полоска сверху
-                  : "bg-transparent text-slate-500 hover:bg-slate-200 hover:text-slate-800" // Неактивная: серая, темнеет при наведении
+                  ? "bg-white text-slate-900 shadow-[inset_0_3px_0_0_#0f172a]"
+                  : "bg-transparent text-slate-500 hover:bg-slate-200 hover:text-slate-800"
               }`}
             >
               {tabItem.label}
@@ -199,21 +225,23 @@ export const RequestsTabsPage = ({ tab = "store" }) => {
           ))}
         </div>
 
-        {/* ВНУТРЕННИЙ КОНТЕНТ (ЗАГОЛОВОК И ПОИСК) */}
+        {/* ЗАГОЛОВОК И ПОИСК */}
         <div className="flex flex-col gap-6 p-6 sm:p-8">
           <div>
             <h2 className="text-4xl font-extrabold tracking-tight text-slate-900">
               {activeTab.label}
             </h2>
             <p className="mt-2 text-xl font-medium text-slate-500">
-              {filteredPosts.length} из {countValue} заявок
+              {searchTerm.trim()
+                ? `${filteredPosts.length} найдено на стр. ${page + 1}`
+                : `Всего ${total} заявок`}
             </p>
           </div>
 
           <div className="grid grid-cols-1 gap-3 xl:grid-cols-[220px_minmax(0,1fr)_200px]">
             <select
               value={searchField}
-              onChange={(e) => setSearchField(e.target.value)}
+              onChange={(e) => { setSearchField(e.target.value); setPage(0); }}
               className="h-14 rounded-2xl border border-slate-200 bg-white px-4 text-sm font-medium shadow-sm transition hover:border-slate-300 focus:border-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-300/40"
             >
               <option value="created_by">Создатель</option>
@@ -224,14 +252,15 @@ export const RequestsTabsPage = ({ tab = "store" }) => {
             <input
               type="text"
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              onChange={(e) => { setSearchTerm(e.target.value); setPage(0); }}
               placeholder="Поиск по выбранному полю..."
               className="h-14 rounded-2xl border border-slate-200 bg-white px-5 py-3 text-base shadow-sm transition hover:border-slate-300 focus:border-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-300/40"
             />
 
             <select
               value={sortOrder}
-              onChange={(e) => setSortOrder(e.target.value)}
+              onChange={(e) => { setSortOrder(e.target.value); setPage(0); }}
+
               className="h-14 rounded-2xl border border-slate-200 bg-white px-4 text-sm font-medium shadow-sm transition hover:border-slate-300 focus:border-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-300/40"
             >
               <option value="newest">Сначала новые</option>
@@ -268,6 +297,8 @@ export const RequestsTabsPage = ({ tab = "store" }) => {
                 onSign={handleSign}
               />
             ))}
+
+            {!searchTerm.trim() && <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />}
           </div>
         ) : (
           <div className="flex h-64 flex-col items-center justify-center rounded-2xl border-2 border-dashed border-slate-300 bg-slate-50 py-12 text-center">

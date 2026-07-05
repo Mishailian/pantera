@@ -1,7 +1,7 @@
 from flask import Blueprint, request, jsonify
 
 from services.request_service import RequestService
-from utils.serializers import serialize_many, serialize_request, serialize_request_item
+from utils.serializers import serialize_many, serialize_request, serialize_request_item, serialize_deleted_request
 
 requests_bp = Blueprint("requests", __name__)
 
@@ -10,9 +10,23 @@ requests_bp = Blueprint("requests", __name__)
 def list_requests():
     page = request.args.get("page", 0, type=int)
     status = request.args.get("status", default=None, type=str)
+    count_only = request.args.get("count", 0, type=int)
 
-    requests_list = RequestService.get_requests(page=page, status=status)
-    return jsonify(serialize_many(requests_list, serialize_request))
+    sort = request.args.get("sort", "desc", type=str)
+
+    if count_only:
+        total = RequestService.get_requests_count(status=status)
+        return jsonify({"count": total})
+
+    requests_list = RequestService.get_requests(page=page, status=status, sort=sort)
+    total = RequestService.get_requests_count(status=status)
+
+    return jsonify({
+        "items": serialize_many(requests_list, serialize_request),
+        "total": total,
+        "page": page,
+        "per_page": RequestService.ITEMS_PER_PAGE,
+    })
 
 
 @requests_bp.get("/health")
@@ -140,9 +154,25 @@ def delete_request_item(item_id):
     return jsonify({"message": "Request item deleted successfully"}), 200
 
 
+@requests_bp.get("/deleted/")
+def list_deleted_requests():
+    from services.auth_service import AuthService
+    token = request.headers.get("Authorization", "").replace("Token ", "").strip()
+    actor = AuthService.get_user_by_token(token)
+    if not actor or not actor.has_role("admin"):
+        return jsonify({"error": "Access denied"}), 403
+
+    records = RequestService.get_deleted_requests()
+    return jsonify([serialize_deleted_request(r) for r in records])
+
+
 @requests_bp.delete("/<int:request_id>")
 def delete_request(request_id):
-    deleted = RequestService.delete_request(request_id)
+    data = request.get_json() or {}
+    deleted_by_id = data.get("deleted_by_id")
+    reason = data.get("reason")
+
+    deleted = RequestService.delete_request(request_id, deleted_by_id=deleted_by_id, reason=reason)
     if not deleted:
         return jsonify({"error": "Request not found"}), 404
 

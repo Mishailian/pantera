@@ -97,6 +97,19 @@ def serialize_request_template(template):
     }
 
 
+def serialize_deleted_request(deleted_req):
+    return {
+        "id": deleted_req.id,
+        "original_id": deleted_req.original_id,
+        "deleted_by_id": deleted_req.deleted_by_id,
+        "deleted_by_user": serialize_user_min(deleted_req.deleted_by) if deleted_req.deleted_by else None,
+        "deleted_at": deleted_req.deleted_at.isoformat() if deleted_req.deleted_at else None,
+        "deleted_at_formatted": format_datetime_ekb(deleted_req.deleted_at),
+        "reason": deleted_req.reason,
+        "snapshot": deleted_req.snapshot,
+    }
+
+
 def serialize_request(request_obj):
     items = [serialize_request_item(item) for item in request_obj.items]
 

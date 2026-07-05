@@ -10,7 +10,7 @@ from utils.stats import increment_stat
 
 
 class RequestService:
-    ITEMS_PER_PAGE = 14
+    ITEMS_PER_PAGE = 15
 
     VALID_STATUSES = {"undeclared", "active", "archived"}
     VALID_ITEM_STATUSES = {"in_progress", "done", "rejected", "on_payment"}
@@ -24,7 +24,9 @@ class RequestService:
         return start, end
 
     @staticmethod
-    def _base_query():
+    def _base_query(sort="desc"):
+        if sort == "asc":
+            return Request.query.order_by(Request.id.asc())
         return Request.query.order_by(Request.id.desc())
 
     @staticmethod
@@ -41,12 +43,19 @@ class RequestService:
         raise ValueError("deadline has invalid format")
 
     @staticmethod
-    def get_requests(page=0, status=None):
-        query = RequestService._base_query()
+    def get_requests(page=0, status=None, sort="desc"):
+        query = RequestService._base_query(sort=sort)
         if status:
             query = query.filter(Request.status == status)
         start, end = RequestService._calculate_page(page)
         return query.slice(start, end).all()
+
+    @staticmethod
+    def get_requests_count(status=None):
+        query = Request.query
+        if status:
+            query = query.filter(Request.status == status)
+        return query.count()
 
     @staticmethod
     def get_request_by_id(request_id):
@@ -285,12 +294,24 @@ class RequestService:
         return True
 
     @staticmethod
-    def delete_request(request_id):
+    def delete_request(request_id, deleted_by_id=None, reason=None):
+        from utils.serializers import serialize_request
+        from models.request.deletedRequest import DeletedRequest
+
         request_obj = RequestService.get_request_by_id(request_id)
         if not request_obj:
             return False
 
         creator_id = request_obj.created_by_id
+
+        snapshot = serialize_request(request_obj)
+        deletion_log = DeletedRequest(
+            original_id=request_id,
+            deleted_by_id=deleted_by_id or None,
+            reason=reason or None,
+            snapshot=snapshot,
+        )
+        db.session.add(deletion_log)
 
         history_records = RequestStatusHistory.query.filter_by(request_id=request_id).all()
         for history_record in history_records:
@@ -306,3 +327,8 @@ class RequestService:
         db.session.commit()
 
         return True
+
+    @staticmethod
+    def get_deleted_requests():
+        from models.request.deletedRequest import DeletedRequest
+        return DeletedRequest.query.order_by(DeletedRequest.deleted_at.desc()).all()

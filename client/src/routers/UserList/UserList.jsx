@@ -3,6 +3,8 @@ import { useSelector } from "react-redux";
 import {
   useGetUsersQuery,
   useUpdateUserRolesMutation,
+  useUpdateUserMutation,
+  useDeleteUserMutation,
   useGetRegistrationRolesQuery,
 } from "../../app/api/apiSlice";
 import { UserRow } from "./UserRow";
@@ -14,6 +16,8 @@ export const UserList = () => {
   const { data: users = [], isLoading, isError } = useGetUsersQuery();
   const { data: roles = [] } = useGetRegistrationRolesQuery();
   const [updateUserRoles] = useUpdateUserRolesMutation();
+  const [updateUser] = useUpdateUserMutation();
+  const [deleteUser] = useDeleteUserMutation();
 
   const [numberFilter, setNumberFilter] = useState("");
   const [fullNameFilter, setFullNameFilter] = useState("");
@@ -27,8 +31,9 @@ export const UserList = () => {
       label: role.description || role.name,
     }));
 
+    const nonAdminRoles = mappedRoles.filter((r) => r.value !== "admin");
     return isAdmin
-      ? [...base, { value: "admin", label: "Администратор" }, ...mappedRoles]
+      ? [...base, { value: "admin", label: "Администратор" }, ...nonAdminRoles]
       : [...base, ...mappedRoles];
   }, [roles, isAdmin]);
 
@@ -37,6 +42,25 @@ export const UserList = () => {
       await updateUserRoles({ userId, role: newRole }).unwrap();
     } catch (error) {
       console.error("Failed to update role:", error);
+      alert(error?.data?.error || "Не удалось изменить роль.");
+    }
+  };
+
+  const handleUpdateUser = async (userId, { full_name, number }) => {
+    try {
+      await updateUser({ userId, full_name, number }).unwrap();
+    } catch (error) {
+      console.error("Failed to update user:", error);
+      alert(error?.data?.error || "Не удалось обновить данные пользователя.");
+    }
+  };
+
+  const handleDeleteUser = async (userId) => {
+    try {
+      await deleteUser(userId).unwrap();
+    } catch (error) {
+      console.error("Failed to delete user:", error);
+      alert(error?.data?.error || "Не удалось удалить пользователя.");
     }
   };
 
@@ -121,6 +145,8 @@ export const UserList = () => {
               user={user}
               isAdmin={isAdmin}
               onRoleChange={handleRoleChange}
+              onUpdateUser={handleUpdateUser}
+              onDeleteUser={handleDeleteUser}
               availableRoles={roleOptions.filter((role) => role.value !== "")}
             />
           ))

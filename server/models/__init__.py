@@ -7,6 +7,7 @@ from .request.request import Request
 from .request.requestItem import RequestItem
 from .request.requestStatusHistory import RequestStatusHistory
 from .request.requestTemplate import RequestTemplate
+from .request.deletedRequest import DeletedRequest
 
 from .stats.user_stats import UserStats
 
@@ -19,5 +20,6 @@ __all__ = [
     "RequestItem",
     "RequestStatusHistory",
     "RequestTemplate",
+    "DeletedRequest",
     "UserStats",
 ]

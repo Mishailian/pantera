@@ -105,6 +105,23 @@ export const apiSlice = createApi({
       }),
     }),
 
+    updateUser: builder.mutation({
+      invalidatesTags: ["USERS"],
+      query: ({ userId, full_name, number }) => ({
+        url: `/users/${userId}`,
+        method: "PATCH",
+        body: { full_name, number },
+      }),
+    }),
+
+    deleteUser: builder.mutation({
+      invalidatesTags: ["USERS"],
+      query: (userId) => ({
+        url: `/users/${userId}`,
+        method: "DELETE",
+      }),
+    }),
+
     getTags: builder.query({
       providesTags: ["TAGS"],
       query: () => ({
@@ -201,10 +218,16 @@ export const apiSlice = createApi({
 
     deleteRequest: builder.mutation({
       invalidatesTags: ["REQUESTS"],
-      query: (requestId) => ({
+      query: ({ requestId, deletedById, reason } = {}) => ({
         url: `/requests/${requestId}`,
         method: "DELETE",
+        body: { deleted_by_id: deletedById, reason: reason || null },
       }),
+    }),
+
+    getDeletedRequests: builder.query({
+      providesTags: ["REQUESTS"],
+      query: () => ({ url: "/requests/deleted/", method: "GET" }),
     }),
 
     addRequestItem: builder.mutation({
@@ -238,24 +261,24 @@ export const apiSlice = createApi({
 
     getUndeclaredRequests: builder.query({
       providesTags: ["REQUESTS"],
-      query: ({ page } = {}) => {
-        const queryString = buildQueryParams({ status: "undeclared", page });
+      query: ({ page, sort } = {}) => {
+        const queryString = buildQueryParams({ status: "undeclared", page, sort });
         return { url: `/requests/?${queryString}`, method: "GET" };
       },
     }),
 
     getActiveRequests: builder.query({
       providesTags: ["REQUESTS"],
-      query: ({ page } = {}) => {
-        const queryString = buildQueryParams({ status: "active", page });
+      query: ({ page, sort } = {}) => {
+        const queryString = buildQueryParams({ status: "active", page, sort });
         return { url: `/requests/?${queryString}`, method: "GET" };
       },
     }),
 
     getArchivedRequests: builder.query({
       providesTags: ["REQUESTS"],
-      query: ({ page } = {}) => {
-        const queryString = buildQueryParams({ status: "archived", page });
+      query: ({ page, sort } = {}) => {
+        const queryString = buildQueryParams({ status: "archived", page, sort });
         return { url: `/requests/?${queryString}`, method: "GET" };
       },
     }),
@@ -494,4 +517,8 @@ export const {
   useGetTemplatesQuery,
   useAddTemplateMutation,
   useDeleteTemplateMutation,
+
+  useGetDeletedRequestsQuery,
+  useUpdateUserMutation,
+  useDeleteUserMutation,
 } = apiSlice;

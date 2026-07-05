@@ -146,6 +146,19 @@ def _ensure_request_templates_table(app):
         app.logger.error(f"Error creating request_templates table: {e}")
 
 
+def _ensure_deleted_requests_table(app):
+    """Создаёт таблицу deleted_requests если её ещё нет."""
+    try:
+        from sqlalchemy import inspect
+        inspector = inspect(db.engine)
+        if "deleted_requests" not in inspector.get_table_names():
+            from models.request.deletedRequest import DeletedRequest
+            DeletedRequest.__table__.create(db.engine)
+    except Exception as e:
+        db.session.rollback()
+        app.logger.error(f"Error creating deleted_requests table: {e}")
+
+
 def _ensure_request_is_edited_column(app):
     try:
         from sqlalchemy import inspect, text
@@ -227,6 +240,7 @@ def create_app(config_class=Config):
         _ensure_request_is_edited_column(app)
         _ensure_user_stats_table(app)
         _ensure_request_templates_table(app)
+        _ensure_deleted_requests_table(app)
         from models.user.role import seed_roles
         seed_roles()
 

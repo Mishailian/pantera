@@ -212,3 +212,92 @@ def get_my_requests():
     )
 
     return jsonify(serialize_many(requests_list, serialize_request)), 200
+
+
+@users_bp.patch("/<int:user_id>")
+def update_user(user_id):
+    token = request.headers.get("Authorization", "").replace("Token ", "").strip()
+    actor = AuthService.get_user_by_token(token)
+
+    if not actor or not actor.has_role("admin"):
+        return jsonify({"error": "Access denied"}), 403
+
+    user = AuthService.get_user_by_id(user_id)
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+
+    data = request.get_json() or {}
+    new_full_name = (data.get("full_name") or "").strip()
+    new_number = (data.get("number") or "").strip()
+
+    changed = False
+
+    if new_full_name and new_full_name != (user.full_name or "").strip():
+        history = UserProfileHistory(
+            target_user_id=user.id,
+            changed_by_user_id=actor.id,
+            old_full_name=user.full_name,
+            new_full_name=new_full_name,
+        )
+        db.session.add(history)
+        user.full_name = new_full_name
+        changed = True
+
+    if new_number and new_number != (user.number or "").strip():
+        existing = User.query.filter_by(number=new_number).first()
+        if existing and existing.id != user_id:
+            return jsonify({"error": "Пользователь с таким номером уже существует"}), 400
+        user.number = new_number
+        changed = True
+
+    if not changed:
+        return jsonify({"error": "Нет изменений для сохранения"}), 400
+
+    db.session.commit()
+    return jsonify(serialize_user(user)), 200
+
+
+@users_bp.delete("/<int:user_id>")
+def delete_user(user_id):
+    from sqlalchemy import text
+
+    token = request.headers.get("Authorization", "").replace("Token ", "").strip()
+    actor = AuthService.get_user_by_token(token)
+
+    if not actor or not actor.has_role("admin"):
+        return jsonify({"error": "Access denied"}), 403
+
+    if actor.id == user_id:
+        return jsonify({"error": "Нельзя удалить собственный аккаунт"}), 400
+
+    user = AuthService.get_user_by_id(user_id)
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+
+    uid = user_id
+    try:
+        from sqlalchemy import inspect as sa_inspect
+
+        # Динамически находим все FK-столбцы в requests, ссылающиеся на users (включая незадокументированные)
+        inspector = sa_inspect(db.engine)
+        requests_fks = inspector.get_foreign_keys("requests")
+        for fk in requests_fks:
+            if fk["referred_table"] == "users" and fk["constrained_columns"]:
+                col = fk["constrained_columns"][0]
+                db.session.execute(text(f"UPDATE requests SET {col} = NULL WHERE {col} = :uid"), {"uid": uid})
+
+        # Остальные таблицы с RESTRICT FK к users
+        db.session.execute(text("UPDATE request_status_history SET changed_by_id = NULL WHERE changed_by_id = :uid"), {"uid": uid})
+        db.session.execute(text("DELETE FROM user_profile_history WHERE target_user_id = :uid"), {"uid": uid})
+        db.session.execute(text("UPDATE user_profile_history SET changed_by_user_id = NULL WHERE changed_by_user_id = :uid"), {"uid": uid})
+
+        # user_roles, user_stats, request_templates, request_items, deleted_requests — CASCADE/SET NULL, авто
+        db.session.delete(user)
+        db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        import traceback
+        traceback.print_exc()
+        return jsonify({"error": str(e)}), 500
+
+    return jsonify({"message": "Пользователь удалён"}), 200
