@@ -10,7 +10,6 @@ import {
 } from "../api/apiSlice";
 
 import { setToken, clearAuth } from "./authSlice";
-import { setTagsTable } from "./tagsSlice";
 import { setUsersTable } from "./usesSlice";
 
 import { progressCheck } from "../../progressCheck";
@@ -21,7 +20,6 @@ export const Login = () => {
   const authToken = useSelector((state) => state.auth.token);
 
   const updateUsersTable = useUpdateObjectsTable(setUsersTable);
-  const updateTagsTable = useUpdateObjectsTable(setTagsTable);
 
   const [mode, setMode] = useState("login");
   const [errorText, setErrorText] = useState("");
@@ -102,16 +100,15 @@ export const Login = () => {
           })
         );
 
-        setLoginForm({
-          number: "",
-          password: "",
-        });
-
+        setLoginForm({ number: "", password: "" });
         setSuccessText("Вход выполнен успешно.");
       } else {
-        setErrorText(
-          response?.error?.data?.error || "Не удалось выполнить вход."
-        );
+        const errData = response?.error?.data;
+        if (errData?.pending) {
+          setSuccessText("Аккаунт ожидает подтверждения начальником отдела. Попробуйте войти позже.");
+        } else {
+          setErrorText(errData?.error || "Не удалось выполнить вход.");
+        }
       }
     } catch (error) {
       console.error(error);
@@ -126,7 +123,17 @@ export const Login = () => {
     try {
       const response = await registerUser(registerForm);
 
-      if (response?.data) {
+      if (response?.data?.pending) {
+        // Регистрация с ролью, требующей подтверждения
+        setSuccessText(response.data.message || "Аккаунт создан и ожидает подтверждения начальника отдела.");
+        setRegisterForm({
+          password: "",
+          full_name: "",
+          number: "",
+          role_name: availableRegistrationRoles[0]?.name ?? "",
+        });
+        setMode("login");
+      } else if (response?.data) {
         const { token, user } = response.data;
 
         dispatch(apiSlice.util.resetApiState());

@@ -391,6 +391,25 @@ export const AddPost = () => {
       return;
     }
 
+    // Валидация длины полей перед отправкой
+    for (let i = 0; i < payload.items.length; i++) {
+      const item = payload.items[i];
+      if (item.name && item.name.length > 255) {
+        alert(
+          `Позиция ${i + 1}: наименование слишком длинное (${item.name.length} символов). ` +
+          `Максимально допустимо 255 символов. Сократите текст и попробуйте снова.`
+        );
+        return;
+      }
+      if (item.description && item.description.length > 1000) {
+        alert(
+          `Позиция ${i + 1}: комментарий слишком длинный (${item.description.length} символов). ` +
+          `Максимально допустимо 1000 символов.`
+        );
+        return;
+      }
+    }
+
     try {
       const createdRequest = await addPost({
         initialState: payload,

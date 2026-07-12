@@ -6,18 +6,27 @@ import {
   useUpdateUserMutation,
   useDeleteUserMutation,
   useGetRegistrationRolesQuery,
+  useAssignHeadMutation,
+  useRemoveHeadMutation,
 } from "../../app/api/apiSlice";
 import { UserRow } from "./UserRow";
 
 export const UserList = () => {
   const currentUserRoles = useSelector((state) => state.auth.roles || []);
-  const isAdmin = currentUserRoles.some((role) => role?.name === "admin");
+  const roleNames = currentUserRoles.map((r) => r?.name).filter(Boolean);
+  const isAdmin = roleNames.includes("admin");
+  const isITActor = roleNames.some((r) => ["it_department", "it_head"].includes(r));
+  const isSupplyHeadActor = roleNames.includes("supply_head");
+  const canManageUsers = isAdmin || isITActor || isSupplyHeadActor;
+  const canChangeRoles = canManageUsers;
 
   const { data: users = [], isLoading, isError } = useGetUsersQuery();
   const { data: roles = [] } = useGetRegistrationRolesQuery();
   const [updateUserRoles] = useUpdateUserRolesMutation();
   const [updateUser] = useUpdateUserMutation();
   const [deleteUser] = useDeleteUserMutation();
+  const [assignHead] = useAssignHeadMutation();
+  const [removeHead] = useRemoveHeadMutation();
 
   const [numberFilter, setNumberFilter] = useState("");
   const [fullNameFilter, setFullNameFilter] = useState("");
@@ -25,17 +34,25 @@ export const UserList = () => {
 
   const roleOptions = useMemo(() => {
     const base = [{ value: "", label: "Все роли" }];
-
     const mappedRoles = roles.map((role) => ({
       value: role.name,
       label: role.description || role.name,
     }));
 
-    const nonAdminRoles = mappedRoles.filter((r) => r.value !== "admin");
-    return isAdmin
-      ? [...base, { value: "admin", label: "Администратор" }, ...nonAdminRoles]
-      : [...base, ...mappedRoles];
-  }, [roles, isAdmin]);
+    if (isAdmin) {
+      return [...base, { value: "admin", label: "Администратор" }, ...mappedRoles];
+    }
+
+    // Фильтр доступных ролей по правам актора
+    let filtered = mappedRoles;
+    if (isITActor) {
+      filtered = filtered.filter((r) => !["supply_manager"].includes(r.value));
+    }
+    if (isSupplyHeadActor) {
+      filtered = filtered.filter((r) => !["it_department"].includes(r.value));
+    }
+    return [...base, ...filtered];
+  }, [roles, isAdmin, isITActor, isSupplyHeadActor]);
 
   const handleRoleChange = async (userId, newRole) => {
     try {
@@ -46,9 +63,9 @@ export const UserList = () => {
     }
   };
 
-  const handleUpdateUser = async (userId, { full_name, number }) => {
+  const handleUpdateUser = async (userId, { full_name, number, password }) => {
     try {
-      await updateUser({ userId, full_name, number }).unwrap();
+      await updateUser({ userId, full_name, number, password }).unwrap();
     } catch (error) {
       console.error("Failed to update user:", error);
       alert(error?.data?.error || "Не удалось обновить данные пользователя.");
@@ -64,11 +81,33 @@ export const UserList = () => {
     }
   };
 
+  const handleAssignHead = async (userId) => {
+    try {
+      await assignHead(userId).unwrap();
+    } catch (error) {
+      console.error("Failed to assign head:", error);
+      alert(error?.data?.error || "Не удалось назначить начальником.");
+    }
+  };
+
+  const handleRemoveHead = async (userId) => {
+    try {
+      await removeHead(userId).unwrap();
+    } catch (error) {
+      console.error("Failed to remove head:", error);
+      alert(error?.data?.error || "Не удалось снять с должности начальника.");
+    }
+  };
+
+  const HEAD_ROLE_NAMES = new Set(["supply_head", "it_head"]);
+
   const filteredUsers = useMemo(() => {
     return users.filter((user) => {
       const number = (user?.number || "").toLowerCase();
       const fullName = (user?.full_name || "").toLowerCase();
-      const roleName = user?.roles?.[0]?.name || "";
+      // Main role = first non-head role
+      const mainRole = user?.roles?.find((r) => !HEAD_ROLE_NAMES.has(r.name));
+      const roleName = mainRole?.name || user?.roles?.[0]?.name || "";
 
       const numberMatches = number.includes(numberFilter.trim().toLowerCase());
       const fullNameMatches = fullName.includes(fullNameFilter.trim().toLowerCase());
@@ -144,9 +183,13 @@ export const UserList = () => {
               key={user.id}
               user={user}
               isAdmin={isAdmin}
+              canManageUsers={canManageUsers}
+              canChangeRoles={canChangeRoles}
               onRoleChange={handleRoleChange}
               onUpdateUser={handleUpdateUser}
               onDeleteUser={handleDeleteUser}
+              onAssignHead={handleAssignHead}
+              onRemoveHead={handleRemoveHead}
               availableRoles={roleOptions.filter((role) => role.value !== "")}
             />
           ))

@@ -36,10 +36,13 @@ class RequestService:
         if isinstance(value, date):
             return value
         if isinstance(value, str):
-            try:
-                return datetime.strptime(value, "%Y-%m-%d").date()
-            except ValueError:
-                raise ValueError("deadline must be in YYYY-MM-DD format")
+            value = value.strip()
+            for fmt in ("%Y-%m-%d", "%d.%m.%Y", "%d/%m/%Y", "%m/%d/%Y"):
+                try:
+                    return datetime.strptime(value, fmt).date()
+                except ValueError:
+                    continue
+            raise ValueError(f"Неверный формат даты: '{value}'. Используйте YYYY-MM-DD или DD.MM.YYYY")
         raise ValueError("deadline has invalid format")
 
     @staticmethod

@@ -98,7 +98,7 @@ const getPlannedDate = (item) => {
   );
 };
 
-export const SinglePostBlock = ({ data, onApprove }) => {
+export const SinglePostBlock = ({ data, onApprove, onArchive }) => {
   const [updateRequestItem, { isLoading: isUpdating }] =
     useUpdateRequestItemMutation();
   const [updateRequest] = useUpdateRequestMutation();
@@ -143,6 +143,8 @@ export const SinglePostBlock = ({ data, onApprove }) => {
 
   const [showDocxModal, setShowDocxModal] = useState(false);
   const [docxSigners, setDocxSigners] = useState([]);
+  const [showArchiveConfirm, setShowArchiveConfirm] = useState(false);
+  const [isArchiving, setIsArchiving] = useState(false);
 
   const toggleDocxSigner = (signer) => {
     setDocxSigners((prev) =>
@@ -154,6 +156,17 @@ export const SinglePostBlock = ({ data, onApprove }) => {
     docxCreator(data, docxSigners);
     setShowDocxModal(false);
     setDocxSigners([]);
+  };
+
+  const handleConfirmArchive = async () => {
+    if (!onArchive) return;
+    setIsArchiving(true);
+    try {
+      await onArchive();
+    } finally {
+      setIsArchiving(false);
+      setShowArchiveConfirm(false);
+    }
   };
 
   const startEditing = () => {
@@ -335,6 +348,43 @@ export const SinglePostBlock = ({ data, onApprove }) => {
             </div>
           </div>
         </div>
+
+        {showArchiveConfirm && (
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+            onClick={() => !isArchiving && setShowArchiveConfirm(false)}
+          >
+            <div
+              className="w-full max-w-sm rounded-2xl bg-white shadow-2xl"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="px-6 py-6">
+                <h3 className="text-lg font-bold text-slate-900">Архивировать заявку?</h3>
+                <p className="mt-2 text-sm text-slate-500">
+                  Заявка #{id} будет перемещена в архив. Это действие необратимо.
+                </p>
+              </div>
+              <div className="flex justify-end gap-3 border-t border-slate-100 px-6 py-4">
+                <button
+                  type="button"
+                  onClick={() => setShowArchiveConfirm(false)}
+                  disabled={isArchiving}
+                  className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-60"
+                >
+                  Отмена
+                </button>
+                <button
+                  type="button"
+                  onClick={handleConfirmArchive}
+                  disabled={isArchiving}
+                  className="rounded-xl bg-slate-800 px-5 py-2 text-sm font-bold text-white shadow-sm transition hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {isArchiving ? "Архивирование..." : "Да, архивировать"}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {showDocxModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => setShowDocxModal(false)}>
@@ -528,6 +578,16 @@ export const SinglePostBlock = ({ data, onApprove }) => {
             >
               Создать файл
             </button>
+
+            {canManage && mode === "active" && onArchive ? (
+              <button
+                type="button"
+                onClick={() => setShowArchiveConfirm(true)}
+                className="inline-flex h-11 items-center justify-center rounded-xl border border-slate-300 bg-slate-100 px-5 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-200"
+              >
+                Архивировать
+              </button>
+            ) : null}
 
             {canManage && mode === "undeclared" && onApprove ? (
               <button

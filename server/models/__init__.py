@@ -1,7 +1,7 @@
 from .user.user import User
 from .user.role import Role, user_roles
-
-from .tag.tag_post import Tag_post
+from .user.user_profile_history import UserProfileHistory
+from .user.roleChangeRequest import RoleChangeRequest
 
 from .request.request import Request
 from .request.requestItem import RequestItem
@@ -15,7 +15,8 @@ __all__ = [
     "User",
     "Role",
     "user_roles",
-    "Tag_post",
+    "UserProfileHistory",
+    "RoleChangeRequest",
     "Request",
     "RequestItem",
     "RequestStatusHistory",

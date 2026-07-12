@@ -15,7 +15,7 @@ class AuthService:
         return role
 
     @staticmethod
-    def create_user(password, full_name, role_name, number):
+    def create_user(password, full_name, role_name, number, is_active=True):
         if not password:
             raise ValueError("password is required")
         if not full_name:
@@ -36,6 +36,7 @@ class AuthService:
             full_name=full_name,
             number=number,
             token=token_hex(32),
+            is_active=is_active,
         )
         user.set_password(password)
         user.roles = [selected_role]

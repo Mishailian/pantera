@@ -4,13 +4,19 @@ import {
   useGetCurrentUserQuery,
   useUpdateCurrentUserMutation,
   useGetRegistrationRolesQuery,
+  useCreateRoleRequestMutation,
+  useGetMyRoleRequestsQuery,
 } from "../../app/api/apiSlice";
 import { useEffect, useMemo, useState } from "react";
+
+const ROLES_REQUIRING_APPROVAL = new Set(["supply_manager", "it_department"]);
 
 export const Profile = () => {
   const { data: user, isLoading } = useGetCurrentUserQuery();
   const { data: roles = [], isLoading: rolesLoading } = useGetRegistrationRolesQuery();
+  const { data: myRoleRequests = [] } = useGetMyRoleRequestsQuery();
   const [updateUser, { isLoading: isSaving }] = useUpdateCurrentUserMutation();
+  const [createRoleRequest, { isLoading: isRequesting }] = useCreateRoleRequestMutation();
   const dispatch = useDispatch();
   const authState = useSelector((state) => state.auth);
   const [editing, setEditing] = useState(false);
@@ -19,6 +25,8 @@ export const Profile = () => {
   const [errorText, setErrorText] = useState("");
   const [successText, setSuccessText] = useState("");
   const [number, setNumber] = useState("");
+
+  const pendingRoleRequest = myRoleRequests[0] ?? null;
 
   useEffect(() => {
     if (!user) return;
@@ -53,22 +61,50 @@ export const Profile = () => {
     setErrorText("");
     setSuccessText("");
 
+    const wantsApprovalRole = ROLES_REQUIRING_APPROVAL.has(roleName) && roleName !== currentRoleName;
+
     try {
+      // Если нужно одобрение — отправляем запрос, профиль обновляем без смены роли
+      if (wantsApprovalRole) {
+        // Сначала сохраняем имя/телефон (без role_name)
+        const nameOrPhoneChanged =
+          fullName !== (user.full_name || "") || number !== (user.number || "");
+
+        if (nameOrPhoneChanged) {
+          const updatedUser = await updateUser({
+            full_name: fullName,
+            number,
+          }).unwrap();
+          dispatch(setToken({
+            token: authState.token,
+            isAuth: authState.isAuth,
+            csrf_token: authState.csrf_token,
+            username_id: updatedUser?.id ?? authState.username_id,
+            roles: updatedUser?.roles ?? authState.roles,
+          }));
+        }
+
+        await createRoleRequest(roleName).unwrap();
+        setEditing(false);
+        setSuccessText(
+          "Запрос на смену роли отправлен. Ожидайте одобрения начальника отдела."
+        );
+        return;
+      }
+
       const updatedUser = await updateUser({
         full_name: fullName,
         role_name: roleName,
         number,
       }).unwrap();
 
-      dispatch(
-        setToken({
-          token: authState.token,
-          isAuth: authState.isAuth,
-          csrf_token: authState.csrf_token,
-          username_id: updatedUser?.id ?? authState.username_id,
-          roles: updatedUser?.roles ?? authState.roles,
-        })
-      );
+      dispatch(setToken({
+        token: authState.token,
+        isAuth: authState.isAuth,
+        csrf_token: authState.csrf_token,
+        username_id: updatedUser?.id ?? authState.username_id,
+        roles: updatedUser?.roles ?? authState.roles,
+      }));
 
       setEditing(false);
       setSuccessText("Профиль успешно обновлён.");
@@ -96,6 +132,14 @@ export const Profile = () => {
           Здесь можно посмотреть свои данные и обновить имя, роль или номер телефона.
         </p>
       </div>
+
+      {pendingRoleRequest && (
+        <div className="mb-5 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+          Ожидается одобрение запроса на роль:{" "}
+          <strong>{pendingRoleRequest.requested_role}</strong>. Отправлен:{" "}
+          {pendingRoleRequest.created_at_formatted}
+        </div>
+      )}
 
       {errorText ? (
         <div className="mb-5 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">

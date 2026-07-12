@@ -2,8 +2,6 @@ import { configureStore, combineReducers } from "@reduxjs/toolkit";
 import { apiSlice } from "./api/apiSlice";
 import authReduser from "./auth/authSlice";
 import usesReduser from "./auth/usesSlice";
-import tagsReduser from "./auth/tagsSlice";
-
 import {
   persistStore,
   persistReducer,
@@ -19,14 +17,13 @@ import storage from "redux-persist/lib/storage";
 const persistConfig = {
   key: "root",
   storage,
-  whitelist: ["auth", "users", "tags"],
+  whitelist: ["auth", "users"],
 };
 
 const rootReducer = combineReducers({
   [apiSlice.reducerPath]: apiSlice.reducer,
   auth: authReduser,
   users: usesReduser,
-  tags: tagsReduser,
 });
 
 const persistedReduser = persistReducer(persistConfig, rootReducer);

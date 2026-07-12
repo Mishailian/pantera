@@ -29,14 +29,6 @@ def list_requests():
     })
 
 
-@requests_bp.get("/health")
-def health_check():
-    return jsonify({
-        "status": "ok",
-        "message": "Flask backend is running",
-        "version": "1.0.0"
-    })
-
 
 @requests_bp.get("/<int:request_id>")
 def get_request(request_id):
@@ -107,33 +99,6 @@ def change_request_status(request_id):
     return jsonify(serialize_request(request_obj))
 
 
-@requests_bp.post("/<int:request_id>/items")
-def add_request_item(request_id):
-    data = request.get_json() or {}
-
-    name = data.get("name")
-    unit = data.get("unit")
-    quantity = data.get("quantity")
-    description = data.get("description")
-    deadline = data.get("deadline")
-
-    if not name or not unit or quantity is None:
-        return jsonify({"error": "name, unit and quantity are required"}), 400
-
-    item = RequestService.add_request_item(
-        request_id=request_id,
-        name=name,
-        unit=unit,
-        quantity=quantity,
-        description=description,
-        deadline=deadline,
-    )
-
-    if not item:
-        return jsonify({"error": "Request not found"}), 404
-
-    return jsonify(serialize_request_item(item)), 201
-
 @requests_bp.patch("/items/<int:item_id>")
 def update_request_item(item_id):
     data = request.get_json() or {}
@@ -144,14 +109,6 @@ def update_request_item(item_id):
 
     return jsonify(serialize_request_item(item))
 
-
-@requests_bp.delete("/items/<int:item_id>")
-def delete_request_item(item_id):
-    deleted = RequestService.delete_request_item(item_id)
-    if not deleted:
-        return jsonify({"error": "Request item not found"}), 404
-
-    return jsonify({"message": "Request item deleted successfully"}), 200
 
 
 @requests_bp.get("/deleted/")

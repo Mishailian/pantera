@@ -57,6 +57,23 @@ services:
     networks:
       - app-network
 
+  backup:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      PGPASSWORD: pantera_pass
+      POSTGRES_HOST: postgres
+      POSTGRES_DB: pantera
+      POSTGRES_USER: pantera_user
+    volumes:
+      - ${BACKUP_PATH:-./backups}:/backups
+      - ./backup.sh:/backup.sh:ro
+    command: bash /backup.sh
+    depends_on:
+      - postgres
+    networks:
+      - app-network
+
 volumes:
   postgres_data:
     # Используется только если DB_DATA_PATH не задан в .env

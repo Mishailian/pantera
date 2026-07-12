@@ -15,7 +15,6 @@ const buildQueryParams = (params = {}) => {
 export const apiSlice = createApi({
   reducerPath: "api",
   baseQuery: fetchBaseQuery({
-    //baseUrl: import.meta.env.VITE_API_URL || "http://172.29.99.230:81/api/v1",
     baseUrl: import.meta.env.VITE_API_URL,
     prepareHeaders: (headers, { getState }) => {
       const token = getState()?.auth?.token;
@@ -29,30 +28,14 @@ export const apiSlice = createApi({
   refetchOnFocus: true,
   refetchOnReconnect: true,
   keepUnusedDataFor: 5,
-  tagTypes: ["REQUESTS", "REQUEST", "USERS", "USER", "TAGS", "AUTH", "ROLES", "PROFILE_HISTORY", "TEMPLATES"],
+  tagTypes: ["REQUESTS", "REQUEST", "USERS", "USER", "AUTH", "ROLES", "PROFILE_HISTORY", "TEMPLATES", "ROLE_REQUESTS"],
   endpoints: (builder) => ({
-    login: builder.mutation({
+    authentication: builder.mutation({
       invalidatesTags: ["AUTH"],
-      query: (credentials) => ({
+      query: ({ initialState }) => ({
         url: "/auth/login",
         method: "POST",
-        body: credentials,
-      }),
-    }),
-    getRoles: builder.query({
-      providesTags: ["ROLES"],
-      query: () => ({
-        url: "/roles/",
-        method: "GET",
-      }),
-    }),
-
-    addRole: builder.mutation({
-      invalidatesTags: ["ROLES"],
-      query: (payload) => ({
-        url: "/roles/",
-        method: "POST",
-        body: payload,
+        body: initialState,
       }),
     }),
 
@@ -64,36 +47,20 @@ export const apiSlice = createApi({
         body: payload,
       }),
     }),
-    getRegistrationRoles: builder.query({
+
+    getRoles: builder.query({
       providesTags: ["ROLES"],
-      query: () => ({
-        url: "/roles/",
-        method: "GET",
-      }),
+      query: () => ({ url: "/roles/", method: "GET" }),
+    }),
+
+    addRole: builder.mutation({
+      invalidatesTags: ["ROLES"],
+      query: (payload) => ({ url: "/roles/", method: "POST", body: payload }),
     }),
 
     getUsers: builder.query({
       providesTags: ["USERS"],
-      query: () => ({
-        url: "/users/",
-        method: "GET",
-      }),
-    }),
-
-    getUsersDB: builder.query({
-      providesTags: ["USERS"],
-      query: () => ({
-        url: "/users/",
-        method: "GET",
-      }),
-    }),
-
-    getUser: builder.query({
-      providesTags: (result, error, userId) => [{ type: "USER", id: userId }],
-      query: (userId) => ({
-        url: `/users/${userId}`,
-        method: "GET",
-      }),
+      query: () => ({ url: "/users/", method: "GET" }),
     }),
 
     updateUserRoles: builder.mutation({
@@ -106,89 +73,132 @@ export const apiSlice = createApi({
     }),
 
     updateUser: builder.mutation({
-      invalidatesTags: ["USERS"],
-      query: ({ userId, full_name, number }) => ({
+      invalidatesTags: ["USERS", "PROFILE_HISTORY"],
+      query: ({ userId, full_name, number, password }) => ({
         url: `/users/${userId}`,
         method: "PATCH",
-        body: { full_name, number },
+        body: { full_name, number, password },
       }),
     }),
 
     deleteUser: builder.mutation({
       invalidatesTags: ["USERS"],
-      query: (userId) => ({
-        url: `/users/${userId}`,
-        method: "DELETE",
-      }),
+      query: (userId) => ({ url: `/users/${userId}`, method: "DELETE" }),
     }),
 
-    getTags: builder.query({
-      providesTags: ["TAGS"],
-      query: () => ({
-        url: "/tags/",
-        method: "GET",
-      }),
+    assignHead: builder.mutation({
+      invalidatesTags: ["USERS"],
+      query: (userId) => ({ url: `/users/${userId}/head`, method: "POST" }),
     }),
 
-    getTag: builder.query({
-      providesTags: (result, error, tagId) => [{ type: "TAGS", id: tagId }],
-      query: (tagId) => ({
-        url: `/tags/${tagId}`,
-        method: "GET",
-      }),
+    removeHead: builder.mutation({
+      invalidatesTags: ["USERS"],
+      query: (userId) => ({ url: `/users/${userId}/head`, method: "DELETE" }),
     }),
 
-    addTag: builder.mutation({
-      invalidatesTags: ["TAGS"],
-      query: (payload) => ({
-        url: "/tags/",
-        method: "POST",
-        body: payload,
-      }),
+    getCurrentUser: builder.query({
+      query: () => "users/me",
+      providesTags: ["USER"],
     }),
 
-    updateTag: builder.mutation({
-      invalidatesTags: ["TAGS"],
-      query: ({ tagId, ...payload }) => ({
-        url: `/tags/${tagId}`,
+    updateCurrentUser: builder.mutation({
+      query: ({ full_name, role_name, number }) => ({
+        url: "users/me",
         method: "PATCH",
-        body: payload,
+        body: { full_name, role_name, number },
       }),
+      invalidatesTags: ["USER", "AUTH"],
     }),
 
-    deleteTag: builder.mutation({
-      invalidatesTags: ["TAGS"],
-      query: (tagId) => ({
-        url: `/tags/${tagId}`,
-        method: "DELETE",
-      }),
-    }),
-
-    getRequests: builder.query({
-      providesTags: ["REQUESTS"],
+    getProfileHistory: builder.query({
       query: (params = {}) => {
         const queryString = buildQueryParams(params);
         return {
-          url: `/requests/${queryString ? `?${queryString}` : ""}`,
+          url: `users/profile-history${queryString ? `?${queryString}` : ""}`,
           method: "GET",
         };
       },
+      providesTags: ["PROFILE_HISTORY"],
     }),
 
-    getRequest: builder.query({
-      providesTags: (result, error, requestId) => [{ type: "REQUEST", id: requestId }],
-      query: (requestId) => ({
-        url: `/requests/${requestId}`,
-        method: "GET",
+    getMyRequests: builder.query({
+      query: () => ({ url: "users/me/requests", method: "GET" }),
+      providesTags: ["REQUESTS"],
+    }),
+
+    getRoleRequests: builder.query({
+      providesTags: ["ROLE_REQUESTS"],
+      query: () => ({ url: "/role-requests/", method: "GET" }),
+    }),
+
+    getRoleRequestsCount: builder.query({
+      providesTags: ["ROLE_REQUESTS"],
+      query: () => ({ url: "/role-requests/count", method: "GET" }),
+    }),
+
+    getMyRoleRequests: builder.query({
+      providesTags: ["ROLE_REQUESTS"],
+      query: () => ({ url: "/role-requests/my", method: "GET" }),
+    }),
+
+    createRoleRequest: builder.mutation({
+      invalidatesTags: ["ROLE_REQUESTS"],
+      query: (requested_role) => ({
+        url: "/role-requests/",
+        method: "POST",
+        body: { requested_role },
       }),
     }),
 
-    addRequest: builder.mutation({
+    reviewRoleRequest: builder.mutation({
+      invalidatesTags: ["ROLE_REQUESTS", "USERS"],
+      query: ({ requestId, action }) => ({
+        url: `/role-requests/${requestId}`,
+        method: "PATCH",
+        body: { action },
+      }),
+    }),
+
+    getActiveRequests: builder.query({
+      providesTags: ["REQUESTS"],
+      query: ({ page, sort } = {}) => {
+        const queryString = buildQueryParams({ status: "active", page, sort });
+        return { url: `/requests/?${queryString}`, method: "GET" };
+      },
+    }),
+
+    getUndeclaredRequests: builder.query({
+      providesTags: ["REQUESTS"],
+      query: ({ page, sort } = {}) => {
+        const queryString = buildQueryParams({ status: "undeclared", page, sort });
+        return { url: `/requests/?${queryString}`, method: "GET" };
+      },
+    }),
+
+    getArchivedRequests: builder.query({
+      providesTags: ["REQUESTS"],
+      query: ({ page, sort } = {}) => {
+        const queryString = buildQueryParams({ status: "archived", page, sort });
+        return { url: `/requests/?${queryString}`, method: "GET" };
+      },
+    }),
+
+    getDeletedRequests: builder.query({
+      providesTags: ["REQUESTS"],
+      query: () => ({ url: "/requests/deleted/", method: "GET" }),
+    }),
+
+    getPost: builder.query({
+      providesTags: (result, error, arg) => [{ type: "REQUEST", id: arg?.postId }],
+      query: ({ postId }) => ({ url: `/requests/${postId}`, method: "GET" }),
+    }),
+
+    addPost: builder.mutation({
       invalidatesTags: ["REQUESTS"],
-      query: (payload) => ({
+      query: ({ initialState }) => ({
         url: "/requests/",
         method: "POST",
-        body: payload,
+        body: initialState,
       }),
     }),
 
@@ -216,29 +226,21 @@ export const apiSlice = createApi({
       }),
     }),
 
+    declaredPost: builder.mutation({
+      invalidatesTags: ["REQUESTS"],
+      query: ({ postId, changed_by_id, comment }) => ({
+        url: `/requests/${postId}/status`,
+        method: "PATCH",
+        body: { status: "active", changed_by_id, comment },
+      }),
+    }),
+
     deleteRequest: builder.mutation({
       invalidatesTags: ["REQUESTS"],
       query: ({ requestId, deletedById, reason } = {}) => ({
         url: `/requests/${requestId}`,
         method: "DELETE",
         body: { deleted_by_id: deletedById, reason: reason || null },
-      }),
-    }),
-
-    getDeletedRequests: builder.query({
-      providesTags: ["REQUESTS"],
-      query: () => ({ url: "/requests/deleted/", method: "GET" }),
-    }),
-
-    addRequestItem: builder.mutation({
-      invalidatesTags: (result, error, { requestId }) => [
-        "REQUESTS",
-        { type: "REQUEST", id: requestId },
-      ],
-      query: ({ requestId, ...payload }) => ({
-        url: `/requests/${requestId}/items`,
-        method: "POST",
-        body: payload,
       }),
     }),
 
@@ -251,274 +253,57 @@ export const apiSlice = createApi({
       }),
     }),
 
-    deleteRequestItem: builder.mutation({
-      invalidatesTags: ["REQUESTS", "REQUEST"],
-      query: (itemId) => ({
-        url: `/requests/items/${itemId}`,
-        method: "DELETE",
-      }),
-    }),
-
-    getUndeclaredRequests: builder.query({
-      providesTags: ["REQUESTS"],
-      query: ({ page, sort } = {}) => {
-        const queryString = buildQueryParams({ status: "undeclared", page, sort });
-        return { url: `/requests/?${queryString}`, method: "GET" };
-      },
-    }),
-
-    getActiveRequests: builder.query({
-      providesTags: ["REQUESTS"],
-      query: ({ page, sort } = {}) => {
-        const queryString = buildQueryParams({ status: "active", page, sort });
-        return { url: `/requests/?${queryString}`, method: "GET" };
-      },
-    }),
-
-    getArchivedRequests: builder.query({
-      providesTags: ["REQUESTS"],
-      query: ({ page, sort } = {}) => {
-        const queryString = buildQueryParams({ status: "archived", page, sort });
-        return { url: `/requests/?${queryString}`, method: "GET" };
-      },
-    }),
-
-    getPostsCount: builder.query({
-      providesTags: ["REQUESTS"],
-      query: () => ({ url: "/requests/?count=1&status=active", method: "GET" }),
-    }),
-
-    getUndeclaredPostsCount: builder.query({
-      providesTags: ["REQUESTS"],
-      query: () => ({ url: "/requests/?count=1&status=undeclared", method: "GET" }),
-    }),
-
-    getPostsFilteredCount: builder.query({
-      providesTags: ["REQUESTS"],
-      query: (exId) => ({
-        url: `/requests/?count=1&status=active&assigned_to_id=${exId}`,
-        method: "GET",
-      }),
-    }),
-
-    getArhive: builder.query({
-      providesTags: ["REQUESTS"],
-      query: () => ({ url: "/requests/?status=archived", method: "GET" }),
-    }),
-
-    getPosts: builder.query({
-      providesTags: ["REQUESTS"],
-      query: ({ page } = {}) => {
-        const queryString = buildQueryParams({ status: "active", page });
-        return { url: `/requests/?${queryString}`, method: "GET" };
-      },
-    }),
-
-    getUndeclaredPosts: builder.query({
-      providesTags: ["REQUESTS"],
-      query: ({ page } = {}) => {
-        const queryString = buildQueryParams({ status: "undeclared", page });
-        return { url: `/requests/?${queryString}`, method: "GET" };
-      },
-    }),
-
-    getPost: builder.query({
-      providesTags: (result, error, arg) => [{ type: "REQUEST", id: arg?.postId }],
-      query: ({ postId }) => ({ url: `/requests/${postId}`, method: "GET" }),
-    }),
-
-    getUndeclaredPost: builder.query({
-      providesTags: (result, error, arg) => [{ type: "REQUEST", id: arg?.postId }],
-      query: ({ postId }) => ({ url: `/requests/${postId}`, method: "GET" }),
-    }),
-
-    getFilterPosts: builder.query({
-      providesTags: ["REQUESTS"],
-      query: (params = {}) => {
-        const queryString = buildQueryParams({ ...params, status: "active" });
-        return { url: `/requests/?${queryString}`, method: "GET" };
-      },
-    }),
-    // GET /users/me
-    getCurrentUser: builder.query({
-      query: () => 'users/me',
-      providesTags: ['USER']
-    }),
-
-    getMyRequests: builder.query({
-      query: () => ({
-        url: "users/me/requests",
-        method: "GET",
-      }),
-      providesTags: ["REQUESTS"],
-    }),
-
-    // PATCH /users/me
-    updateCurrentUser: builder.mutation({
-      query: ({ full_name, role_name, number }) => ({
-        url: "users/me",
-        method: "PATCH",
-        body: { full_name, role_name, number },
-      }),
-      invalidatesTags: ["USER", "AUTH"],
-    }),
-
-    // GET /users/profile-history (protected)
-    getProfileHistory: builder.query({
-      query: (params = {}) => {
-        const queryString = buildQueryParams(params);
-        return {
-          url: `users/profile-history${queryString ? `?${queryString}` : ""}`,
-          method: "GET",
-        };
-      },
-      providesTags: ["PROFILE_HISTORY"],
-    }),
-
-    declaredPost: builder.mutation({
-      invalidatesTags: ["REQUESTS"],
-      query: ({ postId, changed_by_id, comment }) => ({
-        url: `/requests/${postId}/status`,
-        method: "PATCH",
-        body: { status: "active", changed_by_id, comment },
-      }),
-    }),
-
-    chengeTag: builder.mutation({
-      invalidatesTags: ["TAGS"],
-      query: ({ initialState, tagId }) => ({
-        url: `/tags/${tagId}`,
-        method: "PATCH",
-        body: initialState,
-      }),
-    }),
-
-    chengePost: builder.mutation({
-      invalidatesTags: (result, error, { postId }) => [
-        "REQUESTS",
-        { type: "REQUEST", id: postId },
-      ],
-      query: ({ initialState, postId }) => ({
-        url: `/requests/${postId}`,
-        method: "PATCH",
-        body: initialState,
-      }),
-    }),
-
-    authentication: builder.mutation({
-      invalidatesTags: ["AUTH"],
-      query: ({ initialState }) => ({
-        url: "/auth/login",
-        method: "POST",
-        body: initialState,
-      }),
-    }),
-
-    deletePost: builder.mutation({
-      invalidatesTags: ["REQUESTS"],
-      query: (postId) => ({ url: `/requests/${postId}`, method: "DELETE" }),
-    }),
-
-    deleteUndeclaredPost: builder.mutation({
-      invalidatesTags: ["REQUESTS"],
-      query: (postId) => ({ url: `/requests/${postId}`, method: "DELETE" }),
-    }),
-
-    addPost: builder.mutation({
-      invalidatesTags: ["REQUESTS"],
-      query: ({ initialState }) => ({
-        url: "/requests/",
-        method: "POST",
-        body: initialState,
-      }),
-    }),
-
     getTemplates: builder.query({
       providesTags: ["TEMPLATES"],
-      query: () => ({
-        url: "/templates/",
-        method: "GET",
-      }),
+      query: () => ({ url: "/templates/", method: "GET" }),
     }),
 
     addTemplate: builder.mutation({
       invalidatesTags: ["TEMPLATES"],
-      query: (payload) => ({
-        url: "/templates/",
-        method: "POST",
-        body: payload,
-      }),
+      query: (payload) => ({ url: "/templates/", method: "POST", body: payload }),
     }),
 
     deleteTemplate: builder.mutation({
       invalidatesTags: ["TEMPLATES"],
-      query: (templateId) => ({
-        url: `/templates/${templateId}`,
-        method: "DELETE",
-      }),
+      query: (templateId) => ({ url: `/templates/${templateId}`, method: "DELETE" }),
     }),
   }),
 });
 
 export const {
-  useLoginMutation,
+  useAuthenticationMutation,
   useRegisterMutation,
-  useGetRegistrationRolesQuery,
+  useGetRolesQuery,
+  useAddRoleMutation,
   useGetUsersQuery,
-  useGetUsersDBQuery,
-  useGetUserQuery,
   useUpdateUserRolesMutation,
+  useUpdateUserMutation,
+  useDeleteUserMutation,
+  useAssignHeadMutation,
+  useRemoveHeadMutation,
   useGetCurrentUserQuery,
   useUpdateCurrentUserMutation,
   useGetProfileHistoryQuery,
-  useGetRolesQuery,
-  useAddRoleMutation,
-
-  useGetTagsQuery,
-  useGetTagQuery,
-  useAddTagMutation,
-  useUpdateTagMutation,
-  useDeleteTagMutation,
-
-  useGetRequestsQuery,
-  useGetRequestQuery,
-  useAddRequestMutation,
+  useGetMyRequestsQuery,
+  useGetRoleRequestsQuery,
+  useGetRoleRequestsCountQuery,
+  useGetMyRoleRequestsQuery,
+  useCreateRoleRequestMutation,
+  useReviewRoleRequestMutation,
+  useGetActiveRequestsQuery,
+  useGetUndeclaredRequestsQuery,
+  useGetArchivedRequestsQuery,
+  useGetDeletedRequestsQuery,
+  useGetPostQuery,
+  useAddPostMutation,
   useUpdateRequestMutation,
   useChangeRequestStatusMutation,
-  useDeleteRequestMutation,
-
-  useAddRequestItemMutation,
-  useUpdateRequestItemMutation,
-  useDeleteRequestItemMutation,
-
-  useGetUndeclaredRequestsQuery,
-  useGetActiveRequestsQuery,
-  useGetArchivedRequestsQuery,
-
-  useGetPostsCountQuery,
-  useGetUndeclaredPostsCountQuery,
-  useGetPostsFilteredCountQuery,
-
-  useGetArhiveQuery,
-  useAuthenticationMutation,
-  useGetPostsQuery,
-  useGetUndeclaredPostsQuery,
-  useGetPostQuery,
-  useGetUndeclaredPostQuery,
   useDeclaredPostMutation,
-  useGetFilterPostsQuery,
-  useChengeTagMutation,
-  useChengePostMutation,
-  useDeletePostMutation,
-  useDeleteUndeclaredPostMutation,
-  useGetMyRequestsQuery,
-  useAddPostMutation,
-
+  useDeleteRequestMutation,
+  useUpdateRequestItemMutation,
   useGetTemplatesQuery,
   useAddTemplateMutation,
   useDeleteTemplateMutation,
-
-  useGetDeletedRequestsQuery,
-  useUpdateUserMutation,
-  useDeleteUserMutation,
 } = apiSlice;
+
+export const useGetRegistrationRolesQuery = apiSlice.endpoints.getRoles.useQuery;

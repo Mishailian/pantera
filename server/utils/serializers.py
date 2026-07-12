@@ -97,6 +97,22 @@ def serialize_request_template(template):
     }
 
 
+def serialize_role_request(req):
+    return {
+        "id": req.id,
+        "user_id": req.user_id,
+        "user": serialize_user_min(req.user) if req.user else None,
+        "requested_role": req.requested_role,
+        "status": req.status,
+        "request_type": getattr(req, "request_type", "role_change"),
+        "created_at": req.created_at.isoformat() if req.created_at else None,
+        "created_at_formatted": format_datetime_ekb(req.created_at),
+        "reviewed_by_id": req.reviewed_by_id,
+        "reviewed_at": req.reviewed_at.isoformat() if req.reviewed_at else None,
+        "reviewed_at_formatted": format_datetime_ekb(req.reviewed_at),
+    }
+
+
 def serialize_deleted_request(deleted_req):
     return {
         "id": deleted_req.id,

@@ -3,6 +3,7 @@ import { useSelector } from "react-redux";
 import {
   useGetPostQuery,
   useDeclaredPostMutation,
+  useChangeRequestStatusMutation,
 } from "../../app/api/apiSlice";
 import { SinglePostBlock } from "../../auxComponents/SinglePostBlock";
 import { progressCheck } from "../../progressCheck";
@@ -33,6 +34,7 @@ export const UniversalSinglePost = () => {
   // Универсальный запрос данных заявки
   const postObject = useGetPostQuery({ postId });
   const [declarePost] = useDeclaredPostMutation();
+  const [changeStatus] = useChangeRequestStatusMutation();
 
   // Владелец заявки может редактировать её содержимое, пока она без подписи
   const canEditOwn =
@@ -51,6 +53,20 @@ export const UniversalSinglePost = () => {
     } catch (error) {
       console.error("Failed to approve request:", error);
       alert("Не удалось перевести заявку в активные.");
+    }
+  };
+
+  const handleArchive = async () => {
+    try {
+      await changeStatus({
+        requestId: postId,
+        status: "archived",
+        changed_by_id: currentUserId,
+      }).unwrap();
+      navigate("/archived/");
+    } catch (error) {
+      console.error("Failed to archive request:", error);
+      alert("Не удалось архивировать заявку.");
     }
   };
 
@@ -73,6 +89,7 @@ export const UniversalSinglePost = () => {
         <SinglePostBlock
           data={data}
           onApprove={mode === "undeclared" ? handleApprove : undefined}
+          onArchive={mode === "active" ? handleArchive : undefined}
         />
       );
     }

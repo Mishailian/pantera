@@ -19,7 +19,43 @@ const STATUS_STYLES = {
   archived: "bg-slate-200 text-slate-800",
 };
 
-const NameHistoryTab = () => {
+const CHANGE_TYPE_LABELS = {
+  name: "Имя",
+  phone: "Телефон",
+  role: "Роль",
+  password: "Пароль",
+  deletion: "Удалён",
+};
+
+const CHANGE_BY_ROLE_LABELS = {
+  self: "Сам пользователь",
+  admin: "Администратор",
+  it_department: "ОИТ",
+  it_head: "Нач. ОИТ",
+  supply_head: "Нач. снабжения",
+};
+
+const CHANGE_TYPE_STYLES = {
+  name: "bg-blue-100 text-blue-700",
+  phone: "bg-purple-100 text-purple-700",
+  role: "bg-amber-100 text-amber-700",
+  password: "bg-rose-100 text-rose-700",
+  deletion: "bg-red-600 text-white",
+};
+
+const formatChangeDescription = (item) => {
+  const type = item.change_type || "name";
+  if (type === "password") return "Пароль изменён";
+  if (type === "deletion") {
+    const name = item.target_full_name || "—";
+    return `Аккаунт удалён: ${name}`;
+  }
+  const oldVal = item.old_value ?? item.old_full_name ?? "—";
+  const newVal = item.new_value ?? item.new_full_name ?? "—";
+  return `${oldVal || "—"} → ${newVal || "—"}`;
+};
+
+const AccountHistoryTab = () => {
   const [filters, setFilters] = useState({
     number: "",
     full_name: "",
@@ -38,12 +74,12 @@ const NameHistoryTab = () => {
     setFilters({ number: "", full_name: "", date: "", sort: "desc" });
   };
 
-  if (isLoading) return <div>Загрузка истории имён...</div>;
-  if (isError) return <div>Ошибка загрузки истории имён</div>;
+  if (isLoading) return <div>Загрузка истории...</div>;
+  if (isError) return <div>Ошибка загрузки истории</div>;
 
   return (
     <div className="space-y-6">
-      <h2 className="text-2xl font-bold">История изменения имён</h2>
+      <h2 className="text-2xl font-bold">История изменений аккаунтов</h2>
 
       <div className="rounded-lg bg-white p-4 shadow-sm">
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
@@ -58,7 +94,7 @@ const NameHistoryTab = () => {
             type="text"
             value={filters.full_name}
             onChange={(e) => handleChange("full_name", e.target.value)}
-            placeholder="Фильтр по полному имени"
+            placeholder="Фильтр по имени / значению"
             className="rounded-lg border p-3"
           />
           <input
@@ -83,31 +119,50 @@ const NameHistoryTab = () => {
         </div>
       </div>
 
-      <div className="overflow-hidden rounded-lg bg-white shadow-sm">
-        <table className="w-full border-collapse">
+      <div className="overflow-x-auto rounded-lg bg-white shadow-sm">
+        <table className="w-full border-collapse text-sm">
           <thead>
             <tr className="bg-stone-100 text-left">
               <th className="px-4 py-3">Дата</th>
-              <th className="px-4 py-3">Номер телефона</th>
+              <th className="px-4 py-3">Тип</th>
+              <th className="px-4 py-3">Аккаунт (номер)</th>
               <th className="px-4 py-3">Кто изменил</th>
-              <th className="px-4 py-3">Было</th>
-              <th className="px-4 py-3">Стало</th>
+              <th className="px-4 py-3">Кем был</th>
+              <th className="px-4 py-3">Изменение</th>
             </tr>
           </thead>
           <tbody>
             {history.length ? (
-              history.map((item) => (
-                <tr key={item.id} className="border-t border-stone-200">
-                  <td className="px-4 py-3">{item.changed_at_formatted || "-"}</td>
-                  <td className="px-4 py-3">{item.target_number || "-"}</td>
-                  <td className="px-4 py-3">{item.changed_by_number || "-"}</td>
-                  <td className="px-4 py-3 text-stone-500">{item.old_full_name || "-"}</td>
-                  <td className="px-4 py-3 font-medium">{item.new_full_name || "-"}</td>
-                </tr>
-              ))
+              history.map((item) => {
+                const type = item.change_type || "name";
+                const isDeletion = type === "deletion";
+                return (
+                  <tr key={item.id} className={`border-t border-stone-200 ${isDeletion ? "bg-red-50 hover:bg-red-100" : "hover:bg-stone-50"}`}>
+                    <td className="px-4 py-3 whitespace-nowrap">{item.changed_at_formatted || "—"}</td>
+                    <td className="px-4 py-3">
+                      <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-semibold ${CHANGE_TYPE_STYLES[type] || "bg-stone-100 text-stone-700"}`}>
+                        {CHANGE_TYPE_LABELS[type] || type}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 font-medium">{item.target_number || "—"}</td>
+                    <td className="px-4 py-3">
+                      <span className="text-stone-700">{item.changed_by_name || "—"}</span>
+                      {item.changed_by_number && (
+                        <span className="block text-xs text-stone-400">{item.changed_by_number}</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3 text-xs text-stone-500">
+                      {CHANGE_BY_ROLE_LABELS[item.changed_by_role] || item.changed_by_role || "—"}
+                    </td>
+                    <td className="px-4 py-3 max-w-xs break-words">
+                      {formatChangeDescription(item)}
+                    </td>
+                  </tr>
+                );
+              })
             ) : (
               <tr>
-                <td colSpan="5" className="px-4 py-6 text-center text-stone-500">
+                <td colSpan="6" className="px-4 py-6 text-center text-stone-500">
                   По заданным фильтрам ничего не найдено
                 </td>
               </tr>
@@ -332,8 +387,10 @@ export const ProfileHistory = () => {
 
   const isAdmin = useMemo(() => roles.some((role) => role?.name === "admin"), [roles]);
 
-  const canViewNameHistory = useMemo(
-    () => roles.some((role) => ["admin", "supply_manager"].includes(role?.name)),
+  const canViewAccountHistory = useMemo(
+    () => roles.some((role) =>
+      ["admin", "supply_manager", "supply_head", "it_department", "it_head"].includes(role?.name)
+    ),
     [roles]
   );
 
@@ -352,7 +409,7 @@ export const ProfileHistory = () => {
           Мои заявки
         </button>
 
-        {canViewNameHistory && (
+        {canViewAccountHistory && (
           <button
             type="button"
             onClick={() => setActiveTab("names")}
@@ -360,7 +417,7 @@ export const ProfileHistory = () => {
               activeTab === "names" ? "bg-black text-white" : "bg-stone-200 text-stone-700 hover:bg-stone-300"
             }`}
           >
-            История имён
+            История изменений аккаунтов
           </button>
         )}
 
@@ -378,7 +435,7 @@ export const ProfileHistory = () => {
       </div>
 
       {activeTab === "requests" && <MyRequestsTab />}
-      {activeTab === "names" && <NameHistoryTab />}
+      {activeTab === "names" && <AccountHistoryTab />}
       {activeTab === "deleted" && isAdmin && <DeletedRequestsTab />}
     </div>
   );

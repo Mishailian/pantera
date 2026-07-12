@@ -11,8 +11,6 @@ import { Login } from "./app/auth/Login";
 
 import { UserList } from "./routers/UserList/UserList";
 import { AddPost } from "./routers/Post/AddPost";
-import { AddUser } from "./routers/User/AddUser";
-import { UserPage } from "./routers/User/UserPage";
 import { TagList } from "./routers/Tags/TagList";
 import { RequireRoles } from "./routers/guards/RequireRoles";
 import { Profile } from "./routers/User/Profile";
@@ -24,7 +22,7 @@ import { UniversalSinglePost } from "./routers/Post/UniversalSinglePost";
 
 
 const RequestsTabRoute = ({ tab }) => (
-  <RequireRoles allowedRoles={["admin", "supply_manager"]}>
+  <RequireRoles allowedRoles={["admin", "supply_manager", "supply_head"]}>
     <RequestsTabsPage tab={tab} />
   </RequireRoles>
 );
@@ -85,11 +83,11 @@ const router = createBrowserRouter([
       // --- Остальные маршруты ---
       {
         path: "users",
-        element: <UserList />,
-      },
-      {
-        path: "users/:userId",
-        element: <UserPage />,
+        element: (
+          <RequireRoles allowedRoles={["admin", "it_department", "it_head", "supply_head"]}>
+            <UserList />
+          </RequireRoles>
+        ),
       },
       {
         path: "auth",
@@ -98,10 +96,6 @@ const router = createBrowserRouter([
       {
         path: "addPost",
         element: <AddPost />,
-      },
-      {
-        path: "addUser",
-        element: <AddUser />,
       },
       {
         path: "tagList",
