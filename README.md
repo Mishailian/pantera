@@ -168,3 +168,91 @@ ping snb.ushz.local
 * Linux по DHCP не всегда сам создаёт запись в AD DNS.
 * Для авто-регистрации DNS нужна настройка DHCP/DNS или ввод Linux в домен.
 * Самый простой рабочий вариант — ручная A-запись в DNS.
+
+⸻
+
+База данных и бэкапы
+
+Структура папки container/
+
+container/
+├── docker-compose.yml   — описание всех сервисов (postgres, backend, frontend, nginx, backup)
+├── .env                 — пути к папкам данных БД и бэкапов
+├── backup.sh            — скрипт автоматических ежедневных бэкапов
+├── backups/             — сюда идут бэкапы по умолчанию, если BACKUP_PATH не задан
+└── nginx/               — конфиг nginx
+
+Где хранятся данные PostgreSQL
+
+По умолчанию данные хранятся во внутреннем Docker-томе postgres_data. Данные переживают docker compose down и docker compose up.
+
+Чтобы хранить данные в конкретной папке на сервере, указать путь в .env:
+
+    DB_DATA_PATH=/home/user/pantera/db-data
+
+После этого данные PostgreSQL будут лежать в этой папке. Вручную ничего не трогать.
+
+Если DB_DATA_PATH пустой — используется внутренний том Docker. Если задан — папка на хосте.
+
+⸻
+
+Автоматические бэкапы
+
+Каждые 24 часа контейнер backup делает дамп базы через pg_dump и сохраняет в папку бэкапов.
+
+Где хранятся бэкапы: по умолчанию в container/backups/. Указать другое место через .env:
+
+    BACKUP_PATH=/home/user/pantera/backups
+
+Имена файлов: backup_YYYY-MM-DD.sql (например backup_2026-07-12.sql).
+Старые файлы не удаляются автоматически — нужно чистить вручную.
+
+Первый бэкап делается через 24 часа после старта — намеренно. Если нужен прямо сейчас:
+
+    docker exec pantera-postgres-1 pg_dump -U pantera_user pantera > backup_manual.sql
+
+Проверить что бэкапы работают:
+
+    docker logs pantera-backup-1
+
+⸻
+
+Восстановление из бэкапа
+
+    docker exec -i pantera-postgres-1 psql -U pantera_user -d pantera < backup_2026-07-12.sql
+
+С нуля (пустая база):
+
+    docker compose stop backend
+    docker exec -it pantera-postgres-1 psql -U pantera_user -d pantera -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public;"
+    docker exec -i pantera-postgres-1 psql -U pantera_user -d pantera < backup_2026-07-12.sql
+    docker compose start backend
+
+Перенос на другой сервер:
+
+    # На старом сервере
+    docker exec pantera-postgres-1 pg_dump -U pantera_user pantera > перенос.sql
+    # Скопировать файл на новый сервер (scp), запустить проект, затем:
+    docker exec -i pantera-postgres-1 psql -U pantera_user -d pantera < перенос.sql
+
+⸻
+
+Подключение к базе напрямую
+
+    docker exec -it pantera-postgres-1 psql -U pantera_user -d pantera
+
+Параметры подключения внутри Docker-сети:
+  Хост: postgres | Порт: 5432 | База: pantera | Юзер: pantera_user | Пароль: pantera_pass
+
+Снаружи Docker — хост localhost, порт 5432.
+
+⸻
+
+Быстрая шпаргалка
+
+    docker compose up -d                                                               # запустить всё
+    docker compose down                                                                # остановить (данные сохраняются)
+    docker logs pantera-backup-1                                                       # логи бэкапа
+    docker exec pantera-postgres-1 pg_dump -U pantera_user pantera > backup_$(date +%Y-%m-%d).sql  # бэкап сейчас
+    docker exec -i pantera-postgres-1 psql -U pantera_user -d pantera < backup.sql    # восстановить
+    docker exec -it pantera-postgres-1 psql -U pantera_user -d pantera                # зайти в базу
