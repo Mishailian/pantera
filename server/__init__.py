@@ -15,6 +15,23 @@ from errors.handlers import register_error_handlers
 from utils.logger import setup_logger
 
 
+def _ensure_request_department_column(app):
+    try:
+        from sqlalchemy import inspect, text
+        inspector = inspect(db.engine)
+        if "requests" not in inspector.get_table_names():
+            return
+        columns = {col["name"] for col in inspector.get_columns("requests")}
+        if "department" not in columns:
+            db.session.execute(text(
+                "ALTER TABLE requests ADD COLUMN IF NOT EXISTS department VARCHAR(20) NOT NULL DEFAULT 'supply'"
+            ))
+            db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        app.logger.error(f"Error adding department column to requests: {e}")
+
+
 def _ensure_request_item_work_status(app):
     try:
         from sqlalchemy import inspect, text
@@ -319,6 +336,7 @@ def create_app(config_class=Config):
         import models  # noqa
         db.create_all()
         _migrate_remove_username_clean_db(app)
+        _ensure_request_department_column(app)
         _ensure_request_item_work_status(app)
         _ensure_request_item_assigned_to_column(app)
         _ensure_request_is_edited_column(app)

@@ -8,6 +8,7 @@ class Request(db.Model):
     id = db.Column(db.Integer, primary_key=True)
 
     status = db.Column(db.String(32), nullable=False, default="undeclared", index=True)
+    department = db.Column(db.String(20), nullable=False, default="supply", index=True)
     comment = db.Column(db.Text, nullable=True)
     is_edited = db.Column(db.Boolean, nullable=False, default=False)
 

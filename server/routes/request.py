@@ -5,21 +5,43 @@ from utils.serializers import serialize_many, serialize_request, serialize_reque
 
 requests_bp = Blueprint("requests", __name__)
 
+_SUPPLY_ROLES = {"supply_manager", "supply_head"}
+_REZO_ROLES   = {"rezo_department", "rezo_head"}
+_ALL_ROLES    = {"admin", "it_department", "it_head"}
+
+
+def _department_for_user(user):
+    """None — видит всё; 'supply'/'rezo' — только свой отдел."""
+    if not user:
+        return None
+    role_names = {r.name for r in user.roles}
+    if role_names & _ALL_ROLES:
+        return None
+    if role_names & _SUPPLY_ROLES:
+        return "supply"
+    if role_names & _REZO_ROLES:
+        return "rezo"
+    return None
+
 
 @requests_bp.get("/")
 def list_requests():
+    from services.auth_service import AuthService
+    token = request.headers.get("Authorization", "").replace("Token ", "").strip()
+    actor = AuthService.get_user_by_token(token)
+    department = _department_for_user(actor)
+
     page = request.args.get("page", 0, type=int)
     status = request.args.get("status", default=None, type=str)
     count_only = request.args.get("count", 0, type=int)
-
     sort = request.args.get("sort", "desc", type=str)
 
     if count_only:
-        total = RequestService.get_requests_count(status=status)
+        total = RequestService.get_requests_count(status=status, department=department)
         return jsonify({"count": total})
 
-    requests_list = RequestService.get_requests(page=page, status=status, sort=sort)
-    total = RequestService.get_requests_count(status=status)
+    requests_list = RequestService.get_requests(page=page, status=status, sort=sort, department=department)
+    total = RequestService.get_requests_count(status=status, department=department)
 
     return jsonify({
         "items": serialize_many(requests_list, serialize_request),
@@ -46,12 +68,14 @@ def create_request():
     items = data.get("items", [])
     comment = data.get("comment")
     created_by_id = data.get("created_by_id")
+    department = data.get("department", "supply")
 
     try:
         request_obj = RequestService.create_request(
             items=items,
             comment=comment,
             created_by_id=created_by_id,
+            department=department,
         )
         return jsonify(serialize_request(request_obj)), 201
     except ValueError as e:

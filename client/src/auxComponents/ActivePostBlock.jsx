@@ -81,6 +81,7 @@ export const ActivePostBlock = ({ data, canManage, onArchive, onDelete, onSign }
 
   const requestId = data?.id;
   const status = data?.status || "active";
+  const department = data?.department || "supply";
   const statusMeta = STATUS_LABELS[status] || STATUS_LABELS.active;
 
   const createdAt = data?.created_at || data?.createdat || null;
@@ -102,7 +103,7 @@ export const ActivePostBlock = ({ data, canManage, onArchive, onDelete, onSign }
 
     // Проверяем, есть ли нужные права
     const hasPrivileges = roleNames.some((roleName) =>
-      ["admin", "supply_manager"].includes(roleName)
+      ["admin", "supply_manager", "supply_head", "rezo_department", "rezo_head"].includes(roleName)
     );
 
     // Если прав НЕТ — идём по пути для обычного сотрудника
@@ -143,6 +144,11 @@ export const ActivePostBlock = ({ data, canManage, onArchive, onDelete, onSign }
           <span className={`inline-flex max-w-full items-center rounded-full px-2.5 py-1 text-[12px] font-semibold ring-1 ${statusMeta.badge}`}>
             {statusMeta.label}
           </span>
+          {department === "rezo" && (
+            <span className="mt-1 inline-flex items-center rounded-full bg-violet-100 px-2 py-0.5 text-[10px] font-semibold text-violet-700">
+              Резо
+            </span>
+          )}
         </div>
 
         <div className="w-[180px] min-w-0">

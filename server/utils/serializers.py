@@ -140,6 +140,7 @@ def serialize_request(request_obj):
     return {
         "id": request_obj.id,
         "status": request_obj.status,
+        "department": getattr(request_obj, "department", "supply"),
         "comment": request_obj.comment,
         "is_edited": bool(getattr(request_obj, "is_edited", False)),
         "created_by_id": request_obj.created_by_id,

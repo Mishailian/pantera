@@ -61,9 +61,10 @@ const mapRowsToItems = (rows) =>
       deadline: row?.deadline ? String(row.deadline).trim() : null,
     }));
 
-const mapRowsToRequestPayload = (rows, currentUserId) => ({
+const mapRowsToRequestPayload = (rows, currentUserId, department = "supply") => ({
   comment: "",
   created_by_id: currentUserId ?? null,
+  department,
   items: mapRowsToItems(rows),
 });
 
@@ -325,10 +326,23 @@ const TemplatesModal = ({ open, onClose, templates, isLoading, onSelect, onDelet
 };
 
 
+const DEPARTMENT_OPTIONS = [
+  { value: "supply", label: "Отдел снабжения" },
+  { value: "rezo",   label: "Отдел Резо" },
+];
+
 export const AddPost = () => {
   const authUserId = useSelector((state) => state.auth.username_id);
+  const roles = useSelector((state) => state.auth.roles || []);
   const [addPost, { isLoading }] = useAddPostMutation();
   const [purpose, setPurpose] = useState("");
+
+  const defaultDepartment = (() => {
+    const names = roles.map((r) => r?.name);
+    if (names.includes("rezo_department") || names.includes("rezo_head")) return "rezo";
+    return "supply";
+  })();
+  const [department, setDepartment] = useState(defaultDepartment);
 
   const [repeatNext, setRepeatNext] = useState(false);
   const [rows, setRows] = useState([createEmptyRow(1)]);
@@ -376,7 +390,7 @@ export const AddPost = () => {
   };
 
   const handleCreatePost = async () => {
-    const payload = mapRowsToRequestPayload(rows, authUserId);
+    const payload = mapRowsToRequestPayload(rows, authUserId, department);
     payload.comment = purpose;
 
     if (!payload.items.length) {
@@ -476,9 +490,28 @@ export const AddPost = () => {
     <>
       <div className="min-h-screen bg-slate-50 px-6 py-8">
         <div className="mx-auto max-w-7xl rounded-[32px] border border-slate-200 bg-white p-8 shadow-[0_20px_60px_rgba(15,23,42,0.08)]">
-          <h1 className="mb-8 text-4xl font-bold tracking-tight text-slate-900 md:text-5xl">
-            Служебная записка
-          </h1>
+          <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <h1 className="text-4xl font-bold tracking-tight text-slate-900 md:text-5xl">
+              Служебная записка
+            </h1>
+
+            <div className="flex shrink-0 overflow-hidden rounded-2xl border border-slate-200 bg-slate-100 p-1">
+              {DEPARTMENT_OPTIONS.map((opt) => (
+                <button
+                  key={opt.value}
+                  type="button"
+                  onClick={() => setDepartment(opt.value)}
+                  className={`rounded-xl px-5 py-2 text-sm font-semibold transition ${
+                    department === opt.value
+                      ? "bg-white text-slate-900 shadow"
+                      : "text-slate-500 hover:text-slate-700"
+                  }`}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+          </div>
 
           <div className="mb-8 rounded-3xl border border-slate-200 bg-indigo-50/50 p-6">
             <label className="block">

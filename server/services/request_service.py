@@ -46,18 +46,22 @@ class RequestService:
         raise ValueError("deadline has invalid format")
 
     @staticmethod
-    def get_requests(page=0, status=None, sort="desc"):
+    def get_requests(page=0, status=None, sort="desc", department=None):
         query = RequestService._base_query(sort=sort)
         if status:
             query = query.filter(Request.status == status)
+        if department:
+            query = query.filter(Request.department == department)
         start, end = RequestService._calculate_page(page)
         return query.slice(start, end).all()
 
     @staticmethod
-    def get_requests_count(status=None):
+    def get_requests_count(status=None, department=None):
         query = Request.query
         if status:
             query = query.filter(Request.status == status)
+        if department:
+            query = query.filter(Request.department == department)
         return query.count()
 
     @staticmethod
@@ -76,10 +80,15 @@ class RequestService:
     def get_archived_requests(page=0):
         return RequestService.get_requests(page=page, status="archived")
 
+    VALID_DEPARTMENTS = {"supply", "rezo"}
+
     @staticmethod
-    def create_request(items, comment=None, created_by_id=None):
+    def create_request(items, comment=None, created_by_id=None, department="supply"):
         if not items or not isinstance(items, list):
             raise ValueError("items must be a non-empty list")
+
+        if department not in RequestService.VALID_DEPARTMENTS:
+            department = "supply"
 
         if created_by_id is not None:
             user = db.session.get(User, created_by_id)
@@ -88,6 +97,7 @@ class RequestService:
 
         request_obj = Request(
             status="undeclared",
+            department=department,
             comment=comment,
             created_by_id=created_by_id,
         )

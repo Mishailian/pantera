@@ -67,7 +67,7 @@ export const RequestsTabsPage = ({ tab = "store" }) => {
   const currentUserId = useSelector((state) => state.auth.username_id);
 
   const canManage = currentUserRoles.some((role) =>
-    ["admin", "supply_manager"].includes(role?.name)
+    ["admin", "supply_manager", "supply_head", "rezo_department", "rezo_head"].includes(role?.name)
   );
 
   const [page, setPage] = useState(0);

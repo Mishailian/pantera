@@ -12,8 +12,9 @@ role_requests_bp = Blueprint("role_requests", __name__, url_prefix="/api/v1/role
 
 # Роли, требующие одобрения начальника, и кто именно одобряет
 ROLE_HEAD_MAP = {
-    "supply_manager": "supply_head",
-    "it_department": "it_head",
+    "supply_manager":  "supply_head",
+    "rezo_department": "rezo_head",
+    "it_department":   "it_head",
 }
 REQUIRES_APPROVAL = set(ROLE_HEAD_MAP.keys())
 

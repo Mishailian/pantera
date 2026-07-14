@@ -107,6 +107,7 @@ export const SinglePostBlock = ({ data, onApprove, onArchive }) => {
     id,
     postId,
     status,
+    department = "supply",
     comment,
     is_edited,
     created_by_user,
@@ -282,6 +283,12 @@ export const SinglePostBlock = ({ data, onApprove, onArchive }) => {
                 >
                   {statusMeta.label}
                 </div>
+
+                {department === "rezo" && (
+                  <div className="inline-flex items-center rounded-full bg-violet-100 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-violet-700 ring-1 ring-violet-200">
+                    Отдел Резо
+                  </div>
+                )}
 
                 {is_edited ? (
                   <div className="inline-flex items-center rounded-full bg-orange-50 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-orange-700 ring-1 ring-orange-200">

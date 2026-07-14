@@ -34,8 +34,9 @@ def list_users():
 
 
 HEAD_ROLE_MAP = {
-    "supply_manager": "supply_head",
-    "it_department": "it_head",
+    "supply_manager":  "supply_head",
+    "rezo_department": "rezo_head",
+    "it_department":   "it_head",
 }
 HEAD_ROLE_NAMES = set(HEAD_ROLE_MAP.values())
 
@@ -264,7 +265,7 @@ def get_profile_history():
     actor = AuthService.get_user_by_token(token)
 
     if not actor or not any(actor.has_role(r) for r in (
-        "admin", "supply_manager", "supply_head", "it_department", "it_head"
+        "admin", "supply_manager", "supply_head", "rezo_department", "rezo_head", "it_department", "it_head"
     )):
         return jsonify({"error": "Access denied"}), 403
 

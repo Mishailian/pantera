@@ -13,8 +13,9 @@ import {
 } from "../../app/api/apiSlice";
 
 const ROLE_LABELS = {
-  supply_manager: "Отдел снабжения",
-  it_department: "ОИТ",
+  supply_manager:  "Отдел снабжения",
+  rezo_department: "Отдел Резо",
+  it_department:   "ОИТ",
 };
 
 const REQUEST_TYPE_LABELS = {
@@ -141,7 +142,10 @@ export const Root = () => {
 
   const isAdmin = useMemo(() => roleNames.includes("admin"), [roleNames]);
   const isHead = useMemo(
-    () => roleNames.includes("supply_head") || roleNames.includes("it_head"),
+    () =>
+      roleNames.includes("supply_head") ||
+      roleNames.includes("rezo_head") ||
+      roleNames.includes("it_head"),
     [roleNames]
   );
   const isIT = useMemo(
@@ -151,7 +155,7 @@ export const Root = () => {
 
   // Кто видит управление заявками (store/undeclared/archived)
   const canSeeManagementRequests = useMemo(
-    () => roleNames.some((r) => ["admin", "supply_manager", "supply_head"].includes(r)),
+    () => roleNames.some((r) => ["admin", "supply_manager", "supply_head", "rezo_department", "rezo_head"].includes(r)),
     [roleNames]
   );
 

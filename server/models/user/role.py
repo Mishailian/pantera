@@ -35,6 +35,8 @@ INITIAL_ROLES = [
     {"name": "admin",          "description": "Полный доступ, управление пользователями"},
     {"name": "supply_manager", "description": "Отдел снабжения"},
     {"name": "supply_head",    "description": "Начальник отдела снабжения"},
+    {"name": "rezo_department","description": "Отдел Резо"},
+    {"name": "rezo_head",      "description": "Начальник отдела Резо"},
     {"name": "it_department",  "description": "ОИТ"},
     {"name": "it_head",        "description": "Начальник ОИТ"},
     {"name": "directorate",    "description": "Дирекция"},

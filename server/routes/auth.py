@@ -11,8 +11,8 @@ from models.user.roleChangeRequest import RoleChangeRequest
 
 auth_bp = Blueprint("auth", __name__, url_prefix="/api/v1/auth")
 
-HIDDEN_FROM_REGISTRATION = {"admin", "supply_head", "it_head"}
-ROLES_REQUIRING_APPROVAL = {"supply_manager", "it_department"}
+HIDDEN_FROM_REGISTRATION = {"admin", "supply_head", "rezo_head", "it_head"}
+ROLES_REQUIRING_APPROVAL = {"supply_manager", "rezo_department", "it_department"}
 
 
 @auth_bp.post("/login")
