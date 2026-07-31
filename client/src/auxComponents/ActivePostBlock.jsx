@@ -97,7 +97,7 @@ export const ActivePostBlock = ({ data, canManage, onArchive, onDelete, onSign }
 
   const handleOpen = () => {
     // Безопасно извлекаем названия ролей, независимо от того, массив это объектов или строк
-    const roleNames = currentUserRoles.map((role) => 
+    const roleNames = currentUserRoles.map((role) =>
       typeof role === "string" ? role : role?.name
     ).filter(Boolean);
 
@@ -189,59 +189,57 @@ export const ActivePostBlock = ({ data, canManage, onArchive, onDelete, onSign }
           )}
         </div>
 
-        <div className="w-[170px]">
+        <div className="flex justify-start items-end gap-6">
           <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-400 xl:hidden">
             Действия
           </div>
-          <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={handleOpen}
+            className="inline-flex h-8 items-center justify-center rounded-xl bg-slate-900 px-3 text-[13px] font-semibold text-white transition hover:bg-black"
+          >
+            Открыть
+          </button>
+
+          {/* ЛОГИКА АРХИВА / ПОДПИСИ */}
+          {canManage && isUndeclaredPage ? (
+            // Если мы на странице "Без подписи" — показываем кнопку "Подписать"
             <button
               type="button"
-              onClick={handleOpen}
-              className="inline-flex h-8 items-center justify-center rounded-xl bg-slate-900 px-3 text-[13px] font-semibold text-white transition hover:bg-black"
+              onClick={() => onSign?.(requestId)}
+              className="inline-flex h-8 items-center justify-center rounded-xl bg-emerald-100 px-3 text-[13px] font-semibold text-emerald-700 transition hover:bg-emerald-200"
+              title="Подписать заявку"
             >
-              Открыть
+              Подписать
             </button>
+          ) : canManage && status !== "archived" && !isUndeclaredPage ? (
+            // Если мы на обычных страницах — показываем кнопку "В архив"
+            <button
+              type="button"
+              onClick={() => onArchive?.(requestId)}
+              className="inline-flex h-8 w-8 items-center self-end rounded-xl border border-slate-200 bg-slate-50 text-slate-600 transition hover:bg-slate-100"
+              title="Архивировать"
+            >
+              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
+              </svg>
+            </button>
+          ) : null}
 
-            {/* ЛОГИКА АРХИВА / ПОДПИСИ */}
-            {canManage && isUndeclaredPage ? (
-              // Если мы на странице "Без подписи" — показываем кнопку "Подписать"
-              <button
-                type="button"
-                onClick={() => onSign?.(requestId)}
-                className="inline-flex h-8 items-center justify-center rounded-xl bg-emerald-100 px-3 text-[13px] font-semibold text-emerald-700 transition hover:bg-emerald-200"
-                title="Подписать заявку"
-              >
-                Подписать
-              </button>
-            ) : canManage && status !== "archived" && !isUndeclaredPage ? (
-              // Если мы на обычных страницах — показываем кнопку "В архив"
-              <button
-                type="button"
-                onClick={() => onArchive?.(requestId)}
-                className="inline-flex h-8 w-8 items-center justify-center rounded-xl border border-slate-200 bg-slate-50 text-slate-600 transition hover:bg-slate-100"
-                title="Архивировать"
-              >
-                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
-                </svg>
-              </button>
-            ) : null}
-
-            {/* ЛОГИКА УДАЛЕНИЯ */}
-            {canManage && !isArchivedPage ? (
-              // Если мы НЕ в архиве — показываем корзину
-              <button
-                type="button"
-                onClick={() => onDelete?.(requestId)}
-                className="inline-flex h-8 w-8 items-center justify-center rounded-xl border border-rose-100 bg-rose-50 text-rose-600 transition hover:bg-rose-100"
-                title="Удалить"
-              >
-                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                </svg>
-              </button>
-            ) : null}
-          </div>
+          {/* ЛОГИКА УДАЛЕНИЯ */}
+          {canManage && !isArchivedPage ? (
+            // Если мы НЕ в архиве — показываем корзину
+            <button
+              type="button"
+              onClick={() => onDelete?.(requestId)}
+              className="inline-flex h-8 w-8 items-center justify-center rounded-xl border border-rose-100 bg-rose-50 text-rose-600 transition hover:bg-rose-100"
+              title="Удалить"
+            >
+              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+              </svg>
+            </button>
+          ) : null}
         </div>
       </div>
     </div>

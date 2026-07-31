@@ -1,179 +1,372 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
-
+import { useNavigate } from "react-router-dom";
 import {
-  useAuthenticationMutation,
-  useRegisterMutation,
-  useGetUsersQuery,
-  useGetRegistrationRolesQuery,
   apiSlice,
+  useAuthenticationMutation,
+  useGetRegistrationRolesQuery,
+  useGetUsersQuery,
+  useRegisterMutation,
 } from "../api/apiSlice";
 
-import { setToken, clearAuth } from "./authSlice";
+import { clearAuth, setToken } from "./authSlice";
 import { setUsersTable } from "./usesSlice";
 
 import { progressCheck } from "../../progressCheck";
 import { useUpdateObjectsTable } from "../../static/static";
 
+
+const normalizeUserRoles = (user) => {
+  if (Array.isArray(user?.roles) && user.roles.length > 0) {
+    return user.roles;
+  }
+
+  if (user?.role) {
+    return [user.role];
+  }
+
+  if (user?.role_name) {
+    return [
+      {
+        name: user.role_name,
+        description:
+          user.role_label ||
+          user.role_name,
+      },
+    ];
+  }
+
+  return [];
+};
+
+
 export const Login = () => {
   const dispatch = useDispatch();
-  const authToken = useSelector((state) => state.auth.token);
+  const navigate = useNavigate();
 
-  const updateUsersTable = useUpdateObjectsTable(setUsersTable);
-
-  const [mode, setMode] = useState("login");
-  const [errorText, setErrorText] = useState("");
-  const [successText, setSuccessText] = useState("");
-
-  const [loginForm, setLoginForm] = useState({
-    number: "",
-    password: "",
-  });
-
-  const [registerForm, setRegisterForm] = useState({
-    password: "",
-    full_name: "",
-    number: "",
-    role_name: "",
-  });
-
-  const [auth, { isLoading: isLoginLoading }] = useAuthenticationMutation();
-  const [registerUser, { isLoading: isRegisterLoading }] =
-    useRegisterMutation();
-
-  const { data: registrationRoles = [], isLoading: isRolesLoading } =
-    useGetRegistrationRolesQuery(undefined, {
-      skip: mode !== "register",
-    });
-
-  const availableRegistrationRoles = registrationRoles.filter(
-    (role) => role?.name !== "admin"
+  const authToken = useSelector(
+    (state) => state.auth.token
   );
 
-  const users = useGetUsersQuery(undefined, {
-    skip: !authToken,
-  });
+  const updateUsersTable =
+    useUpdateObjectsTable(setUsersTable);
 
-  useEffect(() => {
-    if (authToken && users?.data) {
-      progressCheck(users, updateUsersTable);
+  const [mode, setMode] =
+    useState("login");
+
+  const [errorText, setErrorText] =
+    useState("");
+
+  const [successText, setSuccessText] =
+    useState("");
+
+  const [loginForm, setLoginForm] =
+    useState({
+      number: "",
+      password: "",
+    });
+
+  const [registerForm, setRegisterForm] =
+    useState({
+      password: "",
+      full_name: "",
+      number: "",
+      role_name: "",
+    });
+
+  const [
+    auth,
+    { isLoading: isLoginLoading },
+  ] = useAuthenticationMutation();
+
+  const [
+    registerUser,
+    { isLoading: isRegisterLoading },
+  ] = useRegisterMutation();
+
+  const {
+    data: registrationRoles = [],
+    isLoading: isRolesLoading,
+  } = useGetRegistrationRolesQuery(
+    undefined,
+    {
+      skip: mode !== "register",
     }
-  }, [authToken, users?.data, users, updateUsersTable]);
+  );
+
+  const availableRegistrationRoles =
+    useMemo(() => {
+      return registrationRoles.filter(
+        (role) =>
+          role?.name &&
+          role.name !== "admin"
+      );
+    }, [registrationRoles]);
+
+  const usersQuery = useGetUsersQuery(
+    undefined,
+    {
+      skip: !authToken,
+    }
+  );
 
   useEffect(() => {
-    if (!availableRegistrationRoles.length) return;
+    if (
+      !authToken ||
+      !usersQuery.data
+    ) {
+      return;
+    }
 
-    setRegisterForm((prev) => {
+    progressCheck(
+      usersQuery,
+      updateUsersTable
+    );
+  }, [
+    authToken,
+    usersQuery.data,
+    usersQuery.isLoading,
+    usersQuery.isError,
+    updateUsersTable,
+  ]);
+
+  useEffect(() => {
+    if (
+      !availableRegistrationRoles.length
+    ) {
+      return;
+    }
+
+    setRegisterForm((previous) => {
+      const selectedRoleStillExists =
+        availableRegistrationRoles.some(
+          (role) =>
+            role.name ===
+            previous.role_name
+        );
+
       if (
-        prev.role_name &&
-        availableRegistrationRoles.some((role) => role.name === prev.role_name)
+        previous.role_name &&
+        selectedRoleStillExists
       ) {
-        return prev;
+        return previous;
       }
 
       return {
-        ...prev,
-        role_name: availableRegistrationRoles[0]?.name ?? "",
+        ...previous,
+        role_name:
+          availableRegistrationRoles[0]
+            ?.name || "",
       };
     });
   }, [availableRegistrationRoles]);
+
+
+  const saveAuthData = (
+    responseData
+  ) => {
+    const token =
+      responseData?.token || null;
+
+    const user =
+      responseData?.user || null;
+
+    if (!token || !user) {
+      throw new Error(
+        "Сервер не вернул пользователя или токен"
+      );
+    }
+
+    const normalizedRoles =
+      normalizeUserRoles(user);
+
+    dispatch(
+      apiSlice.util.resetApiState()
+    );
+
+    dispatch(
+      setToken({
+        isAuth: true,
+        username_id: user.id ?? null,
+        roles: normalizedRoles,
+        token,
+        csrf_token: null,
+      })
+    );
+  };
+
 
   const handleLogin = async () => {
     setErrorText("");
     setSuccessText("");
 
+    if (
+      !loginForm.number.trim() ||
+      !loginForm.password
+    ) {
+      setErrorText(
+        "Введите номер телефона и пароль."
+      );
+
+      return;
+    }
+
     try {
-      const response = await auth({ initialState: loginForm });
+      const response = await auth({
+        initialState: {
+          number:
+            loginForm.number.trim(),
+          password:
+            loginForm.password,
+        },
+      }).unwrap();
 
-      if (response?.data) {
-        const { token, user } = response.data;
+      saveAuthData(response);
 
-        dispatch(apiSlice.util.resetApiState());
+      setLoginForm({
+        number: "",
+        password: "",
+      });
+      navigate("/profile", { replace: true });
 
-        dispatch(
-          setToken({
-            isAuth: true,
-            username_id: user?.id ?? null,
-            roles: user?.roles ?? [],
-            token: token ?? null,
-            csrf_token: null,
-          })
+      setSuccessText(
+        "Вход выполнен успешно."
+      );
+    } catch (error) {
+      console.error(
+        "Login failed:",
+        error
+      );
+
+      if (error?.data?.pending) {
+        setSuccessText(
+          error.data.message ||
+          "Аккаунт ожидает подтверждения начальником отдела. Попробуйте войти позже."
         );
 
-        setLoginForm({ number: "", password: "" });
-        setSuccessText("Вход выполнен успешно.");
-      } else {
-        const errData = response?.error?.data;
-        if (errData?.pending) {
-          setSuccessText("Аккаунт ожидает подтверждения начальником отдела. Попробуйте войти позже.");
-        } else {
-          setErrorText(errData?.error || "Не удалось выполнить вход.");
-        }
+        return;
       }
-    } catch (error) {
-      console.error(error);
-      setErrorText("Ошибка при входе.");
+
+      setErrorText(
+        error?.data?.error ||
+        error?.message ||
+        "Не удалось выполнить вход."
+      );
     }
   };
+
 
   const handleRegister = async () => {
     setErrorText("");
     setSuccessText("");
 
+    const payload = {
+      full_name:
+        registerForm.full_name.trim(),
+
+      number:
+        registerForm.number.trim(),
+
+      password:
+        registerForm.password,
+
+      role_name:
+        registerForm.role_name,
+    };
+
+    if (
+      !payload.full_name ||
+      !payload.number ||
+      !payload.password ||
+      !payload.role_name
+    ) {
+      setErrorText(
+        "Заполните имя, номер телефона, роль и пароль."
+      );
+
+      return;
+    }
+
     try {
-      const response = await registerUser(registerForm);
+      const response =
+        await registerUser(
+          payload
+        ).unwrap();
 
-      if (response?.data?.pending) {
-        // Регистрация с ролью, требующей подтверждения
-        setSuccessText(response.data.message || "Аккаунт создан и ожидает подтверждения начальника отдела.");
+      if (response?.pending) {
+        setSuccessText(
+          response.message ||
+          "Аккаунт создан и ожидает подтверждения начальника отдела."
+        );
+
         setRegisterForm({
           password: "",
           full_name: "",
           number: "",
-          role_name: availableRegistrationRoles[0]?.name ?? "",
+          role_name:
+            availableRegistrationRoles[0]
+              ?.name || "",
         });
+
         setMode("login");
-      } else if (response?.data) {
-        const { token, user } = response.data;
 
-        dispatch(apiSlice.util.resetApiState());
-
-        dispatch(
-          setToken({
-            isAuth: true,
-            username_id: user?.id ?? null,
-            roles: user?.roles ?? [],
-            token: token ?? null,
-            csrf_token: null,
-          })
-        );
-
-        setRegisterForm({
-          password: "",
-          full_name: "",
-          number: "",
-          role_name: availableRegistrationRoles[0]?.name ?? "",
-        });
-
-        setSuccessText("Регистрация выполнена успешно.");
-      } else {
-        setErrorText(
-          response?.error?.data?.error || "Не удалось зарегистрироваться."
-        );
+        return;
       }
+
+      saveAuthData(response);
+
+      setRegisterForm({
+        password: "",
+        full_name: "",
+        number: "",
+        role_name:
+          availableRegistrationRoles[0]
+            ?.name || "",
+      });
+
+      setSuccessText(
+        "Регистрация выполнена успешно."
+      );
+      navigate("/profile", { replace: true });
+
     } catch (error) {
-      console.error(error);
-      setErrorText("Ошибка при регистрации.");
+      console.error(
+        "Registration failed:",
+        error
+      );
+
+      setErrorText(
+        error?.data?.error ||
+        error?.message ||
+        "Не удалось зарегистрироваться."
+      );
     }
   };
 
+
   const logOut = () => {
-    dispatch(apiSlice.util.resetApiState());
+    dispatch(
+      apiSlice.util.resetApiState()
+    );
+
     dispatch(clearAuth());
 
     setErrorText("");
     setSuccessText("");
   };
+
+
+  const handleLoginKeyDown = (
+    event
+  ) => {
+    if (
+      event.key === "Enter" &&
+      !isLoginLoading
+    ) {
+      handleLogin();
+    }
+  };
+
 
   if (authToken) {
     return (
@@ -182,6 +375,7 @@ export const Login = () => {
           <h2 className="text-2xl font-bold tracking-tight text-white">
             Вы авторизованы
           </h2>
+
           <p className="mt-2 text-sm leading-6 text-slate-400">
             Доступ к системе заявок открыт.
           </p>
@@ -194,9 +388,9 @@ export const Login = () => {
         ) : null}
 
         <button
-          className="inline-flex h-12 items-center justify-center rounded-2xl bg-red-600 px-5 text-sm font-semibold text-white transition hover:bg-red-500 active:scale-[0.99]"
-          onClick={logOut}
           type="button"
+          onClick={logOut}
+          className="inline-flex h-12 items-center justify-center rounded-2xl bg-red-600 px-5 text-sm font-semibold text-white transition hover:bg-red-500 active:scale-[0.99]"
         >
           Выйти
         </button>
@@ -204,14 +398,16 @@ export const Login = () => {
     );
   }
 
+
   return (
     <div className="mx-auto mt-10 w-full max-w-md rounded-3xl border border-white/10 bg-slate-900/95 p-7 shadow-2xl backdrop-blur">
       <div className="mb-6">
         <h2 className="text-2xl font-bold tracking-tight text-white">
           Панель доступа
         </h2>
+
         <p className="mt-2 text-sm leading-6 text-slate-400">
-          Войдите в систему или создайте новую учетную запись.
+          Войдите в систему или создайте новую учётную запись.
         </p>
       </div>
 
@@ -223,11 +419,13 @@ export const Login = () => {
             setErrorText("");
             setSuccessText("");
           }}
-          className={`h-11 rounded-xl text-sm font-semibold transition ${
-            mode === "login"
+          className={`
+            h-11 rounded-xl text-sm font-semibold transition
+            ${mode === "login"
               ? "bg-blue-600 text-white shadow"
               : "text-slate-300 hover:bg-white/5 hover:text-white"
-          }`}
+            }
+          `}
         >
           Вход
         </button>
@@ -239,11 +437,13 @@ export const Login = () => {
             setErrorText("");
             setSuccessText("");
           }}
-          className={`h-11 rounded-xl text-sm font-semibold transition ${
-            mode === "register"
+          className={`
+            h-11 rounded-xl text-sm font-semibold transition
+            ${mode === "register"
               ? "bg-blue-600 text-white shadow"
               : "text-slate-300 hover:bg-white/5 hover:text-white"
-          }`}
+            }
+          `}
         >
           Регистрация
         </button>
@@ -261,21 +461,36 @@ export const Login = () => {
         </div>
       ) : null}
 
+
       {mode === "login" ? (
-        <div className="space-y-4">
+        <div
+          className="space-y-4"
+          onKeyDown={
+            handleLoginKeyDown
+          }
+        >
           <label className="block">
             <span className="mb-2 block text-sm font-medium text-slate-200">
               Номер телефона
             </span>
+
             <input
-              className="h-12 w-full rounded-2xl border border-white/10 bg-slate-800 px-4 text-sm text-white outline-none transition placeholder:text-slate-500 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/15"
               type="tel"
               autoComplete="username"
-              value={loginForm.number}
-              onChange={(e) =>
-                setLoginForm({ ...loginForm, number: e.target.value })
+              value={
+                loginForm.number
+              }
+              onChange={(event) =>
+                setLoginForm(
+                  (previous) => ({
+                    ...previous,
+                    number:
+                      event.target.value,
+                  })
+                )
               }
               placeholder="+7 (999) 000-00-00"
+              className="h-12 w-full rounded-2xl border border-white/10 bg-slate-800 px-4 text-sm text-white outline-none transition placeholder:text-slate-500 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/15"
             />
           </label>
 
@@ -283,25 +498,38 @@ export const Login = () => {
             <span className="mb-2 block text-sm font-medium text-slate-200">
               Пароль
             </span>
+
             <input
-              className="h-12 w-full rounded-2xl border border-white/10 bg-slate-800 px-4 text-sm text-white outline-none transition placeholder:text-slate-500 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/15"
               type="password"
               autoComplete="current-password"
-              value={loginForm.password}
-              onChange={(e) =>
-                setLoginForm({ ...loginForm, password: e.target.value })
+              value={
+                loginForm.password
+              }
+              onChange={(event) =>
+                setLoginForm(
+                  (previous) => ({
+                    ...previous,
+                    password:
+                      event.target.value,
+                  })
+                )
               }
               placeholder="Введите пароль"
+              className="h-12 w-full rounded-2xl border border-white/10 bg-slate-800 px-4 text-sm text-white outline-none transition placeholder:text-slate-500 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/15"
             />
           </label>
 
           <button
-            className="mt-2 inline-flex h-12 w-full items-center justify-center rounded-2xl bg-blue-600 text-sm font-semibold text-white transition hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-60"
-            onClick={handleLogin}
-            disabled={isLoginLoading}
             type="button"
+            onClick={handleLogin}
+            disabled={
+              isLoginLoading
+            }
+            className="mt-2 inline-flex h-12 w-full items-center justify-center rounded-2xl bg-blue-600 text-sm font-semibold text-white transition hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-60"
           >
-            {isLoginLoading ? "Вход..." : "Войти"}
+            {isLoginLoading
+              ? "Вход..."
+              : "Войти"}
           </button>
         </div>
       ) : (
@@ -310,38 +538,52 @@ export const Login = () => {
             <span className="mb-2 block text-sm font-medium text-slate-200">
               Полное имя
             </span>
+
             <input
-              className="h-12 w-full rounded-2xl border border-white/10 bg-slate-800 px-4 text-sm text-white outline-none transition placeholder:text-slate-500 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/15"
               type="text"
               autoComplete="name"
-              value={registerForm.full_name}
-              onChange={(e) =>
-                setRegisterForm({
-                  ...registerForm,
-                  full_name: e.target.value,
-                })
+              value={
+                registerForm.full_name
+              }
+              onChange={(event) =>
+                setRegisterForm(
+                  (previous) => ({
+                    ...previous,
+                    full_name:
+                      event.target.value,
+                  })
+                )
               }
               placeholder="Например: Иван Петров"
+              className="h-12 w-full rounded-2xl border border-white/10 bg-slate-800 px-4 text-sm text-white outline-none transition placeholder:text-slate-500 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/15"
             />
           </label>
 
-          {/* НОВЫЙ ИНПУТ: НОМЕР ТЕЛЕФОНА */}
           <label className="block">
             <span className="mb-2 block text-sm font-medium text-slate-200">
-              Номер телефона <span className="text-red-400">*</span>
+              Номер телефона{" "}
+              <span className="text-red-400">
+                *
+              </span>
             </span>
+
             <input
-              className="h-12 w-full rounded-2xl border border-white/10 bg-slate-800 px-4 text-sm text-white outline-none transition placeholder:text-slate-500 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/15"
               type="tel"
               autoComplete="username"
-              value={registerForm.number}
-              onChange={(e) =>
-                setRegisterForm({
-                  ...registerForm,
-                  number: e.target.value,
-                })
+              value={
+                registerForm.number
+              }
+              onChange={(event) =>
+                setRegisterForm(
+                  (previous) => ({
+                    ...previous,
+                    number:
+                      event.target.value,
+                  })
+                )
               }
               placeholder="+7 (999) 000-00-00"
+              className="h-12 w-full rounded-2xl border border-white/10 bg-slate-800 px-4 text-sm text-white outline-none transition placeholder:text-slate-500 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/15"
             />
           </label>
 
@@ -349,28 +591,48 @@ export const Login = () => {
             <span className="mb-2 block text-sm font-medium text-slate-200">
               Роль
             </span>
+
             <select
-              className="h-12 w-full rounded-2xl border border-white/10 bg-slate-800 px-4 text-sm text-white outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-500/15"
-              value={registerForm.role_name}
-              onChange={(e) =>
-                setRegisterForm({
-                  ...registerForm,
-                  role_name: e.target.value,
-                })
+              value={
+                registerForm.role_name
               }
-              disabled={isRolesLoading || !availableRegistrationRoles.length}
+              onChange={(event) =>
+                setRegisterForm(
+                  (previous) => ({
+                    ...previous,
+                    role_name:
+                      event.target.value,
+                  })
+                )
+              }
+              disabled={
+                isRolesLoading ||
+                !availableRegistrationRoles.length
+              }
+              className="h-12 w-full rounded-2xl border border-white/10 bg-slate-800 px-4 text-sm text-white outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-500/15 disabled:cursor-not-allowed disabled:opacity-60"
             >
               {!availableRegistrationRoles.length ? (
                 <option value="">
-                  {isRolesLoading ? "Загрузка ролей..." : "Нет доступных ролей"}
+                  {isRolesLoading
+                    ? "Загрузка ролей..."
+                    : "Нет доступных ролей"}
                 </option>
               ) : null}
 
-              {availableRegistrationRoles.map((role) => (
-                <option key={role.id} value={role.name}>
-                  {role.description || role.name}
-                </option>
-              ))}
+              {availableRegistrationRoles.map(
+                (role) => (
+                  <option
+                    key={
+                      role.id ||
+                      role.name
+                    }
+                    value={role.name}
+                  >
+                    {role.description ||
+                      role.name}
+                  </option>
+                )
+              )}
             </select>
           </label>
 
@@ -378,33 +640,43 @@ export const Login = () => {
             <span className="mb-2 block text-sm font-medium text-slate-200">
               Пароль
             </span>
+
             <input
-              className="h-12 w-full rounded-2xl border border-white/10 bg-slate-800 px-4 text-sm text-white outline-none transition placeholder:text-slate-500 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/15"
               type="password"
               autoComplete="new-password"
-              value={registerForm.password}
-              onChange={(e) =>
-                setRegisterForm({
-                  ...registerForm,
-                  password: e.target.value,
-                })
+              value={
+                registerForm.password
+              }
+              onChange={(event) =>
+                setRegisterForm(
+                  (previous) => ({
+                    ...previous,
+                    password:
+                      event.target.value,
+                  })
+                )
               }
               placeholder="Придумайте пароль"
+              className="h-12 w-full rounded-2xl border border-white/10 bg-slate-800 px-4 text-sm text-white outline-none transition placeholder:text-slate-500 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/15"
             />
           </label>
 
           <button
-            className="mt-2 inline-flex h-12 w-full items-center justify-center rounded-2xl bg-blue-600 text-sm font-semibold text-white transition hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-60"
+            type="button"
             onClick={handleRegister}
             disabled={
               isRegisterLoading ||
               isRolesLoading ||
+              !registerForm.full_name.trim() ||
               !registerForm.role_name ||
-              !registerForm.number // <-- КНОПКА НЕАКТИВНА БЕЗ НОМЕРА
+              !registerForm.number.trim() ||
+              !registerForm.password
             }
-            type="button"
+            className="mt-2 inline-flex h-12 w-full items-center justify-center rounded-2xl bg-blue-600 text-sm font-semibold text-white transition hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-60"
           >
-            {isRegisterLoading ? "Регистрация..." : "Зарегистрироваться"}
+            {isRegisterLoading
+              ? "Регистрация..."
+              : "Зарегистрироваться"}
           </button>
         </div>
       )}

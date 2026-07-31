@@ -1,5 +1,5 @@
+from .user.role import Role
 from .user.user import User
-from .user.role import Role, user_roles
 from .user.user_profile_history import UserProfileHistory
 from .user.roleChangeRequest import RoleChangeRequest
 
@@ -14,7 +14,6 @@ from .stats.user_stats import UserStats
 __all__ = [
     "User",
     "Role",
-    "user_roles",
     "UserProfileHistory",
     "RoleChangeRequest",
     "Request",

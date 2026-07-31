@@ -91,7 +91,7 @@ export const UserRow = ({
   };
 
   return (
-    <div className="flex items-start justify-between rounded-2xl border border-white/10 bg-slate-800/80 px-5 py-4 gap-4">
+    <div className="flex items-ceter justify-between rounded-2xl border border-white/10 bg-slate-800/80 px-5 py-4 gap-4">
       <div className="flex flex-col gap-1 min-w-0 flex-1">
         {editing ? (
           <div className="flex flex-col gap-2">
@@ -167,17 +167,16 @@ export const UserRow = ({
                 <button
                   onClick={handleToggleHead}
                   disabled={togglingHead}
-                  className={`px-3 py-1.5 rounded-xl text-sm transition disabled:opacity-50 ${
-                    hasHeadSubRole
-                      ? "bg-amber-700/60 hover:bg-amber-600/80 text-amber-200"
-                      : "bg-emerald-700/60 hover:bg-emerald-600/80 text-emerald-200"
-                  }`}
+                  className={`px-3 py-1.5 rounded-xl text-sm transition disabled:opacity-50 ${hasHeadSubRole
+                    ? "bg-amber-700/60 hover:bg-amber-600/80 text-amber-200"
+                    : "bg-emerald-700/60 hover:bg-emerald-600/80 text-emerald-200"
+                    }`}
                 >
                   {togglingHead
                     ? "..."
                     : hasHeadSubRole
-                    ? "Снять с должности"
-                    : "Назначить начальником"}
+                      ? "Снять с должности"
+                      : "Назначить начальником"}
                 </button>
               )}
               <button

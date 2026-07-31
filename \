@@ -27,12 +27,10 @@ def create_app(config_class=Config):
     )
 
     db.init_app(app)
-
-    import models
-
     migrate.init_app(app, db)
 
     setup_logger(app)
+
     app.register_blueprint(health_bp, url_prefix="/api/v1/health")
     app.register_blueprint(auth_bp, url_prefix="/api/v1/auth")
     app.register_blueprint(users_bp, url_prefix="/api/v1/users")
@@ -40,6 +38,13 @@ def create_app(config_class=Config):
     app.register_blueprint(roles_bp, url_prefix="/api/v1/roles")
     app.register_blueprint(templates_bp, url_prefix="/api/v1/templates")
     app.register_blueprint(role_requests_bp)
+
     register_error_handlers(app)
+
+    with app.app_context():
+        import models  # noqa
+        db.create_all()
+        from models.user.role import seed_roles
+        seed_roles()
 
     return app

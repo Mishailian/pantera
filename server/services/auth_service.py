@@ -26,25 +26,35 @@ class AuthService:
             raise ValueError("number is required")
 
         if User.query.filter_by(number=number).first():
-            raise ValueError("Пользователь с таким номером телефона уже существует")
+            raise ValueError(
+                "Пользователь с таким номером телефона уже существует"
+            )
 
         selected_role = AuthService._get_role_or_raise(role_name)
+
         if selected_role.name == "admin":
-            raise ValueError("admin role is not available for self-registration")
+            raise ValueError(
+                "admin role is not available for self-registration"
+            )
 
         user = User(
             full_name=full_name,
             number=number,
             token=token_hex(32),
             is_active=is_active,
+            role=selected_role,
         )
+
         user.set_password(password)
-        user.roles = [selected_role]
 
-        db.session.add(user)
-        db.session.commit()
+        try:
+            db.session.add(user)
+            db.session.commit()
+        except Exception:
+            db.session.rollback()
+            raise
+
         return user
-
     @staticmethod
     def authenticate_user(number, password):
         if not number or not password:
@@ -73,7 +83,9 @@ class AuthService:
         return db.session.get(User, user_id)
 
     @staticmethod
-    def assign_role(actor: User, target_user_id: int, role_name: str):
+    def assign_role(actor, target_user_id: int, role_name: str):
+        from models.user.role import Role
+
         if not actor.is_admin():
             raise PermissionError("Only admin can assign roles")
 
@@ -85,10 +97,10 @@ class AuthService:
         if not role:
             raise ValueError(f"Role '{role_name}' not found")
 
-        target_user.roles = [role]
+        target_user.role = role
         db.session.commit()
-        return target_user
 
+        return target_user
     @staticmethod
     def get_user_by_token(token):
         return User.query.filter_by(token=token).first()

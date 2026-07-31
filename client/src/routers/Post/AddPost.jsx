@@ -1,3 +1,10 @@
+import {
+  useGetRoleRequestsCountQuery,
+  useGetRoleRequestsQuery,
+  useReviewRoleRequestMutation,
+} from "../../app/api/apiSlice";
+
+
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useSelector } from "react-redux";
 import {
@@ -35,6 +42,7 @@ const AVAILABLE_SIGNERS = [
   "Заместитель главного механика - Поспелов С. А.",
   "Начальник инструментального участка - Аленбаторов П. И.",
 ];
+
 
 const createEmptyRow = (id, prevRow = null, shouldRepeat = false) => ({
   id,
@@ -124,7 +132,7 @@ const UnitField = ({ value, onChange }) => {
           setOpen(true);
         }}
         placeholder="Выбрать или вписать"
-        className="h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 pr-12 text-sm text-slate-800 shadow-sm outline-none transition focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10"
+        className="h-14 w-full rounded-2xl border border-slate-200 bg-white px-4 pr-12 text-sm text-slate-800 shadow-sm outline-none transition focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10"
       />
 
       <button
@@ -328,10 +336,13 @@ const TemplatesModal = ({ open, onClose, templates, isLoading, onSelect, onDelet
 
 const DEPARTMENT_OPTIONS = [
   { value: "supply", label: "Отдел снабжения" },
-  { value: "rezo",   label: "Отдел Резо" },
+  // { value: "rezo",   label: "Отдел Резо" },
 ];
 
 export const AddPost = () => {
+  const [removingRowIds, setRemovingRowIds] = useState([]);
+  const rowRefs = useRef({});
+
   const authUserId = useSelector((state) => state.auth.username_id);
   const roles = useSelector((state) => state.auth.roles || []);
   const [addPost, { isLoading }] = useAddPostMutation();
@@ -367,20 +378,73 @@ export const AddPost = () => {
   const addRow = () => {
     setRows((prev) => {
       const lastRow = prev[prev.length - 1] ?? null;
-      const nextId = prev.length ? Math.max(...prev.map((row) => row.id)) + 1 : 1;
-      return [...prev, createEmptyRow(nextId, lastRow, repeatNext)];
+      const nextId = prev.length
+        ? Math.max(...prev.map((row) => row.id)) + 1
+        : 1;
+
+      return [
+        ...prev,
+        createEmptyRow(nextId, lastRow, repeatNext),
+      ];
+    });
+
+    requestAnimationFrame(() => {
+      window.setTimeout(() => {
+        const lastElement = Object.values(rowRefs.current).at(-1);
+
+        lastElement?.scrollIntoView({
+          behavior: "smooth",
+          block: "nearest",
+        });
+      }, 50);
+    });
+  };
+
+  const duplicateRow = (row) => {
+    setRows((prev) => {
+      const nextId = prev.length
+        ? Math.max(...prev.map((item) => item.id)) + 1
+        : 1;
+
+      const sourceIndex = prev.findIndex(
+        (item) => item.id === row.id
+      );
+
+      const copiedRow = {
+        ...row,
+        id: nextId,
+      };
+
+      const nextRows = [...prev];
+
+      nextRows.splice(
+        sourceIndex + 1,
+        0,
+        copiedRow
+      );
+
+      return nextRows;
     });
   };
 
   const removeRow = (id) => {
-    setRows((prev) => {
-      if (prev.length === 1) {
-        return [createEmptyRow(1)];
-      }
-      return prev.filter((row) => row.id !== id);
-    });
-  };
+    if (rows.length === 1) {
+      setRows([createEmptyRow(1)]);
+      return;
+    }
 
+    setRemovingRowIds((prev) => [...prev, id]);
+
+    window.setTimeout(() => {
+      setRows((prev) =>
+        prev.filter((row) => row.id !== id)
+      );
+
+      setRemovingRowIds((prev) =>
+        prev.filter((rowId) => rowId !== id)
+      );
+    }, 180);
+  };
   const toggleSigner = (signer) => {
     setSelectedSigners((prev) =>
       prev.includes(signer)
@@ -488,186 +552,360 @@ export const AddPost = () => {
 
   return (
     <>
-      <div className="min-h-screen bg-slate-50 px-6 py-8">
-        <div className="mx-auto max-w-7xl rounded-[32px] border border-slate-200 bg-white p-8 shadow-[0_20px_60px_rgba(15,23,42,0.08)]">
-          <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <h1 className="text-4xl font-bold tracking-tight text-slate-900 md:text-5xl">
-              Служебная записка
-            </h1>
+      <div className="min-h-screen ">
+        <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-center">
+          <h1 className="text-4xl font-bold tracking-tight text-slate-900 md:text-5xl">
+            Служебная записка
+          </h1>
+        </div>
 
-            <div className="flex shrink-0 overflow-hidden rounded-2xl border border-slate-200 bg-slate-100 p-1">
-              {DEPARTMENT_OPTIONS.map((opt) => (
-                <button
-                  key={opt.value}
-                  type="button"
-                  onClick={() => setDepartment(opt.value)}
-                  className={`rounded-xl px-5 py-2 text-sm font-semibold transition ${
-                    department === opt.value
-                      ? "bg-white text-slate-900 shadow"
-                      : "text-slate-500 hover:text-slate-700"
-                  }`}
+        <div className="mb-8 rounded-3xl border border-slate-200 bg-indigo-50/50 p-6">
+          <label className="block">
+            <span className="mb-3 block text-sm font-bold uppercase tracking-[0.1em] text-indigo-900">
+              Цель покупки *
+            </span>
+            <textarea
+              value={purpose}
+              onChange={(e) => setPurpose(e.target.value)}
+              placeholder="Опишите, для какой цели вы заказываете данные пункты"
+              rows={3}
+              className="w-full resize-none rounded-2xl border border-slate-200 bg-white px-5 py-4 text-base text-slate-800 shadow-sm outline-none transition focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10"
+            />
+          </label>
+        </div>
+
+
+        <div className="mb-3 hidden grid-cols-[44px_2.2fr_1.1fr_0.8fr_1.1fr_1.8fr_92px] gap-3 px-4 text-xs font-bold uppercase tracking-[0.09em] text-slate-400 lg:grid">
+          <div className="text-center">№</div>
+          <div>Наименование</div>
+          <div>Единица</div>
+          <div>Количество</div>
+          <div>Срок</div>
+          <div>Комментарий</div>
+          <div className="text-center">Действия</div>
+        </div>
+
+        <div className="space-y-4">
+
+
+          <div className="space-y-3">
+            {rows.map((row, index) => {
+              const isRemoving = removingRowIds.includes(row.id);
+
+              return (
+                <div
+                  key={row.id}
+                  ref={(element) => {
+                    if (element) {
+                      rowRefs.current[row.id] = element;
+                    } else {
+                      delete rowRefs.current[row.id];
+                    }
+                  }}
+                  className={`
+          group grid gap-3 overflow-visible rounded-2xl
+          border border-slate-200 bg-white p-4
+          shadow-[0_2px_12px_rgba(15,23,42,0.04)]
+          transition-all duration-200
+          lg:grid-cols-[44px_2.2fr_1.1fr_0.8fr_1.1fr_1.8fr_92px]
+          lg:items-start
+          ${isRemoving
+                      ? "translate-x-3 scale-[0.98] opacity-0"
+                      : "animate-[requestRowIn_220ms_ease-out] opacity-100 hover:border-indigo-200 hover:shadow-[0_8px_28px_rgba(15,23,42,0.08)]"
+                    }
+        `}
                 >
-                  {opt.label}
-                </button>
-              ))}
-            </div>
-          </div>
+                  <div className="flex items-center justify-between lg:h-14 lg:justify-center">
+                    <span className="text-xs font-bold uppercase tracking-wide text-slate-400 lg:hidden">
+                      Позиция
+                    </span>
 
-          <div className="mb-8 rounded-3xl border border-slate-200 bg-indigo-50/50 p-6">
-            <label className="block">
-              <span className="mb-3 block text-sm font-bold uppercase tracking-[0.1em] text-indigo-900">
-                Цель покупки *
-              </span>
-              <textarea
-                value={purpose}
-                onChange={(e) => setPurpose(e.target.value)}
-                placeholder="Опишите, для какой цели вы заказываете данные пункты"
-                rows={3}
-                className="w-full resize-none rounded-2xl border border-slate-200 bg-white px-5 py-4 text-base text-slate-800 shadow-sm outline-none transition focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10"
-              />
-            </label>
-          </div>
+                    <span className="flex h-8 min-w-8 items-center justify-center rounded-xl bg-slate-100 px-2 text-sm font-bold text-slate-500 transition group-hover:bg-indigo-50 group-hover:text-indigo-600">
+                      {index + 1}
+                    </span>
+                  </div>
 
-          <div className="mb-4 hidden grid-cols-[2.2fr_1.1fr_0.8fr_1.1fr_1.8fr_88px] gap-4 border-b border-slate-200 pb-3 text-sm font-semibold uppercase tracking-[0.08em] text-slate-500 lg:grid">
-            <div>Наименование</div>
-            <div>Единица измерения</div>
-            <div>Количество</div>
-            <div>Планируемый срок</div>
-            <div>Дополнительная информация</div>
-            <div className="text-center">Удалить</div>
-          </div>
+                  <label className="min-w-0">
+                    <span className="mb-1.5 block text-xs font-semibold text-slate-500 lg:hidden">
+                      Наименование
+                    </span>
 
-          <div className="space-y-4">
-            {rows.map((row, index) => (
-              <div
-                key={row.id}
-                className="grid gap-4 rounded-3xl border border-slate-200 bg-slate-50/80 p-5 shadow-sm transition hover:bg-slate-100/50 lg:grid-cols-[2.2fr_1.1fr_0.8fr_1.1fr_1.8fr_88px] lg:items-start"
-              >
-                <div className="lg:hidden">
-                  <div className="mb-2 text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">
-                    Позиция {index + 1}
+                    <textarea
+                      value={row.title}
+                      onChange={(e) =>
+                        updateRow(row.id, "title", e.target.value)
+                      }
+                      placeholder="Что необходимо приобрести?"
+                      rows={1}
+                      className="
+              min-h-14 w-full resize-none overflow-hidden rounded-xl
+              border border-slate-200 bg-slate-50/50
+              px-4 py-[17px] text-sm leading-5 text-slate-800
+              outline-none transition
+              placeholder:text-slate-400
+              hover:border-slate-300 hover:bg-white
+              focus:border-indigo-500 focus:bg-white
+              focus:ring-4 focus:ring-indigo-500/10
+            "
+                    />
+                  </label>
+
+                  <label className="min-w-0">
+                    <span className="mb-1.5 block text-xs font-semibold text-slate-500 lg:hidden">
+                      Единица измерения
+                    </span>
+
+                    <UnitField
+                      value={row.units}
+                      onChange={(value) =>
+                        updateRow(row.id, "units", value)
+                      }
+                    />
+                  </label>
+
+                  <label className="min-w-0">
+                    <span className="mb-1.5 block text-xs font-semibold text-slate-500 lg:hidden">
+                      Количество
+                    </span>
+
+                    <input
+                      type="number"
+                      min="0"
+                      step="1"
+                      value={row.quantity}
+                      onFocus={(e) => e.target.select()}
+                      onChange={(e) =>
+                        updateRow(
+                          row.id,
+                          "quantity",
+                          e.target.value
+                        )
+                      }
+                      className="
+              h-14 w-full rounded-xl border border-slate-200
+              bg-slate-50/50 px-4 text-sm text-slate-800
+              outline-none transition
+              hover:border-slate-300 hover:bg-white
+              focus:border-indigo-500 focus:bg-white
+              focus:ring-4 focus:ring-indigo-500/10
+            "
+                    />
+                  </label>
+
+                  <label className="min-w-0">
+                    <span className="mb-1.5 block text-xs font-semibold text-slate-500 lg:hidden">
+                      Планируемый срок
+                    </span>
+
+                    <input
+                      type="date"
+                      value={row.deadline}
+                      onChange={(e) =>
+                        updateRow(
+                          row.id,
+                          "deadline",
+                          e.target.value
+                        )
+                      }
+                      className="
+              h-14 w-full rounded-xl border border-slate-200
+              bg-slate-50/50 px-4 text-sm text-slate-700
+              outline-none transition
+              hover:border-slate-300 hover:bg-white
+              focus:border-indigo-500 focus:bg-white
+              focus:ring-4 focus:ring-indigo-500/10
+            "
+                    />
+                  </label>
+
+                  <label className="min-w-0">
+                    <span className="mb-1.5 block text-xs font-semibold text-slate-500 lg:hidden">
+                      Дополнительная информация
+                    </span>
+
+                    <textarea
+                      value={row.about}
+                      onChange={(e) =>
+                        updateRow(row.id, "about", e.target.value)
+                      }
+                      placeholder="Марка, ГОСТ, характеристики..."
+                      rows={1}
+                      className="
+              min-h-14 w-full resize-none overflow-hidden rounded-xl
+              border border-slate-200 bg-slate-50/50
+              px-4 py-[17px] text-sm leading-5 text-slate-800
+              outline-none transition
+              placeholder:text-slate-400
+              hover:border-slate-300 hover:bg-white
+              focus:border-indigo-500 focus:bg-white
+              focus:ring-4 focus:ring-indigo-500/10
+            "
+                    />
+                  </label>
+
+                  <div className="flex h-14 items-center gap-2 lg:justify-center">
+                    <button
+                      type="button"
+                      onClick={() => duplicateRow(row)}
+                      title="Дублировать позицию"
+                      aria-label={`Дублировать позицию ${index + 1}`}
+                      className="
+              flex h-10 flex-1 items-center justify-center rounded-xl
+              border border-slate-200 bg-white
+              text-lg text-slate-500 transition
+              hover:border-indigo-200 hover:bg-indigo-50
+              hover:text-indigo-600 active:scale-95
+              lg:w-10 lg:flex-none
+            "
+                    >
+                      ⧉
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => removeRow(row.id)}
+                      title="Удалить позицию"
+                      aria-label={`Удалить позицию ${index + 1}`}
+                      className="
+              flex h-10 flex-1 items-center justify-center rounded-xl
+              border border-rose-100 bg-rose-50
+              text-xl font-medium text-rose-500 transition
+              hover:border-rose-200 hover:bg-rose-100
+              hover:text-rose-700 active:scale-95
+              lg:w-10 lg:flex-none
+            "
+                    >
+                      ×
+                    </button>
                   </div>
                 </div>
-
-                <label className="block">
-                  <span className="mb-2 block text-xs font-semibold uppercase tracking-[0.08em] text-slate-500 lg:hidden">
-                    Наименование
-                  </span>
-                  <textarea
-                    value={row.title}
-                    onChange={(e) => updateRow(row.id, "title", e.target.value)}
-                    placeholder="Наименование"
-                    rows={2}
-                    className="w-full resize-none rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-800 shadow-sm outline-none transition focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10"
-                    style={{ fontFamily: "'Times New Roman', Times, serif", fontSize: "12pt", lineHeight: "1.4" }}
-                  />
-                </label>
-
-                <label className="block">
-                  <span className="mb-2 block text-xs font-semibold uppercase tracking-[0.08em] text-slate-500 lg:hidden">
-                    Единица измерения
-                  </span>
-                  <UnitField
-                    value={row.units}
-                    onChange={(value) => updateRow(row.id, "units", value)}
-                  />
-                </label>
-
-                <label className="block">
-                  <span className="mb-2 block text-xs font-semibold uppercase tracking-[0.08em] text-slate-500 lg:hidden">
-                    Количество
-                  </span>
-                  <input
-                    type="number"
-                    min="0"
-                    step="1"
-                    value={row.quantity}
-                    onChange={(e) => updateRow(row.id, "quantity", e.target.value)}
-                    className="h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm text-slate-800 shadow-sm outline-none transition focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10"
-                  />
-                </label>
-
-                <label className="block">
-                  <span className="mb-2 block text-xs font-semibold uppercase tracking-[0.08em] text-slate-500 lg:hidden">
-                    Планируемый срок
-                  </span>
-                  <input
-                    type="date"
-                    value={row.deadline}
-                    onChange={(e) => updateRow(row.id, "deadline", e.target.value)}
-                    className="h-12 w-full rounded-2xl border border-slate-200 bg-white px-4 text-sm text-slate-800 shadow-sm outline-none transition focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10"
-                  />
-                </label>
-
-                <label className="block">
-                  <span className="mb-2 block text-xs font-semibold uppercase tracking-[0.08em] text-slate-500 lg:hidden">
-                    Дополнительная информация
-                  </span>
-                  <textarea
-                    value={row.about}
-                    onChange={(e) => updateRow(row.id, "about", e.target.value)}
-                    placeholder="Комментарий"
-                    rows={2}
-                    className="w-full resize-none rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-800 shadow-sm outline-none transition focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10"
-                    style={{ fontFamily: "'Times New Roman', Times, serif", fontSize: "12pt", lineHeight: "1.4" }}
-                  />
-                </label>
-
-                <div className="flex h-full items-end lg:items-start">
-                  <span className="mb-2 hidden text-xs font-semibold uppercase tracking-[0.08em] text-slate-500 lg:hidden">
-                    Удалить
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => removeRow(row.id)}
-                    className="flex h-12 w-full items-center justify-center rounded-2xl bg-rose-500 text-xl font-bold text-white shadow-sm transition hover:bg-rose-600 active:scale-95"
-                  >
-                    -
-                  </button>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
 
-          <div className="mt-6 rounded-3xl border border-slate-200 bg-slate-50/70 p-4">
-            <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-              <div>
-                <div className="text-sm font-semibold text-slate-800">
-                  Фамилии для документа
+          <button
+            type="button"
+            onClick={addRow}
+            className="
+    mt-4 flex w-full items-center justify-center gap-2
+    rounded-2xl border-2 border-dashed border-slate-200
+    bg-slate-50/50 px-5 py-4
+    text-sm font-semibold text-slate-500
+    transition-all duration-200
+    hover:border-indigo-300 hover:bg-indigo-50/60
+    hover:text-indigo-700
+    active:scale-[0.995]
+  "
+          >
+            <span className="text-xl leading-none">+</span>
+            Добавить ещё одну позицию
+          </button>
+          <div className="mt-6 rounded-2xl border border-slate-200 bg-slate-50/70 p-5">
+            <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+              <div className="min-w-0">
+                <div className="flex items-center gap-2">
+                  <div className="text-sm font-bold text-slate-800">
+                    Подписанты документа
+                  </div>
+
+                  {selectedSigners.length > 0 && (
+                    <span className="rounded-full bg-indigo-100 px-2 py-0.5 text-xs font-bold text-indigo-700">
+                      {selectedSigners.length}
+                    </span>
+                  )}
                 </div>
-                <div className="mt-1 text-sm text-slate-500">
-                  {selectedSigners.length
-                    ? selectedSigners.join(", ")
-                    : "Пока никто не выбран"}
+
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {selectedSigners.length ? (
+                    selectedSigners.map((signer) => (
+                      <button
+                        key={signer}
+                        type="button"
+                        onClick={() => toggleSigner(signer)}
+                        title="Убрать подписанта"
+                        className="
+                inline-flex max-w-full items-center gap-2
+                rounded-full border border-indigo-100
+                bg-white px-3 py-1.5
+                text-xs font-medium text-slate-600
+                transition
+                hover:border-rose-200
+                hover:bg-rose-50
+                hover:text-rose-600
+              "
+                      >
+                        <span className="truncate">{signer}</span>
+                        <span className="text-base leading-none">×</span>
+                      </button>
+                    ))
+                  ) : (
+                    <span className="text-sm text-slate-400">
+                      Подписанты пока не выбраны
+                    </span>
+                  )}
                 </div>
               </div>
 
               <button
                 type="button"
                 onClick={() => setSignersOpen(true)}
-                className="inline-flex items-center justify-center rounded-2xl border border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-100"
+                className="
+        inline-flex shrink-0 items-center justify-center gap-2
+        rounded-xl border border-slate-300 bg-white
+        px-5 py-3 text-sm font-semibold text-slate-700
+        shadow-sm transition
+        hover:border-indigo-300
+        hover:bg-indigo-50
+        hover:text-indigo-700
+        active:scale-[0.98]
+      "
               >
+                <span className="text-lg leading-none">+</span>
                 Добавить фамилии
               </button>
             </div>
           </div>
 
-          <div className="mt-6 flex flex-col gap-4 border-t border-slate-200 pt-6 md:flex-row md:items-center md:justify-between">
-            <label className="inline-flex items-center gap-3 text-sm font-medium text-slate-700">
+        </div>
+
+
+        <div className="sticky bottom-4 z-10 mt-6 rounded-2xl border border-slate-200 bg-white/90 p-4 shadow-[0_12px_40px_rgba(15,23,42,0.14)] backdrop-blur-xl">
+          <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+            <label className="flex cursor-pointer items-center gap-3">
               <input
                 type="checkbox"
                 checked={repeatNext}
-                onChange={(e) => setRepeatNext(e.target.checked)}
-                className="h-5 w-5 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                onChange={(e) =>
+                  setRepeatNext(e.target.checked)
+                }
+                className="peer sr-only"
               />
-              повторять
+
+              <span className="relative h-6 w-11 rounded-full bg-slate-200 transition peer-checked:bg-indigo-600">
+                <span className="absolute left-1 top-1 h-4 w-4 rounded-full bg-white shadow transition-transform peer-checked:translate-x-5" />
+              </span>
+
+              <span>
+                <span className="block text-sm font-semibold text-slate-700">
+                  Повторять предыдущую позицию
+                </span>
+                <span className="block text-xs text-slate-400">
+                  Новая строка будет заполнена теми же данными
+                </span>
+              </span>
             </label>
 
-            <div className="flex flex-col gap-3 sm:flex-row">
+            <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:justify-end">
               <button
                 type="button"
                 onClick={() => setTemplatesOpen(true)}
-                className="inline-flex items-center justify-center rounded-2xl border border-slate-300 bg-white px-6 py-3 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-100"
+                className="
+          inline-flex items-center justify-center rounded-xl
+          border border-slate-300 bg-white px-5 py-3
+          text-sm font-semibold text-slate-700
+          transition hover:bg-slate-100
+          active:scale-[0.98]
+        "
               >
                 Шаблоны
               </button>
@@ -676,17 +914,18 @@ export const AddPost = () => {
                 type="button"
                 disabled={isSavingTemplate}
                 onClick={handleSaveTemplate}
-                className="inline-flex items-center justify-center rounded-2xl border border-slate-300 bg-white px-6 py-3 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-60"
+                className="
+          inline-flex items-center justify-center rounded-xl
+          border border-slate-300 bg-white px-5 py-3
+          text-sm font-semibold text-slate-700
+          transition hover:bg-slate-100
+          active:scale-[0.98]
+          disabled:cursor-not-allowed disabled:opacity-50
+        "
               >
-                {isSavingTemplate ? "Сохранение..." : "Сохранить шаблон"}
-              </button>
-
-              <button
-                type="button"
-                onClick={addRow}
-                className="inline-flex items-center justify-center rounded-2xl bg-emerald-500 px-6 py-3 text-sm font-semibold text-white shadow-md transition hover:bg-emerald-600"
-              >
-                Добавить строчку
+                {isSavingTemplate
+                  ? "Сохранение..."
+                  : "Сохранить как шаблон"}
               </button>
 
               <button
@@ -694,9 +933,19 @@ export const AddPost = () => {
                 data-testid="AddPostSubmite"
                 disabled={isLoading}
                 onClick={handleCreatePost}
-                className="inline-flex items-center justify-center rounded-2xl bg-indigo-600 px-6 py-3 text-sm font-semibold text-white shadow-md transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-60"
+                className="
+          inline-flex min-w-[190px] items-center justify-center
+          rounded-xl bg-indigo-600 px-6 py-3
+          text-sm font-bold text-white shadow-lg
+          shadow-indigo-600/20 transition
+          hover:bg-indigo-700 hover:shadow-indigo-600/30
+          active:scale-[0.98]
+          disabled:cursor-not-allowed disabled:opacity-50
+        "
               >
-                {isLoading ? "Создание..." : "Сформировать заявку"}
+                {isLoading
+                  ? "Создание заявки..."
+                  : "Сформировать заявку"}
               </button>
             </div>
           </div>

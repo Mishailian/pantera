@@ -33,31 +33,31 @@ def serialize_role(role):
 
 
 def serialize_user(user):
+    role = user.role
+
     return {
         "id": user.id,
         "full_name": user.full_name,
         "number": user.number,
         "is_active": user.is_active,
-        "roles": [serialize_role(role) for role in user.roles],
+        "roles": [serialize_role(role)] if role else [],
         "created_at": user.created_at.isoformat() if user.created_at else None,
         "updated_at": user.updated_at.isoformat() if user.updated_at else None,
     }
-
 
 def serialize_user_min(user):
     if not user:
         return None
 
-    first_role = user.roles[0] if user.roles else None
+    role = user.role
 
     return {
         "id": user.id,
         "full_name": user.full_name,
         "number": user.number,
-        "role": first_role.name if first_role else None,
-        "role_label": first_role.description if first_role else None,
+        "role": role.name if role else None,
+        "role_label": role.description if role else None,
     }
-
 
 def serialize_tag(tag):
     return {

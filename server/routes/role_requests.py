@@ -120,63 +120,99 @@ def create_request():
 @role_requests_bp.patch("/<int:req_id>")
 def review_request(req_id):
     data = request.get_json() or {}
-    token = request.headers.get("Authorization", "").replace("Token ", "").strip()
+
+    token = (
+        request.headers
+        .get("Authorization", "")
+        .replace("Token ", "")
+        .strip()
+    )
+
     actor = AuthService.get_user_by_token(token)
+
     if not actor:
         return jsonify({"error": "Unauthorized"}), 401
 
     action = data.get("action")
-    if action not in ("approve", "reject"):
-        return jsonify({"error": "action must be 'approve' or 'reject'"}), 400
+
+    if action not in {"approve", "reject"}:
+        return jsonify({
+            "error": "action must be 'approve' or 'reject'"
+        }), 400
 
     req = db.session.get(RoleChangeRequest, req_id)
+
     if not req:
         return jsonify({"error": "Запрос не найден"}), 404
 
     head_role = ROLE_HEAD_MAP.get(req.requested_role)
-    if not (actor.has_role("admin") or (head_role and actor.has_role(head_role))):
+
+    can_review = (
+        actor.has_role("admin")
+        or (
+            head_role is not None
+            and actor.has_role(head_role)
+        )
+    )
+
+    if not can_review:
         return jsonify({"error": "Access denied"}), 403
 
     if req.status != "pending":
         return jsonify({"error": "Запрос уже обработан"}), 400
 
-    req.status = "approved" if action == "approve" else "rejected"
+    req.status = (
+        "approved"
+        if action == "approve"
+        else "rejected"
+    )
+
     req.reviewed_by_id = actor.id
     req.reviewed_at = datetime.utcnow()
 
     if action == "approve":
-        from models.user.user import User as UserModel
         from secrets import token_hex
-        user = db.session.get(UserModel, req.user_id)
-        if user:
-            if req.request_type == "registration":
-                # Активируем аккаунт — роль у пользователя уже есть с момента регистрации
-                user.is_active = True
-                if not user.token:
-                    user.token = token_hex(32)
-                history = UserProfileHistory(
-                    target_user_id=user.id,
-                    changed_by_user_id=actor.id,
-                    change_type="role",
-                    changed_by_role=head_role or "admin",
-                    old_value=None,
-                    new_value=req.requested_role,
-                )
-                db.session.add(history)
-            else:
-                role = Role.query.filter_by(name=req.requested_role).first()
-                if role:
-                    old_role = user.roles[0].name if user.roles else None
-                    user.roles = [role]
-                    history = UserProfileHistory(
-                        target_user_id=user.id,
-                        changed_by_user_id=actor.id,
-                        change_type="role",
-                        changed_by_role=head_role or "admin",
-                        old_value=old_role,
-                        new_value=req.requested_role,
-                    )
-                    db.session.add(history)
+        from models.user.user import User
 
-    db.session.commit()
+        user = db.session.get(User, req.user_id)
+
+        if not user:
+            return jsonify({"error": "User not found"}), 404
+
+        role = Role.query.filter_by(
+            name=req.requested_role
+        ).first()
+
+        if not role:
+            return jsonify({
+                "error": f"Role '{req.requested_role}' not found"
+            }), 400
+
+        old_role = user.role.name if user.role else None
+
+        user.role = role
+
+        if req.request_type == "registration":
+            user.is_active = True
+
+            if not user.token:
+                user.token = token_hex(32)
+
+        db.session.add(
+            UserProfileHistory(
+                target_user_id=user.id,
+                changed_by_user_id=actor.id,
+                change_type="role",
+                changed_by_role=head_role or "admin",
+                old_value=old_role,
+                new_value=role.name,
+            )
+        )
+
+    try:
+        db.session.commit()
+    except Exception:
+        db.session.rollback()
+        raise
+
     return jsonify(serialize_role_request(req)), 200

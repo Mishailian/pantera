@@ -1,9 +1,9 @@
 # models/user/user.py
 from datetime import datetime
+
 from werkzeug.security import generate_password_hash, check_password_hash
 
 from extensions import db
-from models.user.role import user_roles
 
 
 class User(db.Model):
@@ -11,28 +11,59 @@ class User(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
 
-    number = db.Column(db.String(50), unique=True, nullable=False, index=True)
-    password_hash = db.Column(db.String(255), nullable=False)
+    number = db.Column(
+        db.String(50),
+        unique=True,
+        nullable=False,
+        index=True,
+    )
 
-    full_name = db.Column(db.String(150), nullable=False)
-    is_active = db.Column(db.Boolean, nullable=False, default=True)
+    password_hash = db.Column(
+        db.String(255),
+        nullable=False,
+    )
 
-    token = db.Column(db.String(255), unique=True, nullable=True)
+    full_name = db.Column(
+        db.String(150),
+        nullable=False,
+    )
 
-    created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    is_active = db.Column(
+        db.Boolean,
+        nullable=False,
+        default=True,
+    )
+
+    token = db.Column(
+        db.String(255),
+        unique=True,
+        nullable=True,
+    )
+
+    role_id = db.Column(
+        db.Integer,
+        db.ForeignKey("roles.id", ondelete="RESTRICT"),
+        nullable=False,
+        index=True,
+    )
+
+    role = db.relationship(
+        "Role",
+        back_populates="users",
+        lazy="joined",
+    )
+
+    created_at = db.Column(
+        db.DateTime,
+        nullable=False,
+        default=datetime.utcnow,
+    )
+
     updated_at = db.Column(
         db.DateTime,
         nullable=False,
         default=datetime.utcnow,
         onupdate=datetime.utcnow,
-    )
-
-
-    roles = db.relationship(
-        "Role",
-        secondary=user_roles,
-        back_populates="users",
-        lazy="selectin",
     )
 
     def set_password(self, password: str) -> None:
@@ -42,18 +73,10 @@ class User(db.Model):
         return check_password_hash(self.password_hash, password)
 
     def has_role(self, role_name: str) -> bool:
-        return any(role.name == role_name for role in self.roles)
+        return self.role is not None and self.role.name == role_name
 
     def is_admin(self) -> bool:
         return self.has_role("admin")
-
-    def add_role(self, role) -> None:
-        if role not in self.roles:
-            self.roles.append(role)
-
-    def remove_role(self, role) -> None:
-        if role in self.roles:
-            self.roles.remove(role)
 
     def __repr__(self):
         return f"<User id={self.id} number={self.number}>"

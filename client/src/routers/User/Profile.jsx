@@ -1,22 +1,28 @@
 import { useDispatch, useSelector } from "react-redux";
 import { setToken } from "../../app/auth/authSlice";
 import {
+  apiSlice,
   useGetCurrentUserQuery,
   useUpdateCurrentUserMutation,
   useGetRegistrationRolesQuery,
-  useCreateRoleRequestMutation,
   useGetMyRoleRequestsQuery,
+  useCreateRoleRequestMutation,
 } from "../../app/api/apiSlice";
+
+import { clearAuth } from "../../app/auth/authSlice";
+import { useNavigate } from "react-router-dom";
+
 import { useEffect, useMemo, useState } from "react";
 
 const ROLES_REQUIRING_APPROVAL = new Set(["supply_manager", "it_department"]);
 
 export const Profile = () => {
+  const navigate = useNavigate();
   const { data: user, isLoading } = useGetCurrentUserQuery();
   const { data: roles = [], isLoading: rolesLoading } = useGetRegistrationRolesQuery();
   const { data: myRoleRequests = [] } = useGetMyRoleRequestsQuery();
   const [updateUser, { isLoading: isSaving }] = useUpdateCurrentUserMutation();
-  const [createRoleRequest, { isLoading: isRequesting }] = useCreateRoleRequestMutation();
+  const [createRoleRequest] = useCreateRoleRequestMutation();
   const dispatch = useDispatch();
   const authState = useSelector((state) => state.auth);
   const [editing, setEditing] = useState(false);
@@ -34,6 +40,12 @@ export const Profile = () => {
     setRoleName(user.roles?.[0]?.name || "");
     setNumber(user.number || "");
   }, [user]);
+
+  const handleLogout = () => {
+    dispatch(apiSlice.util.resetApiState());
+    dispatch(clearAuth());
+    navigate("/auth", { replace: true });
+  };
 
   const initials = useMemo(() => {
     const source = user?.full_name || "";
@@ -109,6 +121,7 @@ export const Profile = () => {
       setEditing(false);
       setSuccessText("Профиль успешно обновлён.");
     } catch (error) {
+      console.log(error)
       setErrorText(error?.data?.error || "Не удалось сохранить изменения.");
     }
   };
@@ -124,14 +137,6 @@ export const Profile = () => {
 
   return (
     <div className="mx-auto w-full max-w-5xl">
-      <div className="mb-8">
-        <h2 className="text-3xl font-semibold tracking-tight text-slate-900">
-          Профиль
-        </h2>
-        <p className="mt-2 text-sm text-slate-500">
-          Здесь можно посмотреть свои данные и обновить имя, роль или номер телефона.
-        </p>
-      </div>
 
       {pendingRoleRequest && (
         <div className="mb-5 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
@@ -153,24 +158,36 @@ export const Profile = () => {
         </div>
       ) : null}
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[280px_minmax(0,1fr)]">
-        <div className="rounded-3xl border border-stone-200 bg-gradient-to-b from-slate-50 to-white p-6 shadow-sm">
-          <div className="flex flex-col items-center text-center">
-            <div className="flex h-24 w-24 items-center justify-center rounded-full bg-slate-900 text-2xl font-semibold text-white shadow-sm">
-              {initials || "?"}
-            </div>
-
-            <div className="mt-4">
-              <div className="text-xl font-semibold text-slate-900">
-                {user.full_name}
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[280px_minmax(0,1fr)] mt-10">
+        <div className="rounded-3xl border border-stone-200 bg-gradient-to-b from-slate-50 to-white p-6 shadow-sm flex justify-between flex-col">
+          <div>
+            <div className="flex flex-col items-center text-center">
+              <div className="flex h-24 w-24 items-center justify-center rounded-full bg-slate-900 text-2xl font-semibold text-white shadow-sm">
+                {initials || "?"}
               </div>
-              <div className="mt-1 text-sm text-slate-500">{user.number || "—"}</div>
-            </div>
 
-            <div className="mt-4 inline-flex items-center rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-xs font-medium text-blue-700">
-              {currentRoleLabel}
+              <div className="mt-4">
+                <div className="text-xl font-semibold text-slate-900">
+                  {user.full_name}
+                </div>
+                <div className="mt-1 text-sm text-slate-500">{user.number || "—"}</div>
+              </div>
+
+              <div className="mt-4 inline-flex items-center rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-xs font-medium text-blue-700">
+                {currentRoleLabel}
+              </div>
             </div>
           </div>
+
+
+          <button
+            type="button"
+            onClick={handleLogout}
+            className="mt-8 inline-flex h-12 w-full items-center justify-center rounded-2xl bg-red-600 px-4 text-sm font-semibold text-white transition hover:bg-red-500 active:scale-[0.99]"
+          >
+            Выйти из аккаунта
+          </button>
+
         </div>
 
         <div className="rounded-3xl border border-stone-200 bg-white p-6 shadow-sm">
@@ -291,7 +308,8 @@ export const Profile = () => {
             </div>
           ) : null}
         </div>
+
       </div>
-    </div>
+    </div >
   );
 };

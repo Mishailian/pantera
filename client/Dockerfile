@@ -1,12 +1,13 @@
-FROM node:20-slim
+FROM node:22-bookworm-slim
 
 WORKDIR /app
 
-COPY package*.json ./
+COPY package.json package-lock.json ./
 
-RUN npm install
+RUN npm ci
 
 COPY . .
 
-CMD ["npm", "run", "dev", "--", "--host"]
+EXPOSE 5173
 
+CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0"]

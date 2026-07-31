@@ -1,58 +1,107 @@
-import { useParams, useNavigate, useLocation } from "react-router-dom";
-import { useSelector } from "react-redux";
 import {
-  useGetPostQuery,
-  useDeclaredPostMutation,
+  useNavigate,
+  useParams,
+} from "react-router-dom";
+
+import { useSelector } from "react-redux";
+
+import {
   useChangeRequestStatusMutation,
+  useDeclaredPostMutation,
+  useGetPostQuery,
 } from "../../app/api/apiSlice";
+
 import { SinglePostBlock } from "../../auxComponents/SinglePostBlock";
 import { progressCheck } from "../../progressCheck";
 
-export const UniversalSinglePost = () => {
+
+export const UniversalSinglePost = ({
+  mode,
+}) => {
   const { postId } = useParams();
   const navigate = useNavigate();
-  const location = useLocation();
 
-  // Строго определяем контекст (откуда открыли заявку)
-  let mode = "active";
-  if (location.pathname.includes("/undeclared")) mode = "undeclared";
-  else if (location.pathname.includes("/archived")) mode = "archived";
-  else if (location.pathname.includes("/my-requests")) mode = "my-requests";
-
-  const currentUserId = useSelector((state) => state.auth.username_id);
-  const currentUserRoles = useSelector((state) => state.auth.roles || []);
-
-  // Флаг админа (для точечных проверок внутри, если понадобятся)
-  const isAdmin = currentUserRoles.some((role) =>
-    (typeof role === "string" ? role : role?.name) === "admin"
+  const currentUserId = useSelector(
+    (state) => state.auth.username_id
   );
 
-  const isSupplyManager = currentUserRoles.some((role) =>
-    (typeof role === "string" ? role : role?.name) === "supply_manager"
+  const currentUserRoles = useSelector(
+    (state) => state.auth.roles || []
   );
 
-  // Универсальный запрос данных заявки
-  const postObject = useGetPostQuery({ postId });
-  const [declarePost] = useDeclaredPostMutation();
-  const [changeStatus] = useChangeRequestStatusMutation();
+  const hasRole = (roleName) => {
+    return currentUserRoles.some((role) => {
+      const currentRoleName =
+        typeof role === "string"
+          ? role
+          : role?.name;
 
-  // Владелец заявки может редактировать её содержимое, пока она без подписи
-  const canEditOwn =
-    mode === "my-requests" &&
-    postObject?.data?.status === "undeclared" &&
-    postObject?.data?.created_by_id === currentUserId;
+      return currentRoleName === roleName;
+    });
+  };
+
+  const isAdmin = hasRole("admin");
+
+  const isSupplyManager =
+    hasRole("supply_manager");
+
+  const isSupplyHead =
+    hasRole("supply_head");
+
+  const canSupplyEdit =
+    isAdmin ||
+    isSupplyManager ||
+    isSupplyHead;
+
+  const postObject =
+    useGetPostQuery({
+      postId,
+    });
+
+  const [declarePost] =
+    useDeclaredPostMutation();
+
+  const [changeStatus] =
+    useChangeRequestStatusMutation();
+
+  const requestData = postObject?.data;
+
+  const isOwner =
+    requestData?.created_by_id != null &&
+    Number(requestData.created_by_id) ===
+    Number(currentUserId);
+
+  const canAuthorEdit =
+    isOwner &&
+    requestData?.status === "undeclared";
+
+  const canEditRequest =
+    canSupplyEdit ||
+    canAuthorEdit;
+
+  const canManage =
+    mode !== "my-requests";
 
   const handleApprove = async () => {
     try {
       await declarePost({
         postId,
         changed_by_id: currentUserId,
-        comment: "Заявка переведена в active",
+        comment:
+          "Заявка переведена в active",
       }).unwrap();
-      navigate("/store/");
+
+      navigate("/store/page/1");
     } catch (error) {
-      console.error("Failed to approve request:", error);
-      alert("Не удалось перевести заявку в активные.");
+      console.error(
+        "Failed to approve request:",
+        error
+      );
+
+      alert(
+        error?.data?.error ||
+        "Не удалось перевести заявку в активные."
+      );
     }
   };
 
@@ -63,37 +112,56 @@ export const UniversalSinglePost = () => {
         status: "archived",
         changed_by_id: currentUserId,
       }).unwrap();
-      navigate("/archived/");
+
+      navigate("/archived/page/1");
     } catch (error) {
-      console.error("Failed to archive request:", error);
-      alert("Не удалось архивировать заявку.");
+      console.error(
+        "Failed to archive request:",
+        error
+      );
+
+      alert(
+        error?.data?.error ||
+        "Не удалось архивировать заявку."
+      );
     }
   };
 
   const content = progressCheck(
     {
       ...postObject,
+
       data: {
-        ...postObject.data,
+        ...requestData,
+
         postId,
         mode,
+
         isAdmin,
-        // Если мы НЕ в истории личных заявок, значит мы смотрим заявку с полными правами
-        canManage: mode !== "my-requests",
         isSupplyManager,
-        canEditOwn,
+        isSupplyHead,
+
+        canManage,
+        canEditRequest,
       },
     },
-    (data) => {
-      return (
-        <SinglePostBlock
-          data={data}
-          onApprove={mode === "undeclared" ? handleApprove : undefined}
-          onArchive={mode === "active" ? handleArchive : undefined}
-        />
-      );
-    }
+
+    (data) => (
+      <SinglePostBlock
+        data={data}
+        onApprove={
+          mode === "undeclared"
+            ? handleApprove
+            : undefined
+        }
+        onArchive={
+          mode === "active"
+            ? handleArchive
+            : undefined
+        }
+      />
+    )
   );
 
-  return <div>{content}</div>;
+  return <>{content}</>;
 };
