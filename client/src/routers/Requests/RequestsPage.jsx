@@ -41,6 +41,10 @@ import {
   Pagination,
 } from "./Pagination";
 
+import {
+  confirmAction,
+} from "../../utils/confirmAction";
+
 
 const REQUEST_PAGE_CONFIG = {
   active: {
@@ -623,31 +627,92 @@ export const RequestsPage = ({
     goToFirstPage();
   };
 
-  const handleArchive =
-    async (requestId) => {
+  const changeRequestStatus =
+    async ({
+      requestId,
+      nextStatus,
+      comment,
+      confirmMessage,
+      errorMessage,
+    }) => {
+      const confirmed =
+        confirmAction({
+          message:
+            confirmMessage,
+        });
+
+      if (!confirmed) {
+        return false;
+      }
+
       try {
         await archiveRequest({
           requestId,
-          status: "archived",
+          status:
+            nextStatus,
           changed_by_id:
             currentUserId,
-          comment:
-            "Заявка переведена в архив",
+          comment,
         }).unwrap();
+
+        return true;
       } catch (
-      archiveError
+      requestError
       ) {
         alert(
-          archiveError
+          requestError
             ?.data
             ?.error ||
-          "Не удалось завершить заявку."
+          errorMessage ||
+          "Не удалось изменить статус заявки."
         );
+
+        return false;
       }
+    };
+
+  const handleArchive =
+    async (requestId) => {
+      await changeRequestStatus({
+        requestId,
+        nextStatus:
+          "archived",
+        comment:
+          "Заявка переведена в архив",
+        confirmMessage:
+          "Вы уверены, что хотите отправить заявку в архив?",
+        errorMessage:
+          "Не удалось отправить заявку в архив.",
+      });
+    };
+
+  const handleRestore =
+    async (requestId) => {
+      await changeRequestStatus({
+        requestId,
+        nextStatus:
+          "active",
+        comment:
+          "Заявка возвращена из архива в активные",
+        confirmMessage:
+          "Вы уверены, что хотите вернуть заявку из архива в активные?",
+        errorMessage:
+          "Не удалось вернуть заявку из архива.",
+      });
     };
 
   const handleDelete =
     async (requestId) => {
+      const confirmed =
+        confirmAction({
+          message:
+            "Вы уверены, что хотите удалить заявку? Это действие может быть необратимым.",
+        });
+
+      if (!confirmed) {
+        return;
+      }
+
       const reason =
         window.prompt(
           "Укажите причину удаления или оставьте поле пустым:"
@@ -682,6 +747,16 @@ export const RequestsPage = ({
 
   const handleSign =
     async (requestId) => {
+      const confirmed =
+        confirmAction({
+          message:
+            "Вы уверены, что хотите подписать заявку и перевести её в активные?",
+        });
+
+      if (!confirmed) {
+        return;
+      }
+
       try {
         await declarePost({
           postId:
@@ -1233,6 +1308,9 @@ export const RequestsPage = ({
                       }
                       onSign={
                         handleSign
+                      }
+                      onRestore={
+                        handleRestore
                       }
                     />
                   )

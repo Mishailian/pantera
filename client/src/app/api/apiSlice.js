@@ -469,172 +469,116 @@ export const apiSlice =
             }),
           }),
 
+        getActiveRequests:
+          builder.query({
+            providesTags: [
+              "REQUESTS",
+            ],
 
-        getActiveRequests: builder.query({
-          providesTags: ["REQUESTS"],
-
-          query: ({
-            page = 1,
-            per_page = 15,
-            sort = "desc",
-            search,
-            search_field,
-            department,
-            assigned_to_id,
-          } = {}) => {
-            const queryString = buildQueryParams({
-              status: "active",
-              page,
-              per_page,
-              sort,
+            query: ({
+              page = 1,
+              per_page = 15,
+              sort = "desc",
               search,
               search_field,
               department,
               assigned_to_id,
-            });
+            } = {}) => {
+              const queryString =
+                buildQueryParams({
+                  status:
+                    "active",
+                  page,
+                  per_page,
+                  sort,
+                  search,
+                  search_field,
+                  department,
+                  assigned_to_id,
+                });
 
-            return {
-              url: `/requests/?${queryString}`,
-              method: "GET",
-            };
-          },
-        }),
+              return {
+                url:
+                  `/requests/?${queryString}`,
+                method:
+                  "GET",
+              };
+            },
+          }),
 
-        getUndeclaredRequests: builder.query({
-          providesTags: ["REQUESTS"],
+        getUndeclaredRequests:
+          builder.query({
+            providesTags: [
+              "REQUESTS",
+            ],
 
-          query: ({
-            page = 1,
-            per_page = 15,
-            sort = "desc",
-            search,
-            search_field,
-            department,
-            assigned_to_id,
-          } = {}) => {
-            const queryString = buildQueryParams({
-              status: "undeclared",
-              page,
-              per_page,
-              sort,
+            query: ({
+              page = 1,
+              per_page = 15,
+              sort = "desc",
               search,
               search_field,
               department,
               assigned_to_id,
-            });
+            } = {}) => {
+              const queryString =
+                buildQueryParams({
+                  status:
+                    "undeclared",
+                  page,
+                  per_page,
+                  sort,
+                  search,
+                  search_field,
+                  department,
+                  assigned_to_id,
+                });
 
-            return {
-              url: `/requests/?${queryString}`,
-              method: "GET",
-            };
-          },
-        }),
+              return {
+                url:
+                  `/requests/?${queryString}`,
+                method:
+                  "GET",
+              };
+            },
+          }),
 
-        getArchivedRequests: builder.query({
-          providesTags: ["REQUESTS"],
+        getArchivedRequests:
+          builder.query({
+            providesTags: [
+              "REQUESTS",
+            ],
 
-          query: ({
-            page = 1,
-            per_page = 15,
-            sort = "desc",
-            search,
-            search_field,
-            department,
-            assigned_to_id,
-          } = {}) => {
-            const queryString = buildQueryParams({
-              status: "archived",
-              page,
-              per_page,
-              sort,
+            query: ({
+              page = 1,
+              per_page = 15,
+              sort = "desc",
               search,
               search_field,
               department,
               assigned_to_id,
-            });
+            } = {}) => {
+              const queryString =
+                buildQueryParams({
+                  status:
+                    "archived",
+                  page,
+                  per_page,
+                  sort,
+                  search,
+                  search_field,
+                  department,
+                  assigned_to_id,
+                });
 
-            return {
-              url: `/requests/?${queryString}`,
-              method: "GET",
-            };
-          },
-        }),
-
-
-
-        getUndeclaredRequests: builder.query({
-          providesTags: [
-            "REQUESTS",
-          ],
-
-          query: ({
-            page = 1,
-            per_page = 15,
-            sort = "desc",
-            search,
-            search_field,
-            department,
-            assigned_to_id,
-          } = {}) => {
-            const queryString =
-              buildQueryParams({
-                status: "undeclared",
-                page,
-                per_page,
-                sort,
-                search,
-                search_field,
-                department,
-                assigned_to_id,
-              });
-
-            return {
-              url:
-                `/requests/?${queryString}`,
-              method:
-                "GET",
-            };
-          },
-        }),
-
-
-
-        getArchivedRequests: builder.query({
-          providesTags: [
-            "REQUESTS",
-          ],
-
-          query: ({
-            page = 1,
-            per_page = 15,
-            sort = "desc",
-            search,
-            search_field,
-            department,
-            assigned_to_id,
-          } = {}) => {
-            const queryString =
-              buildQueryParams({
-                status: "archived",
-                page,
-                per_page,
-                sort,
-                search,
-                search_field,
-                department,
-                assigned_to_id,
-              });
-
-            return {
-              url:
-                `/requests/?${queryString}`,
-              method:
-                "GET",
-            };
-          },
-        }),
-
-
+              return {
+                url:
+                  `/requests/?${queryString}`,
+                method:
+                  "GET",
+              };
+            },
+          }),
 
         getDeletedRequests:
           builder.query({
