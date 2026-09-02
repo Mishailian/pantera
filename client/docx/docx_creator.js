@@ -58,6 +58,12 @@ const DOCX_CONFIG = {
     afterSpacing: 200,
   },
 
+  purpose: {
+    label: "Цель покупки:",
+    afterSpacing: 180,
+    labelBold: true,
+  },
+
   requestNumber: {
     prefix: "",
     beforeSpacing: 180,
@@ -398,6 +404,41 @@ const createTopHeaderParagraphs = (
   ];
 
 
+const createPurposeParagraph = (purpose) => {
+  const normalizedPurpose =
+    normalizeText(purpose);
+
+  return new Paragraph({
+    alignment: AlignmentType.LEFT,
+
+    spacing: {
+      before: 0,
+      after:
+        DOCX_CONFIG.purpose.afterSpacing,
+    },
+
+    children: [
+      new TextRun({
+        text:
+          `${DOCX_CONFIG.purpose.label} `,
+        bold:
+          DOCX_CONFIG.purpose.labelBold,
+        size:
+          DOCX_CONFIG.font.defaultSize,
+      }),
+
+      new TextRun({
+        text:
+          normalizedPurpose ||
+          "_______________________________",
+        size:
+          DOCX_CONFIG.font.defaultSize,
+      }),
+    ],
+  });
+};
+
+
 const createRequestTable = (rows) => {
   return new Table({
     width: {
@@ -520,6 +561,7 @@ export const docxCreator = (
 ) => {
   const rows =
     mapRequestToDocxRows(requestData);
+
   const signerParagraphs =
     createSignerParagraphs(
       selectedSigners
@@ -535,6 +577,10 @@ export const docxCreator = (
   const departmentLabel = normalizeText(
     requestData?.created_by_user
       ?.role_label
+  );
+
+  const purpose = normalizeText(
+    requestData?.comment
   );
 
   const doc = new Document({
@@ -631,6 +677,10 @@ export const docxCreator = (
             ],
           }),
 
+          createPurposeParagraph(
+            purpose
+          ),
+
           createRequestTable(rows),
 
           ...signerParagraphs,
@@ -642,8 +692,14 @@ export const docxCreator = (
   });
 
   Packer.toBlob(doc).then((blob) => {
+    const fullName =
+      normalizeText(
+        requestData?.created_by_user
+          ?.full_name
+      );
+
     const fileName = requestData?.id
-      ? `${requestData.id} - ${requestData.created_by_user.full_name}.docx`
+      ? `${requestData.id} - ${fullName || "user"}.docx`
       : "zayavka.docx";
 
     saveAs(blob, fileName);
