@@ -24,6 +24,7 @@ class RequestService:
         "done",
         "rejected",
         "on_payment",
+        "in_manufacture",
         "on_the_way"
     }
 

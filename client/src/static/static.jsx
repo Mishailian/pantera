@@ -126,6 +126,13 @@ export const ITEM_STATUS_META = {
       "bg-blue-50 text-blue-800 border-blue-200 focus:ring-blue-500/20 focus:border-blue-500",
   },
 
+  in_manufacture: {
+    label: "В производстве
+    badge: "bg-purple-100 text-purple-800",
+    selectBadge:
+      "bg-purple-50 text-purple-800 border-purple-200 focus:ring-purple-500/20 focus:border-purple-500",
+  },
+
   on_the_way: {
     label: "В пути",
     badge: "bg-purple-100 text-purple-800",
