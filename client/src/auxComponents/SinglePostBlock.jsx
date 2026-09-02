@@ -1306,9 +1306,16 @@ export const SinglePostBlock = ({
                                     <option value="on_payment">
                                       На оплате
                                     </option>
+
+
+                                    <option value="in_manufacture">
+                                      В производстве
+                                    </option>
+
                                     <option value="on_the_way">
                                       В пути
                                     </option>
+
                                     <option value="done">
                                       Выполнено
                                     </option>
