@@ -1057,14 +1057,6 @@ export const SinglePostBlock = ({
                                 placeholder="Наименование"
                                 rows={2}
                                 className="w-full resize-none rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-800 shadow-sm outline-none transition focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10"
-                                style={{
-                                  fontFamily:
-                                    "'Times New Roman', Times, serif",
-                                  fontSize:
-                                    "12pt",
-                                  lineHeight:
-                                    "1.4",
-                                }}
                               />
                             </label>
 
