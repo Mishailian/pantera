@@ -1274,32 +1274,7 @@ export const SinglePostBlock = ({
                                       disabled:opacity-50
                                       ${itemMeta.selectBadge}
                                     `}
-                                  >
-                                    <option value="in_progress">
-                                      В работе
-                                    </option>
-
-                                    <option value="on_payment">
-                                      На оплате
-                                    </option>
-
-
-                                    <option value="in_manufacture">
-                                      В производстве
-                                    </option>
-
-                                    <option value="on_the_way">
-                                      В пути
-                                    </option>
-
-                                    <option value="done">
-                                      Выполнено
-                                    </option>
-
-                                    <option value="rejected">
-                                      Отказ
-                                    </option>
-                                  </select>
+                                  >{Object.keys(ITEM_STATUS_META).forEach(key => {<option value=`${key}`>{ITEM_STATUS_META[key]}</option>)}
                                 ) : (
                                   <span
                                     className={`
