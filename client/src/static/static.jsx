@@ -141,7 +141,7 @@ export const ITEM_STATUS_META = {
   },
 
   done: {
-    label: "Выполнено",
+    label: "Выполнено (На Складе)",
     badge: "bg-emerald-100 text-emerald-800",
     selectBadge:
       "bg-emerald-50 text-emerald-800 border-emerald-200 focus:ring-emerald-500/20 focus:border-emerald-500",
