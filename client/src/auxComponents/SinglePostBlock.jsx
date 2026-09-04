@@ -1274,7 +1274,7 @@ export const SinglePostBlock = ({
                                       disabled:opacity-50
                                       ${itemMeta.selectBadge}
                                     `}
-                                  >{Object.keys(ITEM_STATUS_META).forEach(key => {<option value={`${key}`}>{ITEM_STATUS_META[key]}</option>})}
+                                  >{Object.keys(ITEM_STATUS_META).forEach(key => {<option value={`${key}`}>{ITEM_STATUS_META[key]}</option>})}</select>
                                 ) : (
                                   <span
                                     className={`
