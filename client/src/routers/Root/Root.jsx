@@ -52,7 +52,7 @@ export const Root = () => {
 
   // Кто видит управление заявками (store/undeclared/archived)
   const canSeeManagementRequests = useMemo(
-    () => roleNames.some((r) => ["admin", "supply_manager", "supply_head", "rezo_department", "rezo_head"].includes(r)),
+    () => roleNames.some((r) => ["admin", "supply_manager", "supply_head", "rezo_department", "rezo_head", "finance_department"].includes(r)),
     [roleNames]
   );
 
