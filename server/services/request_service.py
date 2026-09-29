@@ -61,6 +61,8 @@ class RequestService:
 
     DELETE_ROLES = {
         "admin",
+        "supply_head",
+        "supply_manager",
     }
 
     @staticmethod
