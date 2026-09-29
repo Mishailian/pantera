@@ -292,7 +292,9 @@ export const RequestsPage = ({
 
   const isAdmin =
     roleNames.includes(
-      "admin"
+      "admin",
+      "supply_manager",
+      "supply_head"
     );
 
   const canManage =
