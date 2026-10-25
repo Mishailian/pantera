@@ -2,17 +2,25 @@ services:
   postgres:
     image: postgres:16
     restart: unless-stopped
+
     environment:
       POSTGRES_DB: pantera
       POSTGRES_USER: pantera_user
       POSTGRES_PASSWORD: pantera_pass
+
     volumes:
       - ${DB_DATA_PATH:-postgres_data}:/var/lib/postgresql/data
-    ports:
-      - "5432:5432"
+
     networks:
       - app-network
 
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U pantera_user -d pantera"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+      
   backend:
     build:
       context: ../server
@@ -24,8 +32,12 @@ services:
     command: python run.py
     env_file:
       - ../server/.env
+    environment:
+      FLASK_APP: manage:app
+      PYTHONPATH: /app
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
     networks:
       - app-network
 
